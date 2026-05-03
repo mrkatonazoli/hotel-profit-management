@@ -1,0 +1,430 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  role          UserRole  @default(MANAGER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  hotelUsers    HotelUser[]
+  sessions      Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  MANAGER
+  VIEWER
+}
+
+// ─── HOTEL CONFIG ────────────────────────────────────────────────────────────
+
+model Hotel {
+  id            String       @id @default(cuid())
+  name          String
+  city          String
+  country       String       @default("HU")
+  baseCurrency  String       @default("HUF")
+  totalRooms    Int?
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  billingName   String?
+  billingAddress String?
+  billingTaxNumber String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  hotelUsers      HotelUser[]
+  roomTypes       RoomType[]
+  scenarios       Scenario[]
+  costs           Cost[]
+  boardTypes      HotelBoardType[]
+  distributors    Distributor[]
+  historicalData  HistoricalPickup[]
+  exchangeRates   ExchangeRate[]
+  childAgeGroups  ChildAgeGroup[]
+}
+
+model HotelUser {
+  id        String    @id @default(cuid())
+  hotelId   String
+  userId    String
+  role      HotelRole @default(MANAGER)
+  hotel     Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, userId])
+}
+
+enum HotelRole {
+  MANAGER
+  VIEWER
+}
+
+model RoomType {
+  id            String   @id @default(cuid())
+  hotelId       String
+  name          String
+  count         Int
+  maxOccupancy  Int?
+  createdAt     DateTime @default(now())
+  hotel         Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  scenarioWeights  RoomTypeWeight[]
+  boardTypeRows    PlanDayBoardType[]
+  boardTypeShares  RoomTypeBoardTypeShare[]
+}
+
+model RoomTypeWeight {
+  id             String   @id @default(cuid())
+  scenarioId     String
+  roomTypeId     String
+  occShareMult   Float    @default(1.0) // Népszerűségi szorzó — 1.3 = 30%-kal népszerűbb az átlagnál
+  adultsPerRoom  Float    @default(1.7) // Várható felnőttszám/szoba: 1.0–2.0 közötti csúszka (1.7 ≈ 30% egyes, 70% páros szoba)
+  scenario       Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  roomType       RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([scenarioId, roomTypeId])
+}
+
+// Ellátástípus arányok szobatípusonként — generáláskor ez dönti el a BB/HB/FB/stb. elosztást
+model RoomTypeBoardTypeShare {
+  id         String   @id @default(cuid())
+  scenarioId String
+  roomTypeId String
+  boardType  String   // RO | BB | HB | FB | AI
+  sharePct   Float    @default(0)
+  scenario   Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([scenarioId, roomTypeId, boardType])
+}
+
+// ─── SCENARIOS ───────────────────────────────────────────────────────────────
+
+model Scenario {
+  id              String   @id @default(cuid())
+  hotelId         String
+  name            String
+  description     String?
+  probability     Int      // 0–100
+  isBase          Boolean  @default(false)
+  year            Int
+  weightingNote   String?  // Általános AI kontextus a súlyozáshoz
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  hotel           Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  months           ScenarioMonth[]
+  planDays         PlanDay[]
+  dayTypeWeights   DayTypeWeight[]
+  seasonWeights    SeasonWeight[]
+  variables        ScenarioVariable[]
+  roomTypeWeights  RoomTypeWeight[]
+  boardTypeShares  RoomTypeBoardTypeShare[]
+}
+
+model ScenarioVariable {
+  id         String   @id @default(cuid())
+  scenarioId String
+  name       String   // Változó neve, pl. "Fesztivál hatása"
+  value      String   // Szöveges értéke
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  scenario   Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+}
+
+// ─── REVENUE PLANNER ─────────────────────────────────────────────────────────
+
+model ScenarioMonth {
+  id           String   @id @default(cuid())
+  scenarioId   String
+  month        Int      // 1–12
+  occupancyPct Float    @default(0)
+  adr          Int      @default(0)
+  fbRevenue    Int      @default(0)
+  spaRevenue   Int      @default(0)
+  otherRevenue Int      @default(0)
+  scenario     Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  @@unique([scenarioId, month])
+}
+
+model PlanDay {
+  id              String   @id @default(cuid())
+  scenarioId      String
+  date            DateTime @db.Date
+  occupancyPct    Float
+  adr             Int
+  roomRevenue     Int
+  fbRevenue       Int      @default(0)
+  spaRevenue      Int      @default(0)
+  otherRevenue    Int      @default(0)
+  adultCount      Int      @default(0)   // összesítő — a boardTypes soraiból számolt
+  childCount      Int      @default(0)   // összesítő — a boardTypes soraiból számolt
+  scenario        Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  boardTypes      PlanDayBoardType[]
+
+  @@unique([scenarioId, date])
+}
+
+// ─── GYEREKKORCSOPORTOK ───────────────────────────────────────────────────────
+
+model ChildAgeGroup {
+  id               String   @id @default(cuid())
+  hotelId          String
+  name             String   // pl. "Kisgyermek", "Gyerek", "Junior"
+  minAge           Int      // pl. 0
+  maxAge           Int      // pl. 2
+  sortOrder        Int      @default(0)
+  hotel            Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  boardTypeChildren PlanDayBoardTypeChild[]
+  labChildAmounts  LabSettingChildAmount[]
+}
+
+// Egy nap, egy szobatípus, egy ellátástípus kombinációjához tartozó vendégszámok
+model PlanDayBoardType {
+  id          String   @id @default(cuid())
+  planDayId   String
+  roomTypeId  String                  // KÖTELEZŐ — mindig szobatípushoz kötött
+  boardType   String                  // RO | BB | HB | FB | AI
+  roomCount   Int      @default(0)
+  adultCount  Int      @default(0)
+  planDay     PlanDay  @relation(fields: [planDayId], references: [id], onDelete: Cascade)
+  roomType    RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  childCounts PlanDayBoardTypeChild[]
+
+  @@unique([planDayId, roomTypeId, boardType])
+}
+
+// Egy ellátástípuson belül korcsoportonként hány gyerek van
+model PlanDayBoardTypeChild {
+  id                 String           @id @default(cuid())
+  planDayBoardTypeId String
+  childAgeGroupId    String
+  count              Int              @default(0)
+  planDayBoardType   PlanDayBoardType @relation(fields: [planDayBoardTypeId], references: [id], onDelete: Cascade)
+  childAgeGroup      ChildAgeGroup    @relation(fields: [childAgeGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([planDayBoardTypeId, childAgeGroupId])
+}
+
+// ─── SÚLYOZÁS ────────────────────────────────────────────────────────────────
+
+model DayTypeWeight {
+  id         String   @id @default(cuid())
+  scenarioId String
+  dayOfWeek  Int      // 0=Vas, 1=Hét, 2=Kedd, 3=Sze, 4=Csüt, 5=Pén, 6=Szo
+  occMult    Float    @default(1.0)
+  adrMult    Float    @default(1.0)
+  fbMult     Float    @default(1.0)
+  spaMult    Float    @default(1.0)
+  otherMult  Float    @default(1.0)
+  note       String?  // Csoport-szintű AI megjegyzés
+  scenario   Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  @@unique([scenarioId, dayOfWeek])
+}
+
+model SeasonWeight {
+  id         String   @id @default(cuid())
+  scenarioId String
+  name       String
+  monthFrom  Int      // 1–12
+  dayFrom    Int      // 1–31
+  monthTo    Int      // 1–12
+  dayTo      Int      // 1–31
+  occMult    Float    @default(1.0)
+  adrMult    Float    @default(1.0)
+  fbMult     Float    @default(1.0)
+  spaMult    Float    @default(1.0)
+  otherMult  Float    @default(1.0)
+  note       String?  // Időszak-specifikus AI kontextus
+  scenario   Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+}
+
+// ─── COSTS ───────────────────────────────────────────────────────────────────
+
+model Cost {
+  id          String      @id @default(cuid())
+  hotelId     String
+  name        String
+  type        CostType
+  nature      CostNature
+  recurringFrequency  RecurringFrequency @default(MONTHLY)
+  recurringStartDate  DateTime?  @db.Date
+  amountType  AmountType  @default(FIXED_AMOUNT)
+  amount      Int?
+  percentage  Float?
+  percentageBase PercentageBase @default(TOTAL_REVENUE)
+  currency    String      @default("HUF")
+  isStaff     Boolean     @default(false)  // Bér hibrid: fix alap + occupancy-alapú extra staff
+  note        String?
+  createdAt   DateTime    @default(now())
+  hotel       Hotel       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  staffRules  StaffRule[]
+}
+
+enum PercentageBase {
+  TOTAL_REVENUE
+  ROOM_REVENUE
+  PER_ROOM_NIGHT
+}
+
+enum CostType {
+  FIXED
+  VARIABLE
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+}
+
+enum CostNature {
+  RECURRING
+  ONE_TIME
+}
+
+enum AmountType {
+  FIXED_AMOUNT
+  PERCENTAGE
+}
+
+model StaffRule {
+  id                String  @id @default(cuid())
+  costId            String
+  occupancyFrom     Float
+  occupancyTo       Float?
+  extraStaffCount   Int
+  dailyRate         Int
+  cost              Cost    @relation(fields: [costId], references: [id], onDelete: Cascade)
+}
+
+// ─── HOTEL BOARD TYPES (mely ellátástípusokat kínálja a szálloda) ─────────────
+
+model HotelBoardType {
+  id          String       @id @default(cuid())
+  hotelId     String
+  boardType   String       // RO | BB | HB | FB | AI
+  sortOrder   Int          @default(0)
+  hotel       Hotel        @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  labSettings LabSetting[]
+
+  @@unique([hotelId, boardType])
+}
+
+// ─── LAB (ellátási költség ellátástípusonként, szezonálisan) ──────────────────
+
+model LabSetting {
+  id               String         @id @default(cuid())
+  hotelBoardTypeId String
+  validFrom        DateTime       @db.Date
+  validTo          DateTime       @db.Date
+  adultAmount      Int            @default(0)  // Ft/fő/éj felnőttekre
+  currency         String         @default("HUF")
+  hotelBoardType   HotelBoardType @relation(fields: [hotelBoardTypeId], references: [id], onDelete: Cascade)
+  childAmounts     LabSettingChildAmount[]
+}
+
+// LAB gyerekkorcsoport-specifikus összeg
+model LabSettingChildAmount {
+  id              String        @id @default(cuid())
+  labSettingId    String
+  childAgeGroupId String
+  amount          Int           @default(0)   // Ft/fő/éj
+  labSetting      LabSetting    @relation(fields: [labSettingId], references: [id], onDelete: Cascade)
+  childAgeGroup   ChildAgeGroup @relation(fields: [childAgeGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([labSettingId, childAgeGroupId])
+}
+
+// ─── DISTRIBUTORS ────────────────────────────────────────────────────────────
+
+model Distributor {
+  id            String  @id @default(cuid())
+  hotelId       String
+  name          String
+  commissionPct Float
+  hotel         Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+}
+
+// ─── HISTORICAL IMPORT ───────────────────────────────────────────────────────
+
+model HistoricalPickup {
+  id              String   @id @default(cuid())
+  hotelId         String
+  arrivalDate     DateTime @db.Date
+  snapshotDate    DateTime @db.Date
+  roomsSold       Int
+  revenue         Int
+  adr             Int
+  importBatchId   String
+  hotel           Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, arrivalDate, snapshotDate])
+  @@index([hotelId, arrivalDate])
+}
+
+// ─── AI TOKEN LOG ────────────────────────────────────────────────────────────
+
+model AiTokenLog {
+  id           String   @id @default(cuid())
+  date         DateTime @db.Date
+  feature      String   // "generate_constraints" | "summary" | "refine_variable"
+  model        String   // "claude-haiku-4-5"
+  inputTokens  Int
+  outputTokens Int
+  userId       String?
+  createdAt    DateTime @default(now())
+
+  @@index([date])
+  @@index([feature])
+}
+
+// ─── CURRENCY ────────────────────────────────────────────────────────────────
+
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  hotelId   String
+  fromCcy   String
+  toCcy     String
+  rate      Float
+  date      DateTime @db.Date
+  source    String   @default("MNB")
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, fromCcy, toCcy, date])
+}
