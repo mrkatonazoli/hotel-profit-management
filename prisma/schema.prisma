@@ -59,10 +59,12 @@ model Hotel {
   billingName   String?
   billingAddress String?
   billingTaxNumber String?
+  isOnboarded   Boolean      @default(false)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
   hotelUsers      HotelUser[]
+  invites         Invite[]
   roomTypes       RoomType[]
   scenarios       Scenario[]
   costs           Cost[]
@@ -82,6 +84,19 @@ model HotelUser {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([hotelId, userId])
+}
+
+model Invite {
+  id        String    @id @default(cuid())
+  hotelId   String
+  email     String
+  role      HotelRole @default(VIEWER)
+  token     String    @unique @default(cuid())
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  hotel     Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, email])
 }
 
 enum HotelRole {
@@ -371,14 +386,19 @@ model LabSettingChildAmount {
   @@unique([labSettingId, childAgeGroupId])
 }
 
-// ─── DISTRIBUTORS ────────────────────────────────────────────────────────────
+// ─── DISTRIBUTORS / SALES CHANNELS ───────────────────────────────────────────
+// Értékesítési csatorna (pl. Booking.com, Szállás.hu, Direkt).
+// isCommission=true → megjelenik a Costs → Közvetítők fülön, ahol a jutalék % beállítható.
 
 model Distributor {
-  id            String  @id @default(cuid())
+  id            String   @id @default(cuid())
   hotelId       String
   name          String
-  commissionPct Float
-  hotel         Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  isCommission  Boolean  @default(true)   // jutalékos csatorna-e?
+  commissionPct Float    @default(0)      // jutalék %, csak ha isCommission=true
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  hotel         Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 }
 
 // ─── HISTORICAL IMPORT ───────────────────────────────────────────────────────

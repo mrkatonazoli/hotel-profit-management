@@ -9,13 +9,15 @@ export async function PUT(req: Request, { params }: Ctx) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { distributorId } = await params;
-  const { name, commissionPct } = await req.json();
+  const { name, isCommission, commissionPct, sortOrder } = await req.json();
 
   const dist = await prisma.distributor.update({
     where: { id: distributorId },
     data: {
-      ...(name !== undefined && { name: String(name) }),
+      ...(name !== undefined && { name: String(name).trim() }),
+      ...(isCommission !== undefined && { isCommission: Boolean(isCommission) }),
       ...(commissionPct !== undefined && { commissionPct: Number(commissionPct) }),
+      ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
     },
   });
 

@@ -2,13 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { CostType, CostNature, AmountType, PercentageBase, RecurringFrequency } from "@prisma/client";
-
-async function getHotel() {
-  return prisma.hotel.findFirst();
-}
+import { getActiveHotel } from "@/lib/get-hotel";
 
 export async function GET() {
-  const hotel = await getHotel();
+  const hotel = await getActiveHotel();
   if (!hotel) return NextResponse.json([], { status: 200 });
 
   const costs = await prisma.cost.findMany({
@@ -24,7 +21,7 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const hotel = await getHotel();
+  const hotel = await getActiveHotel();
   if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 404 });
 
   const body = await req.json();

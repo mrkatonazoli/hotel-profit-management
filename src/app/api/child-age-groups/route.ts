@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getActiveHotel } from "@/lib/get-hotel";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const hotel = await prisma.hotel.findFirst();
+    const hotel = await getActiveHotel();
     if (!hotel) return NextResponse.json([]);   // nincs hotel → üres lista, nem 404
 
     const groups = await prisma.childAgeGroup.findMany({
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const hotel = await prisma.hotel.findFirst();
+    const hotel = await getActiveHotel();
     if (!hotel) return NextResponse.json({ error: "Nincs hotel konfigurálva" }, { status: 404 });
 
     const body = await req.json();

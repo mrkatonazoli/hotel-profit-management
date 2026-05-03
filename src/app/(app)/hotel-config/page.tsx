@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Save, Building2, Bed, Loader2, Pencil, X, Check, Phone, Mail, Receipt, Users, Baby } from "lucide-react";
+import { Plus, Trash2, Save, Building2, Bed, Loader2, Pencil, X, Check, Phone, Mail, Receipt, Users, Baby, Globe } from "lucide-react";
 
 type RoomType = { id: string; name: string; count: number; maxOccupancy: number | null };
 type ChildAgeGroup = { id: string; name: string; minAge: number; maxAge: number; sortOrder: number };
+type SalesChannel = { id: string; name: string; isCommission: boolean; sortOrder: number };
 type Hotel = {
   id: string; name: string; city: string; country: string; baseCurrency: string;
   totalRooms: number | null; contactName: string | null; contactEmail: string | null; contactPhone: string | null;
@@ -61,6 +62,15 @@ export default function HotelConfigPage() {
   const [activeBoardTypes, setActiveBoardTypes] = useState<string[]>([]);
   const [boardTypeSaving, setBoardTypeSaving] = useState(false);
 
+  // Sales channels
+  const [channels, setChannels] = useState<SalesChannel[]>([]);
+  const [addingChannel, setAddingChannel] = useState(false);
+  const [newChannel, setNewChannel] = useState({ name: "", isCommission: true });
+  const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
+  const [editChannel, setEditChannel] = useState({ name: "", isCommission: true });
+  const [channelLoading, setChannelLoading] = useState<string | null>(null);
+  const [channelError, setChannelError] = useState<string | null>(null);
+
   useEffect(() => {
     async function load() {
       try {
@@ -99,6 +109,16 @@ export default function HotelConfigPage() {
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) setActiveBoardTypes(data);
+        }
+      } catch {
+        // silent
+      }
+
+      try {
+        const res = await fetch("/api/distributors");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) setChannels(data);
         }
       } catch {
         // silent
@@ -181,6 +201,76 @@ export default function HotelConfigPage() {
       setChildGroups(prev => prev.filter(x => x.id !== id));
     } finally {
       setGroupLoading(null);
+    }
+  }
+
+  // ─── Sales channel handlers ─────────────────────────────────────────────────
+  async function handleAddChannel() {
+    const name = newChannel.name.trim();
+    if (!name) return;
+    setChannelLoading("new");
+    setChannelError(null);
+    try {
+      const res = await fetch("/api/distributors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, isCommission: newChannel.isCommission, sortOrder: channels.length }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setChannels(prev => [...prev, data]);
+        setNewChannel({ name: "", isCommission: true });
+        setAddingChannel(false);
+      } else {
+        console.error("[handleAddChannel] API error:", res.status, data);
+        setChannelError(data?.error ?? `Mentési hiba (${res.status})`);
+      }
+    } catch (err) {
+      console.error("[handleAddChannel] Network error:", err);
+      setChannelError("Hálózati hiba — próbáld újra.");
+    } finally {
+      setChannelLoading(null);
+    }
+  }
+
+  async function handleUpdateChannel(id: string) {
+    const name = editChannel.name.trim();
+    if (!name) return;
+    setChannelLoading(id);
+    try {
+      const res = await fetch(`/api/distributors/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, isCommission: editChannel.isCommission }),
+      });
+      if (res.ok) {
+        const ch = await res.json();
+        setChannels(prev => prev.map(x => x.id === id ? ch : x));
+        setEditingChannelId(null);
+      }
+    } finally {
+      setChannelLoading(null);
+    }
+  }
+
+  async function handleToggleCommission(ch: SalesChannel) {
+    const next = !ch.isCommission;
+    setChannels(prev => prev.map(x => x.id === ch.id ? { ...x, isCommission: next } : x));
+    await fetch(`/api/distributors/${ch.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isCommission: next }),
+    });
+  }
+
+  async function handleDeleteChannel(id: string) {
+    if (!confirm("Biztosan törlöd ezt az értékesítési csatornát?")) return;
+    setChannelLoading(id);
+    try {
+      await fetch(`/api/distributors/${id}`, { method: "DELETE" });
+      setChannels(prev => prev.filter(x => x.id !== id));
+    } finally {
+      setChannelLoading(null);
     }
   }
 
@@ -758,6 +848,147 @@ export default function HotelConfigPage() {
         </div>
       </div>
 
+      {/* ── Értékesítési csatornák ── */}
+      <div className="rounded-2xl p-6" style={{ background: "white", border: "1px solid #E2E8F0" }}>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#EFF6FF" }}>
+              <Globe size={18} style={{ color: "#3B82F6" }} />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold" style={{ color: "#0F172A" }}>Értékesítési csatornák</h2>
+              <p className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
+                Jelöld be, melyik csatornák jutalékosak — a Kiadásoknál beállítható a jutalék %
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setAddingChannel(true); setEditingChannelId(null); }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: "#EFF6FF", color: "#3B82F6" }}>
+            <Plus size={14} /> Csatorna
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {channels.length === 0 && !addingChannel && (
+            <p className="text-sm text-center py-6" style={{ color: "#CBD5E1" }}>
+              Még nincs rögzített értékesítési csatorna
+            </p>
+          )}
+
+          {channels.map(ch => (
+            <div key={ch.id}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl"
+              style={{ border: "1.5px solid #E2E8F0", background: "#FAFAFA" }}>
+
+              {editingChannelId === ch.id ? (
+                <>
+                  <input
+                    className="hp-input flex-1 text-sm"
+                    value={editChannel.name}
+                    onChange={e => setEditChannel(p => ({ ...p, name: e.target.value }))}
+                    onKeyDown={e => e.key === "Enter" && handleUpdateChannel(ch.id)}
+                    autoFocus
+                  />
+                  <Toggle
+                    checked={editChannel.isCommission}
+                    onChange={() => setEditChannel(p => ({ ...p, isCommission: !p.isCommission }))}
+                    label={editChannel.isCommission ? "Jutalékos" : "Közvetlen"}
+                  />
+                  <button onClick={() => handleUpdateChannel(ch.id)} disabled={channelLoading === ch.id}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#D1FAE5", color: "#065F46" }}>
+                    {channelLoading === ch.id ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                  </button>
+                  <button onClick={() => setEditingChannelId(null)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#F1F5F9", color: "#64748B" }}>
+                    <X size={13} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Toggle
+                    checked={ch.isCommission}
+                    onChange={() => handleToggleCommission(ch)}
+                    label={ch.isCommission ? "Jutalékos" : "Közvetlen"}
+                  />
+
+                  <span className="flex-1 text-sm font-medium" style={{ color: "#0F172A" }}>{ch.name}</span>
+
+                  <span className="px-2 py-0.5 rounded-lg text-xs font-semibold flex-shrink-0"
+                    style={{
+                      background: ch.isCommission ? "#FEF3C7" : "#F1F5F9",
+                      color: ch.isCommission ? "#92400E" : "#64748B",
+                    }}>
+                    {ch.isCommission ? "Jutalékos" : "Közvetlen"}
+                  </span>
+
+                  <button onClick={() => { setEditingChannelId(ch.id); setEditChannel({ name: ch.name, isCommission: ch.isCommission }); }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#F1F5F9", color: "#64748B" }}>
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={() => handleDeleteChannel(ch.id)} disabled={channelLoading === ch.id}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#FEE2E2", color: "#EF4444" }}>
+                    {channelLoading === ch.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+
+          {/* Add new channel form */}
+          {addingChannel && (
+            <div className="rounded-xl overflow-hidden"
+              style={{ border: "1.5px dashed #93C5FD", background: "#EFF6FF" }}>
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Globe size={16} style={{ color: "#3B82F6", flexShrink: 0 }} />
+                <input
+                  className="hp-input flex-1 text-sm"
+                  placeholder="pl. Booking.com, Szállás.hu, Direkt foglalás…"
+                  value={newChannel.name}
+                  onChange={e => { setNewChannel(p => ({ ...p, name: e.target.value })); setChannelError(null); }}
+                  onKeyDown={e => e.key === "Enter" && handleAddChannel()}
+                  autoFocus
+                  style={{ background: "white" }}
+                />
+                <Toggle
+                  checked={newChannel.isCommission}
+                  onChange={() => setNewChannel(p => ({ ...p, isCommission: !p.isCommission }))}
+                  label={newChannel.isCommission ? "Jutalékos" : "Közvetlen"}
+                />
+                <button type="button" onClick={handleAddChannel} disabled={!newChannel.name.trim() || channelLoading === "new"}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold flex-shrink-0"
+                  style={{ background: "#3B82F6", color: "white", opacity: !newChannel.name.trim() ? 0.5 : 1 }}>
+                  {channelLoading === "new" ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                  Mentés
+                </button>
+                <button type="button" onClick={() => { setAddingChannel(false); setChannelError(null); }}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: "#F1F5F9", color: "#64748B" }}>
+                  <X size={13} />
+                </button>
+              </div>
+              {channelError && (
+                <div className="px-4 py-2 text-xs font-medium" style={{ background: "#FEE2E2", color: "#B91C1C" }}>
+                  ⚠ {channelError}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {channels.some(c => c.isCommission) && (
+          <p className="text-xs mt-4 flex items-center gap-1.5" style={{ color: "#94A3B8" }}>
+            <Globe size={11} />
+            A jutalékos csatornáknál a jutalék % a <strong>Kiadások → Közvetítők</strong> fülön állítható be.
+          </p>
+        )}
+      </div>
+
       <style>{`
         .hp-input {
           width: 100%; padding: 10px 12px; border: 1.5px solid #E2E8F0;
@@ -769,6 +1000,40 @@ export default function HotelConfigPage() {
         .hp-input.pl-9 { padding-left: 2.25rem; }
       `}</style>
     </div>
+  );
+}
+
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className="flex items-center gap-2 flex-shrink-0"
+      aria-pressed={checked}
+    >
+      {/* Track */}
+      <span
+        className="relative inline-flex items-center rounded-full transition-colors duration-200"
+        style={{
+          width: 40, height: 22,
+          background: checked ? "#F59E0B" : "#CBD5E1",
+        }}
+      >
+        {/* Thumb */}
+        <span
+          className="absolute rounded-full bg-white shadow-sm transition-transform duration-200"
+          style={{
+            width: 16, height: 16,
+            transform: checked ? "translateX(20px)" : "translateX(3px)",
+          }}
+        />
+      </span>
+      {label && (
+        <span className="text-xs font-semibold" style={{ color: checked ? "#92400E" : "#94A3B8" }}>
+          {label}
+        </span>
+      )}
+    </button>
   );
 }
 

@@ -11,13 +11,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  function getCallbackUrl() {
+    if (typeof window === "undefined") return "/dashboard";
+    return new URLSearchParams(window.location.search).get("callbackUrl") ?? "/dashboard";
+  }
+
   async function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
     setError("");
+    const callbackUrl = getCallbackUrl();
     try {
-      const res = await signIn("nodemailer", { email, redirect: false, callbackUrl: "/dashboard" });
+      const res = await signIn("nodemailer", { email, redirect: false, callbackUrl });
       if (res?.error) {
         setError("Hiba történt. Ellenőrizd az e-mail címet.");
       } else {
@@ -35,12 +41,13 @@ export default function LoginPage() {
     if (code.length !== 6) return;
     setLoading(true);
     setError("");
+    const callbackUrl = getCallbackUrl();
     try {
       const res = await fetch(
-        `/api/auth/callback/nodemailer?token=${code}&email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent("/dashboard")}`
+        `/api/auth/callback/nodemailer?token=${code}&email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(callbackUrl)}`
       );
       if (res.ok || res.redirected) {
-        window.location.href = "/dashboard";
+        window.location.href = callbackUrl;
       } else {
         setError("Érvénytelen vagy lejárt kód. Kérj újat.");
       }

@@ -12,6 +12,7 @@ export type HotelInput = {
   billingName?: string | null;
   billingAddress?: string | null;
   billingTaxNumber?: string | null;
+  isOnboarded?: boolean;
 };
 
 export async function getHotelByUser(userId: string) {
@@ -31,7 +32,12 @@ export async function createHotel(userId: string, data: HotelInput) {
 }
 
 export async function updateHotel(hotelId: string, data: HotelInput) {
-  return prisma.hotel.update({ where: { id: hotelId }, data, include: { roomTypes: true } });
+  const { isOnboarded, ...rest } = data;
+  return prisma.hotel.update({
+    where: { id: hotelId },
+    data: { ...rest, ...(isOnboarded !== undefined ? { isOnboarded } : {}) },
+    include: { roomTypes: true },
+  });
 }
 
 export async function createRoomType(hotelId: string, data: { name: string; count: number; maxOccupancy?: number | null }) {

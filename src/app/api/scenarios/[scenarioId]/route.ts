@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getHotelByUser } from "@/modules/hotel-config/hotel.service";
+import { getActiveHotel } from "@/lib/get-hotel";
 import { updateScenario, deleteScenario } from "@/modules/scenarios/scenario.service";
 import { getScenarioWithHotel } from "@/modules/revenue-planner/planner.service";
 
@@ -16,7 +16,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ scenari
 export async function PUT(req: Request, { params }: { params: Promise<{ scenarioId: string }> }) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const hotel = await getHotelByUser(session.user.id);
+  const hotel = await getActiveHotel();
   if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
   const { scenarioId } = await params;
   const body = await req.json();

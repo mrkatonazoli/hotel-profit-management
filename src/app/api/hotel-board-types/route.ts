@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getActiveHotel } from "@/lib/get-hotel";
 
 const ALL_BOARD_TYPES = [
   { code: "RO", sortOrder: 0 },
@@ -16,7 +17,7 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const hotel = await prisma.hotel.findFirst();
+    const hotel = await getActiveHotel();
     if (!hotel) return NextResponse.json([]);
 
     const active = await prisma.hotelBoardType.findMany({
@@ -37,7 +38,7 @@ export async function PUT(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const hotel = await prisma.hotel.findFirst();
+    const hotel = await getActiveHotel();
     if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 404 });
 
     const { boardTypes } = await req.json() as { boardTypes: string[] };

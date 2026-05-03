@@ -73,6 +73,7 @@ type LabBoardType = {
 type Distributor = {
   id: string;
   name: string;
+  isCommission: boolean;
   commissionPct: number;
 };
 
@@ -1151,36 +1152,23 @@ function LabTab({ labs, reloadLab, hotelChildGroups }: {
 
 // ─── Distributors tab ─────────────────────────────────────────────────────────
 
-type DistForm = { name: string; commissionPct: string };
-const EMPTY_DIST: DistForm = { name: "", commissionPct: "" };
+type DistForm = { commissionPct: string };
+const EMPTY_DIST: DistForm = { commissionPct: "" };
 
 function DistTab({ distributors, reloadDist }: { distributors: Distributor[]; reloadDist: () => void }) {
-  const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState<DistForm>(EMPTY_DIST);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<DistForm>(EMPTY_DIST);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  function setF(k: keyof DistForm, v: string) { setForm(p => ({ ...p, [k]: v })); }
   function setEF(k: keyof DistForm, v: string) { setEditForm(p => ({ ...p, [k]: v })); }
-
-  async function handleAdd() {
-    setSaving(true);
-    await fetch("/api/distributors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: form.name, commissionPct: Number(form.commissionPct) }),
-    });
-    setAdding(false); setForm(EMPTY_DIST); setSaving(false); reloadDist();
-  }
 
   async function handleEdit(id: string) {
     setSaving(true);
     await fetch(`/api/distributors/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editForm.name, commissionPct: Number(editForm.commissionPct) }),
+      body: JSON.stringify({ commissionPct: Number(editForm.commissionPct) }),
     });
     setEditId(null); setSaving(false); reloadDist();
   }
@@ -1197,13 +1185,15 @@ function DistTab({ distributors, reloadDist }: { distributors: Distributor[]; re
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start gap-4">
         <p className="text-sm" style={{ color: "#64748B" }}>
-          OTA csatornák és közvetítők jutalékkulcsai. A profit számításnál az átlagos jutalék a szobabevételre vetítve kerül levonásra.
+          A jutalékos értékesítési csatornák jutalékkulcsai. A profit számításnál az átlagos jutalék a szobabevételre vetítve kerül levonásra.
         </p>
-        <Btn onClick={() => setAdding(true)} disabled={adding}>
-          <Plus size={14} /> Csatorna hozzáadása
-        </Btn>
+        <a href="/hotel-config"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold flex-shrink-0 transition-colors"
+          style={{ background: "#EFF6FF", color: "#3B82F6" }}>
+          ⚙ Csatornák kezelése
+        </a>
       </div>
 
       {distributors.length > 0 && (
@@ -1227,13 +1217,18 @@ function DistTab({ distributors, reloadDist }: { distributors: Distributor[]; re
             </tr>
           </thead>
           <tbody>
-            {distributors.length === 0 && !adding && <EmptyRow label="Nincs rögzített közvetítő" />}
+            {distributors.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-4 py-8 text-sm text-center" style={{ color: "#94A3B8" }}>
+                  Nincs jutalékos csatorna — add hozzá a{" "}
+                  <a href="/hotel-config" style={{ color: "#7C3AED", fontWeight: 600 }}>Hotel beállításoknál</a>
+                </td>
+              </tr>
+            )}
             {distributors.map(d => (
               editId === d.id ? (
                 <tr key={d.id} style={{ background: "#F5F3FF", borderBottom: "1px solid #E2E8F0" }}>
-                  <td className="px-4 py-2">
-                    <Input value={editForm.name} onChange={v => setEF("name", v)} placeholder="Csatorna neve" className="w-64" />
-                  </td>
+                  <td className="px-4 py-2 font-medium" style={{ color: "#0F172A" }}>{d.name}</td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-1.5">
                       <Input value={editForm.commissionPct} onChange={v => setEF("commissionPct", v)}
@@ -1265,7 +1260,7 @@ function DistTab({ distributors, reloadDist }: { distributors: Distributor[]; re
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
-                      <Btn onClick={() => { setEditId(d.id); setEditForm({ name: d.name, commissionPct: d.commissionPct.toString() }); }}
+                      <Btn onClick={() => { setEditId(d.id); setEditForm({ commissionPct: d.commissionPct.toString() }); }}
                         variant="ghost" size="xs"><Pencil size={12} /></Btn>
                       <Btn onClick={() => handleDelete(d.id)} variant="ghost" size="xs" danger
                         loading={deletingId === d.id}>
@@ -1276,31 +1271,6 @@ function DistTab({ distributors, reloadDist }: { distributors: Distributor[]; re
                 </tr>
               )
             ))}
-            {adding && (
-              <tr style={{ background: "#F5F3FF", borderBottom: "1px solid #E2E8F0" }}>
-                <td className="px-4 py-2">
-                  <Input value={form.name} onChange={v => setF("name", v)}
-                    placeholder="pl. Booking.com" className="w-64" />
-                </td>
-                <td className="px-4 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <Input value={form.commissionPct} onChange={v => setF("commissionPct", v)}
-                      placeholder="15" type="number" className="w-20" />
-                    <span className="text-sm" style={{ color: "#64748B" }}>%</span>
-                  </div>
-                </td>
-                <td className="px-4 py-2">
-                  <div className="flex gap-1.5">
-                    <Btn onClick={handleAdd} loading={saving} disabled={!form.name} size="xs">
-                      <Check size={12} />
-                    </Btn>
-                    <Btn onClick={() => { setAdding(false); setForm(EMPTY_DIST); }} variant="ghost" size="xs">
-                      <X size={12} />
-                    </Btn>
-                  </div>
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </Card>
@@ -1324,7 +1294,7 @@ export default function CostsPage() {
       const [cRes, lRes, dRes, gRes] = await Promise.all([
         fetch("/api/costs"),
         fetch("/api/lab"),
-        fetch("/api/distributors"),
+        fetch("/api/distributors?commissionOnly=true"),
         fetch("/api/child-age-groups"),
       ]);
       const [c, l, d, g] = await Promise.all([cRes.json(), lRes.json(), dRes.json(), gRes.json()]);
@@ -1352,7 +1322,7 @@ export default function CostsPage() {
   }, []);
 
   const reloadDist = useCallback(async () => {
-    const res = await fetch("/api/distributors");
+    const res = await fetch("/api/distributors?commissionOnly=true");
     const d = await res.json();
     setDistributors(Array.isArray(d) ? d : []);
   }, []);

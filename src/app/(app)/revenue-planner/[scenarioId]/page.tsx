@@ -593,6 +593,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
   // Szobatípusonkénti vendégtérkép: roomTypeId → { date → GuestDay }
   const [rtGuestMap, setRtGuestMap]       = useState<Record<string, Record<string, GuestDay>>>({});
   const [rtGuestLoading, setRtGuestLoading] = useState(false);
+  const [editingGuestDay, setEditingGuestDay] = useState<string | null>(null); // date key of day being edited
 
   const loadMonth = useCallback(async (scId: string, y: number, m: number) => {
     setMonthLoading(true);
@@ -1052,15 +1053,33 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
                           <td className="px-3 py-2">
                             {pd ? (
                               <button
-                                onClick={() => setExpandedDay(isExpanded ? null : key)}
+                                onClick={() => {
+                                  if (isExpanded) { setExpandedDay(null); setEditingGuestDay(null); }
+                                  else { setExpandedDay(key); setEditingGuestDay(null); }
+                                }}
                                 className="flex items-center gap-1.5 w-full rounded-lg px-2 py-1 transition-colors hover:bg-white"
                                 style={{ color: hasSomeGuests ? "#1E293B" : "#94A3B8" }}>
                                 <Users size={12} style={{ color: "#0EA5E9", flexShrink: 0 }} />
                                 {hasSomeGuests ? (
-                                  <span className="text-xs font-semibold flex-1 text-left flex items-center gap-1">
-                                    <span style={{ color: "#0EA5E9" }}>{gd.adultCount}F</span>
-                                    {gd.childCount > 0 && <span style={{ color: "#F59E0B" }}>+{gd.childCount}Gy</span>}
-                                  </span>
+                                  <div className="flex-1 text-left">
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      <span className="text-xs font-bold" style={{ color: "#0EA5E9" }}>{gd.adultCount}F</span>
+                                      {gd.childCount > 0 && <span className="text-xs font-bold" style={{ color: "#F59E0B" }}>+{gd.childCount}Gy</span>}
+                                    </div>
+                                    {!isHotelView && gd.boardTypes.filter(bt => bt.adultCount > 0).length > 0 && (
+                                      <div className="flex flex-wrap gap-0.5 mt-0.5">
+                                        {gd.boardTypes.filter(bt => bt.adultCount > 0).map(bt => {
+                                          const c = boardColor(bt.boardType);
+                                          return (
+                                            <span key={bt.boardType} className="text-xs px-1 rounded font-semibold"
+                                              style={{ background: c.bg, color: c.text, fontSize: 9 }}>
+                                              {bt.boardType} {bt.adultCount}
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
                                 ) : isHotelView ? (
                                   <span className="text-xs flex-1 text-left" style={{ color: "#94A3B8" }}>összesítő nézet</span>
                                 ) : (
@@ -1081,7 +1100,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
                         </td>
                       </tr>
 
-                      {/* Expanded guest panel — hotel nézetben ÉS szobatípus nézetben is szerkeszthető */}
+                      {/* Expanded guest panel — szobatípus nézet */}
                       {showGuests && isExpanded && pd && !isHotelView && activeRtId && (
                         <tr key={`${key}-guest`}
                           style={{ borderBottom: "1px solid #E2E8F0", background: "#F5F3FF" }}>
@@ -1090,27 +1109,65 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
                               <div className="flex items-center justify-center py-4">
                                 <Loader2 size={16} className="animate-spin" style={{ color: "#7C3AED" }} />
                               </div>
+                            ) : editingGuestDay === key ? (
+                              <div>
+                                <GuestPanel
+                                  date={key}
+                                  guestDay={rtGuestMap[activeRtId]?.[key]}
+                                  ageGroups={ageGroups}
+                                  activeBoardTypes={activeBoardTypes}
+                                  onSave={async (boardTypes) => {
+                                    await handleSaveGuest(key, boardTypes, activeRtId);
+                                    setEditingGuestDay(null);
+                                  }}
+                                  saving={savingDay === key}
+                                />
+                                <div className="px-4 pb-3">
+                                  <button onClick={() => setEditingGuestDay(null)}
+                                    className="text-xs px-3 py-1.5 rounded-lg"
+                                    style={{ background: "#F1F5F9", color: "#64748B" }}>
+                                    Mégsem
+                                  </button>
+                                </div>
+                              </div>
                             ) : (
-                              <GuestPanel
-                                date={key}
-                                guestDay={rtGuestMap[activeRtId]?.[key]}
-                                ageGroups={ageGroups}
-                                activeBoardTypes={activeBoardTypes}
-                                onSave={boardTypes => handleSaveGuest(key, boardTypes, activeRtId)}
-                                saving={savingDay === key}
-                              />
+                              <div>
+                                {hasSomeGuests
+                                  ? <GuestReadOnly guestDay={gd} ageGroups={ageGroups} />
+                                  : (
+                                    <div className="px-4 py-3 text-xs" style={{ color: "#94A3B8" }}>
+                                      Ehhez a naphoz nincs vendégadat rögzítve.
+                                    </div>
+                                  )
+                                }
+                                <div className="px-4 pb-3 flex items-center justify-between">
+                                  <span className="text-xs" style={{ color: "#CBD5E1" }}>
+                                    {activeRt?.name} · generált adat
+                                  </span>
+                                  <button onClick={() => setEditingGuestDay(key)}
+                                    className="text-xs px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-colors"
+                                    style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                                    <Check size={11} /> Szerkesztés
+                                  </button>
+                                </div>
+                              </div>
                             )}
                           </td>
                         </tr>
                       )}
+                      {/* Expanded guest panel — hotel nézet (read-only összesítő) */}
                       {showGuests && isExpanded && pd && isHotelView && (
                         <tr key={`${key}-guest-hotel`}
                           style={{ borderBottom: "1px solid #E2E8F0", background: "#FFF8F0" }}>
                           <td colSpan={10}>
-                            <div className="px-4 py-3 text-xs" style={{ color: "#94A3B8" }}>
-                              A vendégadatokat szobatípusonként add meg — válassz egy szobatípus fület fent.
-                              {hasSomeGuests && <GuestReadOnly guestDay={guestMap[key]} ageGroups={ageGroups} />}
-                            </div>
+                            {hasSomeGuests
+                              ? <GuestReadOnly guestDay={guestMap[key]} ageGroups={ageGroups} />
+                              : (
+                                <div className="px-4 py-3 text-xs" style={{ color: "#94A3B8" }}>
+                                  A vendégadatokat szobatípusonként add meg — válassz egy szobatípus fület fent.
+                                </div>
+                              )
+                            }
                           </td>
                         </tr>
                       )}

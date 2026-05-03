@@ -16,44 +16,61 @@ import {
   Scale,
   ShieldCheck,
   Search,
+  X,
 } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/revenue-planner", icon: Calendar, label: "Bevételtervező" },
-  { href: "/scenarios", icon: GitBranch, label: "Szcenáriók" },
-  { href: "/weighting", icon: Scale, label: "Súlyozás" },
-  { href: "/costs", icon: DollarSign, label: "Kiadások" },
-  { href: "/reporting", icon: BarChart2, label: "Riportok" },
-  { href: "/analysis", icon: Search, label: "Részletes elemzés" },
-  { href: "/historical-import", icon: Upload, label: "Pickup import" },
+  { href: "/dashboard",         icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/revenue-planner",   icon: Calendar,        label: "Bevételtervező" },
+  { href: "/scenarios",         icon: GitBranch,       label: "Szcenáriók" },
+  { href: "/weighting",         icon: Scale,           label: "Súlyozás" },
+  { href: "/costs",             icon: DollarSign,      label: "Kiadások" },
+  { href: "/reporting",         icon: BarChart2,       label: "Riportok" },
+  { href: "/analysis",          icon: Search,          label: "Részletes elemzés" },
+  { href: "/historical-import", icon: Upload,          label: "Pickup import" },
 ];
 
 const bottomItems = [
   { href: "/hotel-config", icon: Building2, label: "Hotel beállítások" },
-  { href: "/team", icon: Users, label: "Csapat" },
-  { href: "/settings", icon: Settings, label: "Beállítások" },
+  { href: "/team",         icon: Users,     label: "Csapat" },
+  { href: "/settings",     icon: Settings,  label: "Beállítások" },
 ];
 
-export default function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
+interface SidebarProps {
+  isSuperAdmin?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
-  return (
+  const sidebarContent = (
     <aside
-      className="w-60 flex-shrink-0 flex flex-col h-screen sticky top-0"
+      className="w-60 flex-shrink-0 flex flex-col h-full"
       style={{ background: "#0F172A", borderRight: "1px solid #1E293B" }}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5" style={{ borderBottom: "1px solid #1E293B" }}>
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: "#7C3AED" }}
-        >
-          <TrendingUp size={16} color="white" />
+      {/* Logo + close button (mobile) */}
+      <div className="flex items-center justify-between px-5 py-5" style={{ borderBottom: "1px solid #1E293B" }}>
+        <div className="flex items-center gap-3">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: "#7C3AED" }}
+          >
+            <TrendingUp size={16} color="white" />
+          </div>
+          <span className="font-bold text-base" style={{ color: "#F8FAFC" }}>
+            Hotel Profit
+          </span>
         </div>
-        <span className="font-bold text-base" style={{ color: "#F8FAFC" }}>
-          Hotel Profit
-        </span>
+        {/* Close button — only visible on mobile */}
+        <button
+          onClick={onClose}
+          className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+          style={{ color: "#64748B" }}
+        >
+          <X size={18} />
+        </button>
       </div>
 
       {/* Main nav */}
@@ -118,5 +135,33 @@ export default function Sidebar({ isSuperAdmin = false }: { isSuperAdmin?: boole
         )}
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* ── Desktop sidebar — always visible ── */}
+      <div className="hidden md:flex h-screen sticky top-0 flex-shrink-0">
+        {sidebarContent}
+      </div>
+
+      {/* ── Mobile sidebar — overlay drawer ── */}
+      {/* Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 md:hidden"
+          style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)" }}
+          onClick={onClose}
+        />
+      )}
+      {/* Drawer */}
+      <div
+        className="fixed inset-y-0 left-0 z-50 md:hidden flex-shrink-0 transition-transform duration-300 ease-in-out"
+        style={{
+          transform: isOpen ? "translateX(0)" : "translateX(-100%)",
+        }}
+      >
+        {sidebarContent}
+      </div>
+    </>
   );
 }

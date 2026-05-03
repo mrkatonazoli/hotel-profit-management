@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getActiveHotel } from "@/lib/get-hotel";
 
 // ─── Cost calculation ─────────────────────────────────────────────────────────
 
@@ -120,7 +121,10 @@ export async function GET(req: Request) {
   const scenarioId = searchParams.get("scenarioId");
 
   // Load hotel
-  const hotel = await prisma.hotel.findFirst({
+  const hotelBase = await getActiveHotel();
+  if (!hotelBase) return NextResponse.json({ error: "No hotel" }, { status: 404 });
+  const hotel = await prisma.hotel.findUnique({
+    where: { id: hotelBase.id },
     include: {
       scenarios: { orderBy: [{ isBase: "desc" }, { year: "desc" }, { probability: "desc" }] },
       costs: { include: { staffRules: true } },

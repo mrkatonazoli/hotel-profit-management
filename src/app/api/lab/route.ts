@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getActiveHotel } from "@/lib/get-hotel";
 
 // GET — visszaadja az összes LAB beállítást ellátástípusonként (korcsoportokkal együtt)
 export async function GET() {
@@ -8,7 +9,7 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const hotel = await prisma.hotel.findFirst();
+    const hotel = await getActiveHotel();
     if (!hotel) return NextResponse.json([]);
 
     const boardTypes = await prisma.hotelBoardType.findMany({
