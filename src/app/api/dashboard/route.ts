@@ -126,17 +126,18 @@ export async function GET(req: Request) {
 
   if (!scenario) return NextResponse.json({ error: "No scenario" }, { status: 404 });
 
-  const planDays = await prisma.planDay.findMany({
-    where: { scenarioId: scenario.id },
-    orderBy: { date: "asc" },
-    include: {
-      boardTypes: {
-        include: {
-          childCounts: true,
-        },
-      },
-    },
-  });
+  const [planDays, segments] = await Promise.all([
+    prisma.planDay.findMany({
+      where: { scenarioId: scenario.id },
+      orderBy: { date: "asc" },
+      include: { boardTypes: { include: { childCounts: true } } },
+    }),
+    prisma.scenarioSegment.findMany({
+      where: { scenarioId: scenario.id },
+      include: { monthShares: true, channelMix: { include: { distributor: true } } },
+      orderBy: { sortOrder: "asc" },
+    }),
+  ]);
 
   const totalRooms = hotel.totalRooms ?? 0;
 
@@ -144,10 +145,10 @@ export async function GET(req: Request) {
   const monthMap: Record<number, {
     roomNights: number; roomRevenue: number;
     fbRevenue: number; spaRevenue: number; otherRevenue: number;
-    occSum: number; dayCount: number; totalCosts: number;
+    occSum: number; dayCount: number; totalCosts: number; commissionCost: number;
   }> = {};
   for (let m = 1; m <= 12; m++) {
-    monthMap[m] = { roomNights: 0, roomRevenue: 0, fbRevenue: 0, spaRevenue: 0, otherRevenue: 0, occSum: 0, dayCount: 0, totalCosts: 0 };
+    monthMap[m] = { roomNights: 0, roomRevenue: 0, fbRevenue: 0, spaRevenue: 0, otherRevenue: 0, occSum: 0, dayCount: 0, totalCosts: 0, commissionCost: 0 };
   }
 
   for (const pd of planDays) {
@@ -177,6 +178,7 @@ export async function GET(req: Request) {
     monthMap[m].spaRevenue += pd.spaRevenue;
     monthMap[m].otherRevenue += pd.otherRevenue;
     monthMap[m].totalCosts += dayCost;
+    monthMap[m].commissionCost += pd.commissionCost;
   }
 
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -195,6 +197,7 @@ export async function GET(req: Request) {
       roomNights: d.roomNights, roomRevenue: d.roomRevenue,
       fbRevenue: d.fbRevenue, spaRevenue: d.spaRevenue, otherRevenue: d.otherRevenue,
       totalRevenue, totalCosts: Math.round(d.totalCosts),
+      commissionCost: Math.round(d.commissionCost),
       profit: Math.round(profit), profitPct,
       avgOcc, avgAdr, revpar,
     };
@@ -216,11 +219,34 @@ export async function GET(req: Request) {
   const revpar = totalRooms > 0 && totalDays > 0
     ? Math.round(totalRoomRevenue / (totalRooms * totalDays)) : 0;
   const profitPct = totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 1000) / 10 : 0;
+  const totalCommissionCost = months.reduce((a, m) => a + m.commissionCost, 0);
 
   // Current month
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentMonthData = months.find(m => m.month === currentMonth) ?? null;
+
+  // Szegmens mix — éves átlag + effektív komisszió ráta
+  const segmentSummary = segments.map(seg => {
+    const avgShare = seg.monthShares.length > 0
+      ? seg.monthShares.reduce((a, ms) => a + ms.sharePct, 0) / seg.monthShares.length
+      : 0;
+    let effectiveCommPct = 0;
+    if (seg.useChannelMix) {
+      const annualChannels = seg.channelMix.filter(c => c.month === null);
+      effectiveCommPct = annualChannels.reduce((sum, c) =>
+        sum + (c.sharePct / 100) * (c.distributor.isCommission ? c.distributor.commissionPct : 0), 0);
+    } else {
+      effectiveCommPct = seg.commissionPct;
+    }
+    return {
+      id: seg.id,
+      name: seg.name,
+      color: seg.color,
+      avgShare: Math.round(avgShare * 10) / 10,
+      effectiveCommPct: Math.round(effectiveCommPct * 10) / 10,
+    };
+  });
 
   return NextResponse.json({
     hotel: { name: hotel.name, totalRooms: hotel.totalRooms, currency: hotel.baseCurrency },
@@ -231,9 +257,11 @@ export async function GET(req: Request) {
       totalRoomRevenue, totalFbRevenue, totalSpaRevenue, totalOtherRevenue,
       totalRevenue, totalCosts, totalProfit, profitPct,
       totalRoomNights, avgOccPct, avgAdr, revpar,
+      totalCommissionCost,
     },
     months,
     currentMonth,
     currentMonthData,
+    segments: segmentSummary,
   });
 }

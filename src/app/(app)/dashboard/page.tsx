@@ -7,18 +7,27 @@ import {
   Loader2, ChevronDown, ArrowRight, Star,
   Building2, AlertTriangle, TrendingDown,
   CalendarDays, Wallet, PiggyBank,
-  Settings, Receipt, ChevronRight,
+  Settings, Receipt, ChevronRight, Users,
 } from "lucide-react";
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+} from "recharts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ScenarioRef = { id: string; name: string; year: number; probability: number; isBase: boolean };
 
+type SegmentSummary = {
+  id: string; name: string; color: string;
+  avgShare: number; effectiveCommPct: number;
+};
+
 type MonthRow = {
   month: number; dayCount: number;
   roomNights: number; roomRevenue: number;
   fbRevenue: number; spaRevenue: number; otherRevenue: number;
-  totalRevenue: number; totalCosts: number; profit: number; profitPct: number;
+  totalRevenue: number; totalCosts: number; commissionCost: number;
+  profit: number; profitPct: number;
   avgOcc: number; avgAdr: number; revpar: number;
 };
 
@@ -32,10 +41,12 @@ type DashData = {
     totalSpaRevenue: number; totalOtherRevenue: number;
     totalRevenue: number; totalCosts: number; totalProfit: number; profitPct: number;
     totalRoomNights: number; avgOccPct: number; avgAdr: number; revpar: number;
+    totalCommissionCost: number;
   };
   months: MonthRow[];
   currentMonth: number;
   currentMonthData: MonthRow | null;
+  segments: SegmentSummary[];
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -182,6 +193,7 @@ const QUICK_ACTIONS = [
   { label: "Elemzés",          icon: BarChart3,   path: () => "/analysis",     color: "#3B82F6", bg: "#DBEAFE" },
   { label: "Kiadások",         icon: Receipt,     path: () => "/costs",        color: "#F59E0B", bg: "#FEF3C7" },
   { label: "Szcenáriók",       icon: TrendingUp,  path: () => "/scenarios",    color: "#10B981", bg: "#D1FAE5" },
+  { label: "Szegmensek",       icon: Users,       path: (sid: string) => `/segments/${sid}`, color: "#EC4899", bg: "#FCE7F3" },
   { label: "Beállítások",      icon: Settings,    path: () => "/hotel-config", color: "#64748B", bg: "#F1F5F9" },
 ];
 
@@ -220,7 +232,7 @@ export default function DashboardPage() {
     </div>
   );
 
-  const { hotel, scenario, scenarios, hasData, kpis, months, currentMonth, currentMonthData } = data;
+  const { hotel, scenario, scenarios, hasData, kpis, months, currentMonth, currentMonthData, segments = [] } = data;
   const pc = probColor(scenario.probability);
   const filledMonths = months.filter(m => m.dayCount > 0);
   const peakMonth   = filledMonths.length > 0 ? filledMonths.reduce((a, b) => b.avgOcc > a.avgOcc ? b : a) : null;
@@ -297,7 +309,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Quick actions ── */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 md:gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 md:gap-3">
         {QUICK_ACTIONS.map(a => {
           const Icon = a.icon;
           const href = a.path(scenario.id);
@@ -340,8 +352,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── KPI Cards — 2 rows of 3 ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+      {/* ── KPI Cards — 2 rows of 4 ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <KpiCard
           label="Teljes bevétel"
           value={`${fmtM(kpis.totalRevenue)} ${ccy}`}
@@ -351,7 +363,7 @@ export default function DashboardPage() {
         <KpiCard
           label="Éves profit (GOP)"
           value={`${fmtM(kpis.totalProfit)} ${ccy}`}
-          sub={`${kpis.profitPct > 0 ? "+" : ""}${kpis.profitPct}% margin · Kiadás: ${fmtM(kpis.totalCosts)}`}
+          sub={`${kpis.profitPct > 0 ? "+" : ""}${kpis.profitPct}% margin`}
           icon={kpis.totalProfit >= 0 ? <PiggyBank size={17} /> : <TrendingDown size={17} />}
           color={profitColor(kpis.totalProfit)}
           highlight={kpis.totalProfit > 0}
@@ -361,6 +373,14 @@ export default function DashboardPage() {
           value={`${kpis.avgOccPct}%`}
           sub={peakMonth ? `Csúcs: ${HU_MONTHS_SHORT[peakMonth.month - 1]} ${peakMonth.avgOcc}%` : undefined}
           icon={<Bed size={17} />} color={occColor(kpis.avgOccPct)}
+        />
+        <KpiCard
+          label="Tervezett komisszió"
+          value={`${fmtM(kpis.totalCommissionCost ?? 0)} ${ccy}`}
+          sub={kpis.totalRevenue > 0 && (kpis.totalCommissionCost ?? 0) > 0
+            ? `${Math.round((kpis.totalCommissionCost ?? 0) / kpis.totalRevenue * 1000) / 10}% a bevételből`
+            : segments.length === 0 ? "Nincs szegmens beállítva" : "Nincs jutalék"}
+          icon={<Receipt size={17} />} color="#F59E0B"
         />
         <KpiCard
           label="Szobabevétel"
@@ -379,6 +399,12 @@ export default function DashboardPage() {
           value={fmt(kpis.totalRoomNights)}
           sub={hotel.totalRooms ? `${hotel.totalRooms} elérhető szoba` : undefined}
           icon={<BarChart3 size={17} />} color="#F59E0B"
+        />
+        <KpiCard
+          label="Kiadás összesen"
+          value={`${fmtM(kpis.totalCosts)} ${ccy}`}
+          sub={kpis.totalRevenue > 0 ? `${Math.round(kpis.totalCosts / kpis.totalRevenue * 100)}% cost ratio` : undefined}
+          icon={<TrendingDown size={17} />} color="#EF4444"
         />
       </div>
 
@@ -473,9 +499,9 @@ export default function DashboardPage() {
             <table className="w-full text-sm border-collapse" style={{ minWidth: 780 }}>
               <thead>
                 <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-                  {["Hónap","Kihas.","Szobaéj","ADR","RevPAR","Bevétel","Kiadás","Profit"].map((h, i) => (
+                  {["Hónap","Kihas.","Szobaéj","ADR","RevPAR","Bevétel","Komisszió","Kiadás","Profit"].map((h, i) => (
                     <th key={h} className={`py-2.5 text-xs font-semibold uppercase tracking-wide ${i === 0 ? "text-left px-5" : i <= 4 ? "text-center px-3" : "text-right px-3"} ${h === "Profit" ? "pr-5" : ""}`}
-                      style={{ color: "#94A3B8" }}>{h}</th>
+                      style={{ color: i === 6 ? "#D97706" : "#94A3B8" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -522,6 +548,9 @@ export default function DashboardPage() {
                       <td className="px-3 py-2.5 text-right font-mono text-sm font-semibold" style={{ color: hasMonthData ? "#334155" : "#CBD5E1" }}>
                         {hasMonthData ? `${fmtM(m.totalRevenue)}` : "—"}
                       </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-sm" style={{ color: hasMonthData && m.commissionCost > 0 ? "#D97706" : "#CBD5E1" }}>
+                        {hasMonthData && m.commissionCost > 0 ? `−${fmtM(m.commissionCost)}` : "—"}
+                      </td>
                       <td className="px-3 py-2.5 text-right font-mono text-sm" style={{ color: hasMonthData ? "#94A3B8" : "#CBD5E1" }}>
                         {hasMonthData ? `${fmtM(m.totalCosts)}` : "—"}
                       </td>
@@ -552,6 +581,9 @@ export default function DashboardPage() {
                     <td className="px-3 py-3 text-right font-mono font-bold text-sm" style={{ color: "#0F172A" }}>
                       {fmtM(kpis.totalRevenue)}
                     </td>
+                    <td className="px-3 py-3 text-right font-mono text-sm" style={{ color: (kpis.totalCommissionCost ?? 0) > 0 ? "#D97706" : "#CBD5E1" }}>
+                      {(kpis.totalCommissionCost ?? 0) > 0 ? `−${fmtM(kpis.totalCommissionCost)}` : "—"}
+                    </td>
                     <td className="px-3 py-3 text-right font-mono text-sm" style={{ color: "#64748B" }}>
                       {fmtM(kpis.totalCosts)}
                     </td>
@@ -566,6 +598,141 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* ── Szegmens mix + Komisszió ── */}
+      {hasData && segments.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Donut chart — szegmens mix */}
+          <div className="rounded-2xl p-5" style={{ background: "white", border: "1px solid #E2E8F0" }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold" style={{ color: "#0F172A" }}>Szegmens mix</h2>
+              <button onClick={() => router.push(`/segments/${scenario.id}`)}
+                className="flex items-center gap-1 text-xs font-semibold"
+                style={{ color: "#7C3AED" }}>
+                Szerkesztés <ChevronRight size={13} />
+              </button>
+            </div>
+
+            {segments.every(s => s.avgShare === 0) ? (
+              <p className="text-sm text-center py-8" style={{ color: "#94A3B8" }}>
+                Még nincs beállított havi arány
+              </p>
+            ) : (
+              <div className="flex items-center gap-4">
+                {/* Donut */}
+                <div style={{ width: 160, height: 160, flexShrink: 0 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={segments.filter(s => s.avgShare > 0)}
+                        cx="50%" cy="50%"
+                        innerRadius={44} outerRadius={72}
+                        paddingAngle={2}
+                        dataKey="avgShare"
+                        nameKey="name"
+                        strokeWidth={0}
+                      >
+                        {segments.filter(s => s.avgShare > 0).map(seg => (
+                          <Cell key={seg.id} fill={seg.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) => [`${value}%`]}
+                        contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E2E8F0" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Legenda */}
+                <div className="flex flex-col gap-2 min-w-0 flex-1">
+                  {segments.filter(s => s.avgShare > 0).map(seg => (
+                    <div key={seg.id} className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: seg.color }} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold truncate" style={{ color: "#0F172A" }}>{seg.name}</p>
+                        <p className="text-xs" style={{ color: "#94A3B8" }}>
+                          {seg.avgShare}%
+                          {seg.effectiveCommPct > 0 && (
+                            <span className="ml-1" style={{ color: "#D97706" }}>· {seg.effectiveCommPct}% jut.</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Komisszió breakdown */}
+          <div className="rounded-2xl p-5" style={{ background: "white", border: "1px solid #E2E8F0" }}>
+            <h2 className="text-base font-semibold mb-4" style={{ color: "#0F172A" }}>Tervezett komisszió</h2>
+
+            {(kpis.totalCommissionCost ?? 0) === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 gap-2">
+                <Receipt size={28} style={{ color: "#CBD5E1" }} />
+                <p className="text-sm" style={{ color: "#94A3B8" }}>
+                  Nincs jutalékköltség — állítsd be a szegmenseknél.
+                </p>
+                <button onClick={() => router.push(`/segments/${scenario.id}`)}
+                  className="mt-1 px-3 py-1.5 rounded-xl text-xs font-semibold"
+                  style={{ background: "#FEF3C7", color: "#D97706" }}>
+                  Szegmensek beállítása
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Összesen sor */}
+                <div className="rounded-xl px-4 py-3 flex items-center justify-between"
+                  style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+                  <span className="text-sm font-semibold" style={{ color: "#92400E" }}>Éves komisszió összesen</span>
+                  <span className="text-base font-bold" style={{ color: "#D97706" }}>
+                    {fmtM(kpis.totalCommissionCost ?? 0)} {ccy}
+                  </span>
+                </div>
+
+                {/* Szegmensenkénti bontás */}
+                {segments.filter(s => s.effectiveCommPct > 0 && s.avgShare > 0).map(seg => {
+                  const segShare = seg.avgShare / 100;
+                  const segComm  = segShare * (kpis.totalRoomRevenue) * (seg.effectiveCommPct / 100);
+                  const pctOfTotal = (kpis.totalCommissionCost ?? 0) > 0
+                    ? Math.round(segComm / (kpis.totalCommissionCost ?? 1) * 100) : 0;
+                  return (
+                    <div key={seg.id}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ background: seg.color }} />
+                          <span className="text-xs font-medium" style={{ color: "#334155" }}>{seg.name}</span>
+                          <span className="text-xs" style={{ color: "#94A3B8" }}>{seg.effectiveCommPct}%</span>
+                        </div>
+                        <span className="text-xs font-mono font-semibold" style={{ color: "#D97706" }}>
+                          ≈{fmtM(Math.round(segComm))} {ccy}
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full" style={{ background: "#F1F5F9" }}>
+                        <div className="h-full rounded-full" style={{ width: `${pctOfTotal}%`, background: seg.color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Bevételarány */}
+                {kpis.totalRevenue > 0 && (
+                  <p className="text-xs pt-1" style={{ color: "#94A3B8" }}>
+                    A teljes bevétel{" "}
+                    <strong style={{ color: "#D97706" }}>
+                      {Math.round((kpis.totalCommissionCost ?? 0) / kpis.totalRevenue * 1000) / 10}%
+                    </strong>
+                    -a megy jutalékra
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Revenue mix + Cost breakdown ── */}
       {hasData && kpis.totalRevenue > 0 && (
