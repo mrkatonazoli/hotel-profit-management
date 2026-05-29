@@ -110,9 +110,9 @@ export async function GET(req: Request) {
   // ── Grand totals ───────────────────────────────────────────────────────────
   const totals = {
     calls: logs.length,
-    inputTokens:  logs.reduce((a, l) => a + l.inputTokens, 0),
-    outputTokens: logs.reduce((a, l) => a + l.outputTokens, 0),
-    costUsd: logs.reduce((a, l) => a + calcCostUsd(l.model, l.inputTokens, l.outputTokens), 0),
+    inputTokens:  logs.reduce((a: number, l) => a + l.inputTokens, 0),
+    outputTokens: logs.reduce((a: number, l) => a + l.outputTokens, 0),
+    costUsd: logs.reduce((a: number, l) => a + calcCostUsd(l.model, l.inputTokens, l.outputTokens), 0),
   };
 
   return NextResponse.json({
