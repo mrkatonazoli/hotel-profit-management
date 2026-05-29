@@ -120,12 +120,24 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose 
           <>
             <div className="mx-3 my-2" style={{ borderTop: "1px solid #1E293B" }} />
             <Link
+              href="/admin/hotels"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+              style={{
+                color: pathname === "/admin/hotels" ? "#A78BFA" : "#475569",
+                background: pathname === "/admin/hotels" ? "#1E1030" : "transparent",
+                borderLeft: pathname === "/admin/hotels" ? "3px solid #7C3AED" : "3px solid transparent",
+              }}
+            >
+              <ShieldCheck size={16} />
+              Szállodák
+            </Link>
+            <Link
               href="/admin/token-stats"
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
               style={{
-                color: pathname.startsWith("/admin") ? "#A78BFA" : "#475569",
-                background: pathname.startsWith("/admin") ? "#1E1030" : "transparent",
-                borderLeft: pathname.startsWith("/admin") ? "3px solid #7C3AED" : "3px solid transparent",
+                color: pathname === "/admin/token-stats" ? "#A78BFA" : "#475569",
+                background: pathname === "/admin/token-stats" ? "#1E1030" : "transparent",
+                borderLeft: pathname === "/admin/token-stats" ? "3px solid #7C3AED" : "3px solid transparent",
               }}
             >
               <ShieldCheck size={16} />
