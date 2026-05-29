@@ -527,28 +527,39 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
         </button>
       )}
 
-      {/* Summary */}
+      {/* Summary — éves átlag */}
       {segments.length > 0 && (
         <div className="bg-slate-800 rounded-2xl p-5 text-white">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Összefoglaló — Júniusi mix</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Éves átlag összefoglaló</p>
           <div className="flex flex-wrap gap-4">
-            {segments.map(seg => (
-              <div key={seg.id} className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: seg.color }} />
-                <span className="text-sm font-semibold">{seg.name}</span>
-                <span className="text-slate-400 text-sm">{getMonthShare(seg, 6)}%</span>
-                {effectiveCommission(seg, 6) > 0 && (
-                  <span className="text-amber-400 text-xs">({effectiveCommission(seg, 6).toFixed(1)}% jut.)</span>
-                )}
-              </div>
-            ))}
+            {segments.map(seg => {
+              const avgShare = Math.round(seg.monthShares.reduce((s, m) => s + m.sharePct, 0) / 12);
+              const avgComm = effectiveCommission(seg, new Date().getMonth() + 1);
+              return (
+                <div key={seg.id} className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: seg.color }} />
+                  <span className="text-sm font-semibold">{seg.name}</span>
+                  <span className="text-slate-400 text-sm">{avgShare}%</span>
+                  {avgComm > 0 && (
+                    <span className="text-amber-400 text-xs">({avgComm.toFixed(1)}% jut.)</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-700">
-            <p className="text-xs text-slate-400">
-              Teljes júniusi arány: <strong className={`${Math.abs(segments.reduce((s, sg) => s + getMonthShare(sg, 6), 0) - 100) < 0.5 ? "text-emerald-400" : "text-red-400"}`}>
-                {Math.round(segments.reduce((s, sg) => s + getMonthShare(sg, 6), 0))}%
-              </strong>
-            </p>
+          <div className="mt-3 pt-3 border-t border-slate-700 flex items-center gap-6">
+            {Array.from({ length: 12 }, (_, i) => i + 1).map(month => {
+              const total = segments.reduce((s, sg) => s + getMonthShare(sg, month), 0);
+              const ok = Math.abs(total - 100) < 0.5;
+              return (
+                <div key={month} className="text-center">
+                  <div className="text-xs text-slate-500">{HU_MONTHS[month - 1]}</div>
+                  <div className={`text-xs font-bold ${ok ? "text-emerald-400" : total > 0 ? "text-red-400" : "text-slate-600"}`}>
+                    {total > 0 ? `${Math.round(total)}%` : "—"}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
