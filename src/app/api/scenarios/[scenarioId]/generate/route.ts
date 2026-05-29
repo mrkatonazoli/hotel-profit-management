@@ -139,6 +139,64 @@ Visszaadandó JSON (semmi más, csak ez):
   }
 }
 
+// ─── Komisszió számítás szegmens mix alapján ──────────────────────────────────
+
+async function applySegmentCommissions(scenarioId: string) {
+  // Szegmensek betöltése csatorna mixszel
+  const segments = await prisma.scenarioSegment.findMany({
+    where: { scenarioId },
+    include: {
+      monthShares: true,
+      channelMix: { include: { distributor: true } },
+    },
+  });
+
+  if (segments.length === 0) return;
+
+  // Havi effektív komisszió ráta: Σ(segmentShare% × segmentCommission%)
+  const monthlyCommissionRate: Record<number, number> = {};
+  for (let month = 1; month <= 12; month++) {
+    let rate = 0;
+    for (const seg of segments) {
+      const segShare = (seg.monthShares.find(m => m.month === month)?.sharePct ?? 0) / 100;
+      if (segShare === 0) continue;
+
+      let segCommPct = 0;
+      if (seg.useChannelMix) {
+        // Csatorna mix alapján számolt komisszió
+        const annualChannels = seg.channelMix.filter(c => c.month === null);
+        const monthChannels  = seg.channelMix.filter(c => c.month === month);
+        const channels = monthChannels.length > 0 ? monthChannels : annualChannels;
+        segCommPct = channels.reduce((sum, c) => {
+          return sum + (c.sharePct / 100) * (c.distributor.isCommission ? c.distributor.commissionPct : 0);
+        }, 0);
+      } else {
+        segCommPct = seg.commissionPct;
+      }
+
+      rate += segShare * segCommPct;
+    }
+    monthlyCommissionRate[month] = rate / 100; // → 0.0–1.0
+  }
+
+  // PlanDay-ek frissítése hónaponként
+  const planDays = await prisma.planDay.findMany({
+    where: { scenarioId },
+    select: { id: true, date: true, roomRevenue: true },
+  });
+
+  // Batch update
+  await Promise.all(planDays.map(day => {
+    const month = new Date(day.date).getUTCMonth() + 1;
+    const rate  = monthlyCommissionRate[month] ?? 0;
+    const commissionCost = Math.round(day.roomRevenue * rate);
+    return prisma.planDay.update({
+      where: { id: day.id },
+      data: { commissionCost },
+    });
+  }));
+}
+
 // ─── Route ────────────────────────────────────────────────────────────────────
 
 export async function POST(_req: Request, { params }: { params: Promise<{ scenarioId: string }> }) {
@@ -170,6 +228,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ scenar
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
+
+    // ── Komisszió számítás szegmens mix alapján ──────────────────────────────
+    await applySegmentCommissions(scenarioId);
 
     // Visszaadjuk az értelmezett constraint-eket is, hogy a UI megmutassa mit értett meg
     const pinnedDays = constraints.dateOverrides.filter(o => o.occPctAbsolute !== undefined);

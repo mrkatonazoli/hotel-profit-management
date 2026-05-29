@@ -205,6 +205,7 @@ model PlanDay {
   otherRevenue    Int      @default(0)
   adultCount      Int      @default(0)   // összesítő — a boardTypes soraiból számolt
   childCount      Int      @default(0)   // összesítő — a boardTypes soraiból számolt
+  commissionCost  Int      @default(0)   // tervezett jutalékköltség (szegmens mix alapján)
   scenario        Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
   boardTypes      PlanDayBoardType[]
 
@@ -413,6 +414,8 @@ model ScenarioSegment {
   color            String   @default("#7C3AED")
   sortOrder        Int      @default(0)
   channelMixMode   String   @default("ANNUAL")  // "ANNUAL" | "MONTHLY"
+  useChannelMix    Boolean  @default(false)      // true = csatorna mix alapján, false = fix commissionPct
+  commissionPct    Float    @default(0)          // fix jutalék % (ha useChannelMix=false)
   scenario         Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
   monthShares      ScenarioSegmentMonth[]
   channelMix       ScenarioSegmentChannel[]

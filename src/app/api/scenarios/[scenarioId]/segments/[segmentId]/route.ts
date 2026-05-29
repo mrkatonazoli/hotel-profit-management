@@ -14,7 +14,7 @@ export async function PUT(req: Request, { params }: Ctx) {
 
   const { segmentId } = await params;
   const body = await req.json();
-  const { name, color, sortOrder, channelMixMode, monthShares, channelMix } = body;
+  const { name, color, sortOrder, channelMixMode, useChannelMix, commissionPct, monthShares, channelMix } = body;
 
   // Update base fields
   await prisma.scenarioSegment.update({
@@ -23,6 +23,8 @@ export async function PUT(req: Request, { params }: Ctx) {
       ...(name !== undefined && { name: String(name).trim() }),
       ...(color !== undefined && { color: String(color) }),
       ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
+      ...(useChannelMix !== undefined && { useChannelMix: Boolean(useChannelMix) }),
+      ...(commissionPct !== undefined && { commissionPct: Number(commissionPct) }),
       ...(channelMixMode !== undefined && { channelMixMode: channelMixMode === "MONTHLY" ? "MONTHLY" : "ANNUAL" }),
     },
   });

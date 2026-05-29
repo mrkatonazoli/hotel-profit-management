@@ -21,6 +21,8 @@ type Segment = {
   color: string;
   sortOrder: number;
   channelMixMode: "ANNUAL" | "MONTHLY";
+  useChannelMix: boolean;
+  commissionPct: number;
   monthShares: SegmentMonth[];
   channelMix: (ChannelEntry & { distributor: Distributor })[];
 };
@@ -193,6 +195,32 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
     });
   }
 
+  async function toggleUseChannelMix(seg: Segment) {
+    const newVal = !seg.useChannelMix;
+    setSegments(prev => prev.map(s => s.id === seg.id ? { ...s, useChannelMix: newVal } : s));
+    await fetch(`/api/scenarios/${scenarioId}/segments/${seg.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ useChannelMix: newVal }),
+    });
+  }
+
+  async function updateCommissionPct(seg: Segment, value: number) {
+    setSegments(prev => prev.map(s => s.id === seg.id ? { ...s, commissionPct: value } : s));
+    setSaving(seg.id);
+    await fetch(`/api/scenarios/${scenarioId}/segments/${seg.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commissionPct: value }),
+    });
+    setSaving(null);
+  }
+
+  function effectiveCommission(seg: Segment, month: number): number {
+    if (seg.useChannelMix) return calcCommission(seg, month);
+    return seg.commissionPct;
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────────
 
   if (loading) return (
@@ -302,8 +330,45 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
               </div>
             </div>
 
+            {/* Commission config (expanded) */}
+            {isExp && (
+              <div className="px-5 py-4 border-t border-slate-100 bg-slate-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Jutalék beállítás</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {seg.useChannelMix ? "Csatorna mix alapján számolva (automatikus)" : "Fix jutalék % — manuálisan megadva"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span className={seg.useChannelMix ? "text-slate-400" : "font-semibold text-slate-700"}>Fix %</span>
+                    <Toggle checked={seg.useChannelMix} onChange={() => toggleUseChannelMix(seg)} />
+                    <span className={seg.useChannelMix ? "font-semibold text-violet-600" : "text-slate-400"}>Csatorna mix</span>
+                  </div>
+                </div>
+                {!seg.useChannelMix && (
+                  <div className="flex items-center gap-3 mt-3">
+                    <label className="text-sm text-slate-600">Fix jutalék:</label>
+                    <input
+                      type="number" min={0} max={100} step={0.5}
+                      value={seg.commissionPct === 0 ? "" : seg.commissionPct}
+                      placeholder="0"
+                      onChange={e => updateCommissionPct(seg, Number(e.target.value) || 0)}
+                      className="w-20 text-center text-sm font-semibold rounded-lg px-2 py-1.5 border border-slate-200 focus:border-violet-400 bg-white outline-none"
+                    />
+                    <span className="text-sm text-slate-400">%</span>
+                    {seg.commissionPct > 0 && (
+                      <span className="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full">
+                        {seg.commissionPct}% jutalék
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Channel mix (expanded) */}
-            {isExp && hasChannelMix && (
+            {isExp && hasChannelMix && seg.useChannelMix && (
               <div className="px-5 pb-5 border-t border-slate-100 pt-4">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
@@ -439,10 +504,10 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
 
             {!isExp && (
               <div className="px-5 pb-3 flex items-center gap-4 text-xs text-slate-400">
-                <span>Avg jutalék: <strong className="text-amber-600">{calcCommission(seg, 6).toFixed(1)}%</strong></span>
-                <span>Csatorna mix: <strong>{seg.channelMixMode === "MONTHLY" ? "havi" : "éves"}</strong></span>
+                <span>Jutalék: <strong className="text-amber-600">{effectiveCommission(seg, 6).toFixed(1)}%</strong></span>
+                <span>{seg.useChannelMix ? `Csatorna mix (${seg.channelMixMode === "MONTHLY" ? "havi" : "éves"})` : "Fix jutalék"}</span>
                 <button onClick={() => setExpanded(seg.id)} className="text-violet-500 hover:text-violet-700 font-semibold">
-                  Csatorna mix szerkesztése →
+                  Beállítás →
                 </button>
               </div>
             )}
@@ -472,8 +537,8 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: seg.color }} />
                 <span className="text-sm font-semibold">{seg.name}</span>
                 <span className="text-slate-400 text-sm">{getMonthShare(seg, 6)}%</span>
-                {calcCommission(seg, 6) > 0 && (
-                  <span className="text-amber-400 text-xs">({calcCommission(seg, 6).toFixed(1)}% jut.)</span>
+                {effectiveCommission(seg, 6) > 0 && (
+                  <span className="text-amber-400 text-xs">({effectiveCommission(seg, 6).toFixed(1)}% jut.)</span>
                 )}
               </div>
             ))}
