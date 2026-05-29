@@ -79,6 +79,28 @@ type SummaryModalState = {
   error?: string;
 };
 
+// ─── Channel revenue types ────────────────────────────────────────────────────
+
+type ChannelEntry = {
+  id: string; name: string; isCommission: boolean; commissionPct: number;
+  revenue: number; commission: number;
+};
+type SegmentEntry = {
+  id: string; name: string; color: string; sharePct: number;
+  revenue: number; commission: number;
+};
+type ChannelMonth = {
+  month: number; roomRevenue: number; roomNights: number;
+  occupancyPct: number; adr: number;
+  channels: ChannelEntry[]; segments: SegmentEntry[];
+  totalCommission: number; netRevenue: number;
+};
+type ChannelRevenueData = {
+  months: ChannelMonth[];
+  channels: { id: string; name: string; isCommission: boolean; commissionPct: number }[];
+  hasSegments: boolean; hasChannels: boolean;
+};
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ScenariosPage() {
@@ -169,6 +191,11 @@ export default function ScenariosPage() {
   const [monthData, setMonthData] = useState<Record<string, ScenarioMonth[]>>({});
   const [monthSaving, setMonthSaving] = useState<string | null>(null); // `${scenarioId}|${month}`
 
+  // Channel revenue tab
+  const [activeTab, setActiveTab] = useState<Record<string, "plan" | "channels">>({});
+  const [channelData, setChannelData] = useState<Record<string, ChannelRevenueData>>({});
+  const [channelLoading, setChannelLoading] = useState<string | null>(null);
+
   // Delete
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -243,6 +270,27 @@ export default function ScenariosPage() {
       }
       setMonthData(prev => ({ ...prev, [s.id]: map }));
     }
+  }
+
+  // ─── Load channel revenue data ────────────────────────────────────────────
+
+  async function loadChannelData(scenarioId: string) {
+    if (channelData[scenarioId]) return; // already loaded
+    setChannelLoading(scenarioId);
+    try {
+      const res = await fetch(`/api/scenarios/${scenarioId}/channel-revenue`);
+      if (res.ok) {
+        const data: ChannelRevenueData = await res.json();
+        setChannelData(prev => ({ ...prev, [scenarioId]: data }));
+      }
+    } finally {
+      setChannelLoading(null);
+    }
+  }
+
+  async function switchTab(scenarioId: string, tab: "plan" | "channels") {
+    setActiveTab(prev => ({ ...prev, [scenarioId]: tab }));
+    if (tab === "channels") loadChannelData(scenarioId);
   }
 
   // ─── Save a single month cell ──────────────────────────────────────────────
@@ -508,16 +556,45 @@ export default function ScenariosPage() {
                   </div>
                 </div>
 
-                {/* Monthly table (expandable) */}
+                {/* Monthly detail (expandable) */}
                 {isOpen && (
-                  <MonthTable
-                    months={months}
-                    totalRooms={hotel?.totalRooms ?? null}
-                    saving={monthSaving}
-                    scenarioId={s.id}
-                    onChange={(idx, field, val) => updateMonthCell(s.id, idx, field, val)}
-                    onBlur={(idx) => saveMonth(s.id, months[idx])}
-                  />
+                  <div style={{ borderTop: "1px solid #E2E8F0" }}>
+                    {/* Tab bar */}
+                    <div className="flex items-center gap-1 px-4 pt-3 pb-0"
+                      style={{ background: "#F8FAFC" }}>
+                      {(["plan", "channels"] as const).map(tab => (
+                        <button key={tab}
+                          onClick={() => switchTab(s.id, tab)}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-all"
+                          style={{
+                            background: (activeTab[s.id] ?? "plan") === tab ? "white" : "transparent",
+                            color: (activeTab[s.id] ?? "plan") === tab ? "#7C3AED" : "#94A3B8",
+                            borderBottom: (activeTab[s.id] ?? "plan") === tab ? "2px solid #7C3AED" : "2px solid transparent",
+                          }}>
+                          {tab === "plan" ? "Havi tervszámok" : "Csatorna & Komisszió"}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Tab content */}
+                    {(activeTab[s.id] ?? "plan") === "plan" ? (
+                      <MonthTable
+                        months={months}
+                        totalRooms={hotel?.totalRooms ?? null}
+                        saving={monthSaving}
+                        scenarioId={s.id}
+                        onChange={(idx, field, val) => updateMonthCell(s.id, idx, field, val)}
+                        onBlur={(idx) => saveMonth(s.id, months[idx])}
+                      />
+                    ) : (
+                      <ChannelRevenueTable
+                        data={channelData[s.id] ?? null}
+                        loading={channelLoading === s.id}
+                        scenarioId={s.id}
+                        onNavigate={() => router.push(`/segments/${s.id}`)}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             );
@@ -783,6 +860,239 @@ function AnnualMini({ months, totalRooms }: { months: ScenarioMonth[]; totalRoom
           {fmt(annRoomRev)} Ft szobabev. / év
         </span>
       )}
+    </div>
+  );
+}
+
+// ─── Channel Revenue Table ────────────────────────────────────────────────────
+
+const HU_MONTHS_SHORT = ["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","Sze","Okt","Nov","Dec"];
+
+function fmtM(n: number) {
+  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toLocaleString("hu-HU", { maximumFractionDigits: 1 })} M`;
+  if (Math.abs(n) >= 1_000)     return `${(n / 1_000).toLocaleString("hu-HU", { maximumFractionDigits: 0 })} E`;
+  return n.toLocaleString("hu-HU");
+}
+
+function ChannelRevenueTable({ data, loading, scenarioId, onNavigate }: {
+  data: ChannelRevenueData | null;
+  loading: boolean;
+  scenarioId: string;
+  onNavigate: () => void;
+}) {
+  if (loading) return (
+    <div className="flex items-center justify-center py-10 gap-2" style={{ color: "#94A3B8" }}>
+      <Loader2 size={16} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <span className="text-sm">Betöltés...</span>
+    </div>
+  );
+
+  if (!data) return (
+    <div className="flex flex-col items-center py-10 gap-2" style={{ color: "#94A3B8" }}>
+      <BarChart3 size={28} style={{ color: "#CBD5E1" }} />
+      <p className="text-sm">Csatorna adatok betöltése sikertelen.</p>
+    </div>
+  );
+
+  if (!data.hasSegments) return (
+    <div className="flex flex-col items-center py-10 gap-3">
+      <Users size={28} style={{ color: "#CBD5E1" }} />
+      <p className="text-sm" style={{ color: "#94A3B8" }}>
+        Nincs beállított szegmens ehhez a szcenárióhoz.
+      </p>
+      <button onClick={onNavigate}
+        className="px-3 py-1.5 rounded-xl text-xs font-semibold"
+        style={{ background: "#ECFDF5", color: "#059669" }}>
+        Szegmensek beállítása →
+      </button>
+    </div>
+  );
+
+  const filledMonths = data.months.filter(m => m.roomRevenue > 0);
+  const totalRoomRev   = filledMonths.reduce((s, m) => s + m.roomRevenue, 0);
+  const totalCommission = filledMonths.reduce((s, m) => s + m.totalCommission, 0);
+  const totalNet       = totalRoomRev - totalCommission;
+  const commPct        = totalRoomRev > 0 ? Math.round(totalCommission / totalRoomRev * 1000) / 10 : 0;
+
+  // Show segment view if no channel mix, channel view if channels exist
+  const showChannels = data.hasChannels;
+
+  return (
+    <div>
+      {/* Éves összefoglaló fejléc */}
+      <div className="flex items-center gap-4 px-5 py-3 flex-wrap"
+        style={{ background: "#FAFAFA", borderBottom: "1px solid #E2E8F0" }}>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium" style={{ color: "#64748B" }}>Szobabevétel</span>
+          <span className="text-xs font-bold font-mono" style={{ color: "#7C3AED" }}>{fmtM(totalRoomRev)} Ft</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium" style={{ color: "#64748B" }}>Komisszió</span>
+          <span className="text-xs font-bold font-mono" style={{ color: "#D97706" }}>
+            −{fmtM(totalCommission)} Ft
+            {commPct > 0 && <span className="font-normal ml-1">({commPct}%)</span>}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium" style={{ color: "#64748B" }}>Nettó szobabev.</span>
+          <span className="text-xs font-bold font-mono" style={{ color: "#10B981" }}>{fmtM(totalNet)} Ft</span>
+        </div>
+        {!data.hasChannels && (
+          <span className="text-xs px-2 py-0.5 rounded-full ml-auto"
+            style={{ background: "#FEF3C7", color: "#D97706" }}>
+            Csatorna mix nincs — szegmens fix jutalékkal számolva
+          </span>
+        )}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse"
+          style={{ minWidth: showChannels ? Math.max(640, 200 + data.channels.length * 140) : 640 }}>
+
+          <thead>
+            <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold uppercase tracking-wide sticky left-0"
+                style={{ color: "#94A3B8", background: "#F8FAFC", minWidth: 80 }}>Hónap</th>
+              <th className="text-right px-3 py-2.5 text-xs font-semibold uppercase tracking-wide"
+                style={{ color: "#94A3B8", minWidth: 110 }}>Szobabevétel</th>
+
+              {/* Szegmens oszlopok — ha nincs channel mix */}
+              {!showChannels && data.months[0]?.segments.map(seg => (
+                <th key={seg.id} className="text-right px-3 py-2.5 text-xs font-semibold"
+                  style={{ color: "#94A3B8", minWidth: 120 }}>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <div className="w-2 h-2 rounded-full" style={{ background: seg.color }} />
+                    {seg.name}
+                  </div>
+                </th>
+              ))}
+
+              {/* Csatorna oszlopok */}
+              {showChannels && data.channels.map(ch => (
+                <th key={ch.id} className="text-right px-3 py-2.5 text-xs font-semibold"
+                  style={{ color: ch.isCommission ? "#D97706" : "#94A3B8", minWidth: 130 }}>
+                  <div>
+                    <div>{ch.name}</div>
+                    {ch.isCommission && (
+                      <div className="text-xs font-normal" style={{ color: "#F59E0B" }}>{ch.commissionPct}% jut.</div>
+                    )}
+                  </div>
+                </th>
+              ))}
+
+              <th className="text-right px-3 py-2.5 text-xs font-semibold uppercase tracking-wide"
+                style={{ color: "#D97706", minWidth: 110 }}>Komisszió</th>
+              <th className="text-right px-4 py-2.5 text-xs font-semibold uppercase tracking-wide"
+                style={{ color: "#10B981", minWidth: 120 }}>Nettó bev.</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {data.months.map(m => {
+              const hasData = m.roomRevenue > 0;
+              return (
+                <tr key={m.month} style={{ borderBottom: "1px solid #F8FAFC", opacity: hasData ? 1 : 0.4 }}>
+                  <td className="px-4 py-2 sticky left-0" style={{ background: "white" }}>
+                    <span className="text-xs font-medium" style={{ color: "#0F172A" }}>
+                      {HU_MONTHS_SHORT[m.month - 1]}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-xs font-semibold"
+                    style={{ color: hasData ? "#7C3AED" : "#CBD5E1" }}>
+                    {hasData ? fmtM(m.roomRevenue) : "—"}
+                  </td>
+
+                  {/* Szegmens értékek */}
+                  {!showChannels && m.segments.map(seg => (
+                    <td key={seg.id} className="px-3 py-2 text-right font-mono text-xs"
+                      style={{ color: hasData && seg.revenue > 0 ? "#334155" : "#CBD5E1" }}>
+                      {hasData && seg.revenue > 0 ? (
+                        <div>
+                          <div>{fmtM(seg.revenue)}</div>
+                          {seg.commission > 0 && (
+                            <div className="text-xs" style={{ color: "#D97706" }}>−{fmtM(seg.commission)}</div>
+                          )}
+                        </div>
+                      ) : "—"}
+                    </td>
+                  ))}
+
+                  {/* Csatorna értékek */}
+                  {showChannels && data.channels.map(ch => {
+                    const chData = m.channels.find(c => c.id === ch.id);
+                    return (
+                      <td key={ch.id} className="px-3 py-2 text-right font-mono text-xs"
+                        style={{ color: chData && chData.revenue > 0 ? "#334155" : "#CBD5E1" }}>
+                        {chData && chData.revenue > 0 ? (
+                          <div>
+                            <div>{fmtM(chData.revenue)}</div>
+                            {chData.commission > 0 && (
+                              <div className="text-xs" style={{ color: "#D97706" }}>−{fmtM(chData.commission)}</div>
+                            )}
+                          </div>
+                        ) : "—"}
+                      </td>
+                    );
+                  })}
+
+                  <td className="px-3 py-2 text-right font-mono text-xs font-semibold"
+                    style={{ color: hasData && m.totalCommission > 0 ? "#D97706" : "#CBD5E1" }}>
+                    {hasData && m.totalCommission > 0 ? `−${fmtM(m.totalCommission)}` : "—"}
+                  </td>
+                  <td className="px-4 py-2 text-right font-mono text-xs font-semibold"
+                    style={{ color: hasData && m.netRevenue > 0 ? "#10B981" : "#CBD5E1" }}>
+                    {hasData && m.netRevenue > 0 ? fmtM(m.netRevenue) : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+
+          {filledMonths.length > 0 && (
+            <tfoot>
+              <tr style={{ background: "#F8FAFC", borderTop: "2px solid #E2E8F0" }}>
+                <td className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide sticky left-0"
+                  style={{ color: "#64748B", background: "#F8FAFC" }}>Éves össz.</td>
+                <td className="px-3 py-2.5 text-right font-mono font-bold text-xs" style={{ color: "#7C3AED" }}>
+                  {fmtM(totalRoomRev)}
+                </td>
+
+                {/* Szegmens összesítők */}
+                {!showChannels && (data.months[0]?.segments ?? []).map(seg => {
+                  const segTotal   = filledMonths.reduce((s, m) => s + (m.segments.find(x => x.id === seg.id)?.revenue ?? 0), 0);
+                  const segCommTot = filledMonths.reduce((s, m) => s + (m.segments.find(x => x.id === seg.id)?.commission ?? 0), 0);
+                  return (
+                    <td key={seg.id} className="px-3 py-2.5 text-right font-mono text-xs font-semibold" style={{ color: "#334155" }}>
+                      <div>{fmtM(segTotal)}</div>
+                      {segCommTot > 0 && <div style={{ color: "#D97706" }}>−{fmtM(segCommTot)}</div>}
+                    </td>
+                  );
+                })}
+
+                {/* Csatorna összesítők */}
+                {showChannels && data.channels.map(ch => {
+                  const chTotal   = filledMonths.reduce((s, m) => s + (m.channels.find(c => c.id === ch.id)?.revenue ?? 0), 0);
+                  const chCommTot = filledMonths.reduce((s, m) => s + (m.channels.find(c => c.id === ch.id)?.commission ?? 0), 0);
+                  return (
+                    <td key={ch.id} className="px-3 py-2.5 text-right font-mono text-xs font-semibold" style={{ color: "#334155" }}>
+                      <div>{fmtM(chTotal)}</div>
+                      {chCommTot > 0 && <div style={{ color: "#D97706" }}>−{fmtM(chCommTot)}</div>}
+                    </td>
+                  );
+                })}
+
+                <td className="px-3 py-2.5 text-right font-mono font-bold text-xs" style={{ color: "#D97706" }}>
+                  −{fmtM(totalCommission)}
+                  {commPct > 0 && <div className="font-normal text-xs" style={{ color: "#F59E0B" }}>({commPct}%)</div>}
+                </td>
+                <td className="px-4 py-2.5 text-right font-mono font-bold text-xs" style={{ color: "#10B981" }}>
+                  {fmtM(totalNet)}
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
     </div>
   );
 }
