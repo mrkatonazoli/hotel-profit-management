@@ -91,7 +91,7 @@ export async function POST(req: Request) {
     update: { role, expiresAt, token: undefined }, // refresh expiry, keep token
   });
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const inviteUrl = `${baseUrl}/invite/${invite.token}`;
 
   // Send invite email (non-blocking — don't fail if email fails)
