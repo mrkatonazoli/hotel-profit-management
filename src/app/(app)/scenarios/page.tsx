@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Plus, Trash2, Loader2, X, Check,
   GitBranch, Star, AlertTriangle, TrendingUp, ChevronDown, ChevronUp, Scale,
-  Sparkles, BarChart3, FileText,
+  Sparkles, BarChart3, FileText, Users,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -492,6 +492,13 @@ export default function ScenariosPage() {
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
                       style={{ background: "#EDE9FE", color: "#7C3AED" }}>
                       <Scale size={13} /> Súlyozás
+                    </button>
+                    <button
+                      onClick={() => router.push(`/segments/${s.id}`)}
+                      title="Szegmensek beállítása"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                      style={{ background: "#ECFDF5", color: "#059669" }}>
+                      <Users size={13} /> Szegmensek
                     </button>
                     <button onClick={() => handleDelete(s.id)}
                       className="w-8 h-8 rounded-xl flex items-center justify-center"

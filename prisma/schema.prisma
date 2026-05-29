@@ -164,6 +164,7 @@ model Scenario {
   variables        ScenarioVariable[]
   roomTypeWeights  RoomTypeWeight[]
   boardTypeShares  RoomTypeBoardTypeShare[]
+  segments         ScenarioSegment[]
 }
 
 model ScenarioVariable {
@@ -399,6 +400,46 @@ model Distributor {
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   hotel         Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  segmentChannels ScenarioSegmentChannel[]
+}
+
+// ─── SZEGMENSEK ───────────────────────────────────────────────────────────────
+
+// Vendégszegmens szcenárión belül (pl. Egyéni, Corporate, MICE, Utazási iroda)
+model ScenarioSegment {
+  id               String   @id @default(cuid())
+  scenarioId       String
+  name             String   // "Egyéni", "Corporate", "MICE", "Utazási iroda"
+  color            String   @default("#7C3AED")
+  sortOrder        Int      @default(0)
+  channelMixMode   String   @default("ANNUAL")  // "ANNUAL" | "MONTHLY"
+  scenario         Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  monthShares      ScenarioSegmentMonth[]
+  channelMix       ScenarioSegmentChannel[]
+}
+
+// Havi szegmens arány (jan-dec, összesen 100% havonta)
+model ScenarioSegmentMonth {
+  id         String          @id @default(cuid())
+  segmentId  String
+  month      Int             // 1–12
+  sharePct   Float           @default(0)
+  segment    ScenarioSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@unique([segmentId, month])
+}
+
+// Csatorna mix egy szegmensen belül (opcionálisan havi bontásban)
+model ScenarioSegmentChannel {
+  id            String          @id @default(cuid())
+  segmentId     String
+  distributorId String
+  month         Int?            // null = éves, 1–12 = havi
+  sharePct      Float           @default(0)
+  segment       ScenarioSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  distributor   Distributor     @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+
+  @@unique([segmentId, distributorId, month])
 }
 
 // ─── HISTORICAL IMPORT ───────────────────────────────────────────────────────
