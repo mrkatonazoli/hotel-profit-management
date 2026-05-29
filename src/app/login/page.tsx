@@ -43,17 +43,10 @@ export default function LoginPage() {
     setError("");
     const callbackUrl = getCallbackUrl();
     try {
-      const res = await fetch(
-        `/api/auth/callback/nodemailer?token=${code}&email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(callbackUrl)}`
-      );
-      if (res.ok || res.redirected) {
-        window.location.href = callbackUrl;
-      } else {
-        setError("Érvénytelen vagy lejárt kód. Kérj újat.");
-      }
+      // Redirect directly — the browser handles cookies and the full redirect chain
+      window.location.href = `/api/auth/callback/nodemailer?token=${code}&email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent(callbackUrl)}`;
     } catch {
       setError("Hiba történt. Próbáld újra.");
-    } finally {
       setLoading(false);
     }
   }
