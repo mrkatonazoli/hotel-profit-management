@@ -196,10 +196,10 @@ async function applySegmentCommissions(scenarioId: string) {
   // Egyetlen UPDATE ... FROM (VALUES ...) — nincs connection-verseny
   await prisma.$executeRaw`
     UPDATE "PlanDay" p
-    SET "commissionCost" = v.cost
+    SET "commissionCost" = v.cost::int
     FROM (VALUES ${Prisma.join(
-      updates.map(u => Prisma.sql`(${u.id}, ${u.commissionCost})`)
-    )}) AS v(id text, cost int)
+      updates.map(u => Prisma.sql`(${u.id}::text, ${u.commissionCost}::int)`)
+    )}) AS v(id, cost)
     WHERE p.id = v.id
   `;
 }
