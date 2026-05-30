@@ -2,7 +2,15 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed, Sliders, RotateCcw, Download, X, GitBranch, ChevronRight } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart, Bar,
+  XAxis, YAxis,
+  CartesianGrid, Tooltip as ReTooltip,
+  ReferenceLine, Cell, Legend,
+  LineChart, Line,
+} from "recharts";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -70,7 +78,6 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number): Month
   const breakeven = (m.adr > 0 && totalRooms > 0)
     ? (m.monthlyCost / (totalRooms * days * m.adr)) * 100
     : null;
-
   return { month: m.month, daysInMonth: days, roomNights, revenue, cost, profit, margin, breakeven, hasData };
 }
 
@@ -78,6 +85,25 @@ function profitColor(p: number) {
   if (p > 0) return "#10B981";
   if (p === 0) return "#94A3B8";
   return "#EF4444";
+}
+
+function annualSummary(calcs: MonthCalc[], months: MonthData[]) {
+  const filledCalcs = calcs.filter(c => c.hasData);
+  const annualRevenue = calcs.reduce((s, c) => s + c.revenue, 0);
+  const annualCost = calcs.reduce((s, c) => s + c.cost, 0);
+  const annualProfit = annualRevenue - annualCost;
+  const avgOcc = filledCalcs.length > 0
+    ? filledCalcs.reduce((s, c) => s + (months.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / filledCalcs.length
+    : 0;
+  const avgMargin = filledCalcs.filter(c => c.margin !== null).length > 0
+    ? filledCalcs.filter(c => c.margin !== null).reduce((s, c) => s + (c.margin ?? 0), 0) / filledCalcs.filter(c => c.margin !== null).length
+    : 0;
+  const totalDays = calcs.reduce((s, c) => s + c.daysInMonth, 0);
+  const weightedAdr = filledCalcs.length > 0
+    ? filledCalcs.reduce((s, c) => s + (months.find(m => m.month === c.month)?.adr ?? 0), 0) / filledCalcs.length
+    : 0;
+  const totalRooms = calcs.length > 0 ? undefined : 0; // not needed here
+  return { annualRevenue, annualCost, annualProfit, avgOcc, avgMargin, totalDays, weightedAdr, filledCalcs };
 }
 
 // ─── Inline editable name ────────────────────────────────────────────────────
@@ -181,9 +207,9 @@ function MonthInput({
 
 // ─── KPI card ─────────────────────────────────────────────────────────────────
 
-function KpiCard({ label, value, color, icon, sub }: {
+function KpiCard({ label, value, color, icon, sub, delta }: {
   label: string; value: string; color: string;
-  icon: React.ReactNode; sub?: string;
+  icon: React.ReactNode; sub?: string; delta?: string;
 }) {
   return (
     <div style={{
@@ -197,7 +223,286 @@ function KpiCard({ label, value, color, icon, sub }: {
         </div>
       </div>
       <p style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", margin: 0, lineHeight: 1 }}>{value}</p>
-      {sub && <p style={{ fontSize: 11, color: "#94A3B8", margin: "6px 0 0" }}>{sub}</p>}
+      {delta && (
+        <p style={{ fontSize: 11, fontWeight: 700, color: delta.startsWith("+") ? "#10B981" : "#EF4444", margin: "4px 0 0" }}>{delta}</p>
+      )}
+      {sub && <p style={{ fontSize: 11, color: "#94A3B8", margin: "4px 0 0" }}>{sub}</p>}
+    </div>
+  );
+}
+
+// ─── Custom Recharts Tooltip ──────────────────────────────────────────────────
+
+function ChartTooltipRevenue({ active, payload, label }: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", boxShadow: "0 4px 16px #0001" }}>
+      <p style={{ fontWeight: 700, color: "#0F172A", margin: "0 0 6px", fontSize: 13 }}>{label}</p>
+      {payload.map(p => (
+        <p key={p.dataKey} style={{ margin: "2px 0", fontSize: 12, color: p.color, fontWeight: 600 }}>
+          {p.dataKey === "revenue" ? "Bevétel" : p.dataKey === "simRevenue" ? "Sim. bevétel" : p.dataKey === "profit" ? "Profit" : "Sim. profit"}:{" "}
+          {fmtM(p.value)} Ft
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function ChartTooltipOcc({ active, payload, label }: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", boxShadow: "0 4px 16px #0001" }}>
+      <p style={{ fontWeight: 700, color: "#0F172A", margin: "0 0 6px", fontSize: 13 }}>{label}</p>
+      {payload.map(p => (
+        <p key={p.dataKey} style={{ margin: "2px 0", fontSize: 12, color: p.color, fontWeight: 600 }}>
+          {p.dataKey === "occ" ? "Kihasználtság" : p.dataKey === "simOcc" ? "Sim. kihasználtság" : "Fedezeti pont"}:{" "}
+          {Math.round(p.value)}%
+        </p>
+      ))}
+    </div>
+  );
+}
+
+// ─── Scenario types (for import) ─────────────────────────────────────────────
+
+type ScenarioItem = { id: string; name: string; year: number; isBase: boolean; probability: number };
+
+type ImportMonth = { month: number; avgAdr: number; avgOcc: number };
+
+// ─── Import Modal ─────────────────────────────────────────────────────────────
+
+function ImportModal({
+  onClose,
+  onImport,
+}: {
+  onClose: () => void;
+  onImport: (months: ImportMonth[], scenarioName: string) => void;
+}) {
+  const [scenarios, setScenarios] = useState<ScenarioItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [preview, setPreview] = useState<{ months: ImportMonth[]; name: string } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [noData, setNoData] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/scenarios")
+      .then(r => r.json())
+      .then((data: ScenarioItem[]) => setScenarios(data))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function selectScenario(id: string) {
+    setSelected(id);
+    setPreview(null);
+    setNoData(false);
+    setPreviewLoading(true);
+    try {
+      const res = await fetch(`/api/simple-plans/import-from-scenario?scenarioId=${id}`);
+      const data = await res.json();
+      if (data.hasData) {
+        setPreview({ months: data.months, name: data.scenario.name });
+      } else {
+        setNoData(true);
+      }
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  function doImport() {
+    if (!preview) return;
+    setImporting(true);
+    onImport(preview.months, preview.name);
+  }
+
+  // Close on backdrop click
+  function handleBackdrop(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.target === e.currentTarget) onClose();
+  }
+
+  return (
+    <div
+      onClick={handleBackdrop}
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div style={{
+        background: "white", borderRadius: 24, width: "100%", maxWidth: 560,
+        boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
+        display: "flex", flexDirection: "column", maxHeight: "85vh",
+        overflow: "hidden",
+      }}>
+        {/* Header */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "20px 24px", borderBottom: "1px solid #E2E8F0",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Download size={16} color="#7C3AED" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+                Importálás szcenárióból
+              </h2>
+              <p style={{ fontSize: 12, color: "#94A3B8", margin: 0 }}>
+                Válassz egy szcenáriót — az ADR és kihasználtság adatai kerülnek be
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #E2E8F0", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <X size={16} color="#64748B" />
+          </button>
+        </div>
+
+        {/* Scenario list */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+          {loading ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
+              <Loader2 size={20} style={{ color: "#7C3AED" }} className="animate-spin" />
+            </div>
+          ) : scenarios.length === 0 ? (
+            <p style={{ textAlign: "center", color: "#94A3B8", padding: 32, fontSize: 13 }}>
+              Nincs elérhető szcenárió.
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {scenarios.map(s => {
+                const isSelected = selected === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => selectScenario(s.id)}
+                    style={{
+                      width: "100%", textAlign: "left",
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "12px 14px", borderRadius: 14, cursor: "pointer",
+                      border: `1px solid ${isSelected ? "#7C3AED" : "#E2E8F0"}`,
+                      background: isSelected ? "#F5F3FF" : "white",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                      background: isSelected ? "#7C3AED" : "#F1F5F9",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <GitBranch size={14} color={isSelected ? "white" : "#94A3B8"} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontWeight: 700, color: "#0F172A", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {s.name}
+                        </span>
+                        {s.isBase && (
+                          <span style={{ fontSize: 9, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "1px 5px", borderRadius: 4, textTransform: "uppercase", flexShrink: 0 }}>
+                            BASE
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 11, color: "#94A3B8" }}>
+                        {s.year} · {s.probability}% valószínűség
+                      </span>
+                    </div>
+                    <ChevronRight size={14} color={isSelected ? "#7C3AED" : "#CBD5E1"} style={{ flexShrink: 0 }} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Preview panel */}
+        {selected && (
+          <div style={{ borderTop: "1px solid #E2E8F0", padding: "14px 24px", background: "#F8FAFC" }}>
+            {previewLoading ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#94A3B8", fontSize: 13 }}>
+                <Loader2 size={14} className="animate-spin" /> Adatok betöltése...
+              </div>
+            ) : noData ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <AlertTriangle size={14} color="#D97706" />
+                <p style={{ fontSize: 13, color: "#92400E", margin: 0 }}>
+                  Ennek a szcenáriónak még nincs legenerált terve. Generáld le először.
+                </p>
+              </div>
+            ) : preview ? (
+              <>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#64748B", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Előnézet — havi átlagok
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4, marginBottom: 14 }}>
+                  {preview.months.map(m => (
+                    <div key={m.month} style={{
+                      background: "white", borderRadius: 8, padding: "6px 8px",
+                      border: "1px solid #E2E8F0", textAlign: "center",
+                    }}>
+                      <p style={{ fontSize: 9, color: "#94A3B8", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase" }}>
+                        {["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","Sze","Okt","Nov","Dec"][m.month - 1]}
+                      </p>
+                      {m.avgAdr > 0 ? (
+                        <>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+                            {(m.avgAdr / 1000).toFixed(0)}e
+                          </p>
+                          <p style={{ fontSize: 10, color: "#7C3AED", margin: 0 }}>
+                            {m.avgOcc}%
+                          </p>
+                        </>
+                      ) : (
+                        <p style={{ fontSize: 11, color: "#CBD5E1", margin: "4px 0 0" }}>—</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11, color: "#94A3B8", margin: "0 0 0" }}>
+                  A meglévő kiadásadatok <strong>megmaradnak</strong>. Csak az ADR és kihasználtság felülíródik.
+                </p>
+              </>
+            ) : null}
+          </div>
+        )}
+
+        {/* Footer buttons */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10,
+          padding: "16px 24px", borderTop: "1px solid #E2E8F0", background: "white",
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "9px 18px", borderRadius: 10, border: "1px solid #E2E8F0",
+              background: "white", color: "#64748B", fontSize: 13, fontWeight: 600, cursor: "pointer",
+            }}
+          >
+            Mégse
+          </button>
+          <button
+            onClick={doImport}
+            disabled={!preview || importing}
+            style={{
+              padding: "9px 20px", borderRadius: 10, border: "none",
+              background: preview && !importing ? "#7C3AED" : "#E2E8F0",
+              color: preview && !importing ? "white" : "#94A3B8",
+              fontSize: 13, fontWeight: 700, cursor: preview && !importing ? "pointer" : "not-allowed",
+              display: "flex", alignItems: "center", gap: 6,
+              transition: "all 0.15s",
+            }}
+          >
+            {importing ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            Importálás
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -217,6 +522,29 @@ export default function SimplePlanDetailPage() {
   // Local month state (editable)
   const [months, setMonths] = useState<MonthData[]>([]);
   const [year, setYear] = useState(2026);
+
+  // ─── Simulator state ──────────────────────────────────────────────────────
+  const [simOffset, setSimOffset] = useState(0); // global occ % offset
+  const isSimActive = simOffset !== 0;
+
+  // ─── Import modal state ───────────────────────────────────────────────────
+  const [showImport, setShowImport] = useState(false);
+
+  async function handleImport(importedMonths: ImportMonth[], scenarioName: string) {
+    // Merge imported ADR + occ into saved months, keep costs
+    const updated = months.map(m => {
+      const imp = importedMonths.find(im => im.month === m.month);
+      if (!imp) return m;
+      return {
+        ...m,
+        adr: imp.avgAdr > 0 ? imp.avgAdr : m.adr,
+        occupancyPct: imp.avgAdr > 0 ? imp.avgOcc : m.occupancyPct,
+      };
+    });
+    setMonths(updated);
+    await saveMonths(updated);
+    setShowImport(false);
+  }
 
   async function load() {
     setLoading(true);
@@ -286,6 +614,8 @@ export default function SimplePlanDetailPage() {
   // ─── Calculations ─────────────────────────────────────────────────────────
 
   const totalRooms = plan?.hotel?.totalRooms ?? 0;
+
+  // Saved calcs
   const calcs: MonthCalc[] = months.map(m => computeMonthCalc(m, totalRooms, year));
   const filledCalcs = calcs.filter(c => c.hasData);
 
@@ -299,8 +629,6 @@ export default function SimplePlanDetailPage() {
     ? filledCalcs.filter(c => c.margin !== null).reduce((s, c) => s + (c.margin ?? 0), 0) / filledCalcs.filter(c => c.margin !== null).length
     : 0;
 
-  // Annual breakeven: what avg occupancy % is needed to cover all costs
-  // annualBreakeven = annualCost / (totalRooms * totalDays * avgAdr) * 100
   const totalDays = calcs.reduce((s, c) => s + c.daysInMonth, 0);
   const weightedAdr = filledCalcs.length > 0
     ? filledCalcs.reduce((s, c) => s + (months.find(m => m.month === c.month)?.adr ?? 0), 0) / filledCalcs.length
@@ -308,6 +636,38 @@ export default function SimplePlanDetailPage() {
   const annualBreakeven = (totalRooms > 0 && weightedAdr > 0)
     ? (annualCost / (totalRooms * totalDays * weightedAdr)) * 100
     : null;
+
+  // Simulated calcs (with occupancy offset)
+  const simMonths: MonthData[] = months.map(m => ({
+    ...m,
+    occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
+  }));
+  const simCalcs: MonthCalc[] = simMonths.map(m => computeMonthCalc(m, totalRooms, year));
+  const simFilledCalcs = simCalcs.filter(c => c.hasData);
+
+  const simAnnualRevenue = simCalcs.reduce((s, c) => s + c.revenue, 0);
+  const simAnnualProfit = simAnnualRevenue - annualCost; // cost stays same
+  const simAvgOcc = simFilledCalcs.length > 0
+    ? simFilledCalcs.reduce((s, c) => s + (simMonths.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / simFilledCalcs.length
+    : 0;
+  const simAvgMargin = simAnnualRevenue > 0 ? (simAnnualProfit / simAnnualRevenue) * 100 : 0;
+
+  // Revenue/Profit delta
+  const deltaRevenue = simAnnualRevenue - annualRevenue;
+  const deltaProfit = simAnnualProfit - annualProfit;
+
+  // Chart data
+  const chartData = calcs.map((c, i) => ({
+    name: HU_MONTHS_SHORT[c.month - 1],
+    revenue: Math.round(c.revenue),
+    profit: Math.round(c.profit),
+    occ: months.find(m => m.month === c.month)?.occupancyPct ?? 0,
+    breakeven: c.breakeven !== null ? Math.round(c.breakeven) : null,
+    simRevenue: Math.round(simCalcs[i].revenue),
+    simProfit: Math.round(simCalcs[i].profit),
+    simOcc: simMonths.find(m => m.month === c.month)?.occupancyPct ?? 0,
+    hasData: c.hasData,
+  }));
 
   // ─── Loading ──────────────────────────────────────────────────────────────
 
@@ -328,6 +688,14 @@ export default function SimplePlanDetailPage() {
 
   return (
     <div style={{ maxWidth: 1200 }}>
+
+      {/* ── Import modal ── */}
+      {showImport && (
+        <ImportModal
+          onClose={() => setShowImport(false)}
+          onImport={handleImport}
+        />
+      )}
 
       {/* ── Back link ── */}
       <button
@@ -351,14 +719,29 @@ export default function SimplePlanDetailPage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {/* Save indicator */}
           {saved && (
             <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#10B981", fontWeight: 600 }}>
               <Check size={14} /> Mentve
             </span>
           )}
 
-          {/* Year selector */}
+          {/* Import from scenario button */}
+          <button
+            onClick={() => setShowImport(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "white", border: "1px solid #E2E8F0", borderRadius: 10,
+              padding: "8px 14px", cursor: "pointer", color: "#7C3AED",
+              fontSize: 13, fontWeight: 600,
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#7C3AED"; e.currentTarget.style.background = "#F5F3FF"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = "white"; }}
+          >
+            <Download size={14} />
+            Importálás szcenárióból
+          </button>
+
           <select
             value={year}
             onChange={e => saveYear(Number(e.target.value))}
@@ -401,7 +784,6 @@ export default function SimplePlanDetailPage() {
           Havi input adatok
         </h2>
 
-        {/* 12-column month grid */}
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(12, 1fr)",
@@ -417,7 +799,6 @@ export default function SimplePlanDetailPage() {
                 padding: "8px 8px 6px",
               }}
             >
-              {/* Month label */}
               <p style={{
                 fontSize: 11, fontWeight: 700, color: "#7C3AED", margin: "0 0 8px",
                 textAlign: "center", letterSpacing: "0.03em",
@@ -456,80 +837,410 @@ export default function SimplePlanDetailPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* SECTION B — Dashboard */}
+      {/* SECTION B — KPI Cards */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
-      {/* 4 KPI cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         <KpiCard
           label="Éves bevétel"
-          value={`${fmtM(annualRevenue)} Ft`}
+          value={`${fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft`}
           color="#3B82F6"
           icon={<TrendingUp size={16} />}
+          delta={isSimActive && deltaRevenue !== 0 ? `${deltaRevenue > 0 ? "+" : ""}${fmtM(deltaRevenue)} Ft a tervhez képest` : undefined}
           sub={totalRooms ? `${totalRooms} szoba alapján` : "szobaszám hiányzik"}
         />
         <KpiCard
           label="Éves profit"
-          value={`${annualProfit >= 0 ? "+" : ""}${fmtM(annualProfit)} Ft`}
-          color={profitColor(annualProfit)}
-          icon={annualProfit >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-          sub={annualRevenue > 0 ? `${Math.round(annualProfit / annualRevenue * 100)}% margin` : undefined}
+          value={`${(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}${fmtM(isSimActive ? simAnnualProfit : annualProfit)} Ft`}
+          color={profitColor(isSimActive ? simAnnualProfit : annualProfit)}
+          icon={(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+          delta={isSimActive && deltaProfit !== 0 ? `${deltaProfit > 0 ? "+" : ""}${fmtM(deltaProfit)} Ft a tervhez képest` : undefined}
+          sub={(isSimActive ? simAnnualRevenue : annualRevenue) > 0
+            ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}% margin`
+            : undefined}
         />
         <KpiCard
           label="Átl. kihasználtság"
-          value={`${Math.round(avgOcc)}%`}
+          value={`${Math.round(isSimActive ? simAvgOcc : avgOcc)}%`}
           color="#7C3AED"
           icon={<Bed size={16} />}
+          delta={isSimActive && simOffset !== 0 ? `${simOffset > 0 ? "+" : ""}${simOffset} pp az összes hónapra` : undefined}
           sub={filledCalcs.length > 0 ? `${filledCalcs.length} hónap alapján` : "nincs adat"}
         />
         <KpiCard
           label="Átl. margin"
-          value={`${Math.round(avgMargin)}%`}
+          value={`${Math.round(isSimActive ? simAvgMargin : avgMargin)}%`}
           color="#10B981"
           icon={<Percent size={16} />}
+          delta={isSimActive ? `szimuláció aktív` : undefined}
           sub={filledCalcs.length > 0 ? `${filledCalcs.filter(c => c.margin !== null).length} hónap alapján` : "nincs adat"}
         />
       </div>
 
-      {/* Breakeven highlight banner */}
+      {/* Breakeven banner */}
       {annualBreakeven !== null && filledCalcs.length > 0 && (
         <div style={{
-          background: annualProfit >= 0 ? "#D1FAE5" : "#FEE2E2",
-          border: `1px solid ${annualProfit >= 0 ? "#6EE7B7" : "#FCA5A5"}`,
-          borderRadius: 14, padding: "12px 20px", marginBottom: 20,
+          background: (isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#D1FAE5" : "#FEE2E2",
+          border: `1px solid ${(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#6EE7B7" : "#FCA5A5"}`,
+          borderRadius: 14, padding: "12px 20px", marginBottom: 24,
           display: "flex", alignItems: "center", gap: 12,
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: annualProfit >= 0 ? "#10B981" : "#EF4444",
+            background: (isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#10B981" : "#EF4444",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            {annualProfit >= 0
+            {(isSimActive ? simAnnualProfit : annualProfit) >= 0
               ? <TrendingUp size={18} color="white" />
               : <TrendingDown size={18} color="white" />}
           </div>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: annualProfit >= 0 ? "#065F46" : "#991B1B", margin: 0 }}>
-              {annualProfit >= 0
+            <p style={{ fontSize: 14, fontWeight: 700, color: (isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#065F46" : "#991B1B", margin: 0 }}>
+              {(isSimActive ? simAnnualProfit : annualProfit) >= 0
                 ? `Éves szinten nyereséges — fedezeti pont: ${Math.round(annualBreakeven)}% kihasználtság`
                 : `Éves szinten veszteséges — fedezeti pont: ${Math.round(annualBreakeven)}% kihasználtság`}
             </p>
-            <p style={{ fontSize: 12, color: annualProfit >= 0 ? "#047857" : "#B91C1C", margin: "2px 0 0" }}>
-              Jelenlegi átlagos kihasználtság: {Math.round(avgOcc)}%
-              {avgOcc > 0 && annualBreakeven !== null && (
-                annualProfit >= 0
-                  ? ` — ${Math.round(avgOcc - annualBreakeven)} százalékponttal a fedezeti pont felett`
-                  : ` — ${Math.round(annualBreakeven - avgOcc)} százalékpont hiányzik a nullszaldóhoz`
+            <p style={{ fontSize: 12, color: (isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#047857" : "#B91C1C", margin: "2px 0 0" }}>
+              {isSimActive ? "Szimulált" : "Jelenlegi"} átlagos kihasználtság: {Math.round(isSimActive ? simAvgOcc : avgOcc)}%
+              {(isSimActive ? simAvgOcc : avgOcc) > 0 && annualBreakeven !== null && (
+                (isSimActive ? simAnnualProfit : annualProfit) >= 0
+                  ? ` — ${Math.round((isSimActive ? simAvgOcc : avgOcc) - annualBreakeven)} százalékponttal a fedezeti pont felett`
+                  : ` — ${Math.round(annualBreakeven - (isSimActive ? simAvgOcc : avgOcc))} százalékpont hiányzik a nullszaldóhoz`
               )}
             </p>
           </div>
         </div>
       )}
 
-      {/* Monthly results table */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION C — Live Simulator */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
+      <div style={{
+        background: isSimActive ? "linear-gradient(135deg, #F5F3FF 0%, #EEF2FF 100%)" : "white",
+        border: `1px solid ${isSimActive ? "#A78BFA" : "#E2E8F0"}`,
+        borderRadius: 20, padding: "20px 24px", marginBottom: 24,
+        transition: "all 0.2s",
+      }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: isSimActive ? "#7C3AED" : "#E2E8F0",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 0.2s",
+            }}>
+              <Sliders size={16} color={isSimActive ? "white" : "#94A3B8"} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+                Élő szimulátor
+              </h2>
+              <p style={{ fontSize: 12, color: "#94A3B8", margin: 0 }}>
+                Állítsd a kihasználtságot — valós időben látod a hatást (nem menti)
+              </p>
+            </div>
+          </div>
+          {isSimActive && (
+            <button
+              onClick={() => setSimOffset(0)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: "#EF4444", border: "none", borderRadius: 10,
+                padding: "8px 14px", cursor: "pointer", color: "white",
+                fontSize: 12, fontWeight: 600,
+              }}
+            >
+              <RotateCcw size={13} /> Reset
+            </button>
+          )}
+        </div>
+
+        {/* Slider */}
+        <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: isSimActive ? 20 : 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#64748B", whiteSpace: "nowrap" }}>
+            Kihasználtság módosítás:
+          </span>
+          <div style={{ flex: 1, position: "relative" }}>
+            <input
+              type="range"
+              min={-30}
+              max={30}
+              step={1}
+              value={simOffset}
+              onChange={e => setSimOffset(Number(e.target.value))}
+              style={{ width: "100%", accentColor: "#7C3AED", cursor: "pointer", height: 6 }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+              <span style={{ fontSize: 10, color: "#94A3B8" }}>-30%</span>
+              <span style={{ fontSize: 10, color: "#94A3B8" }}>0%</span>
+              <span style={{ fontSize: 10, color: "#94A3B8" }}>+30%</span>
+            </div>
+          </div>
+          <div style={{
+            minWidth: 64, textAlign: "center",
+            background: isSimActive ? "#7C3AED" : "#F1F5F9",
+            borderRadius: 10, padding: "6px 12px",
+            fontSize: 16, fontWeight: 800,
+            color: isSimActive ? "white" : "#94A3B8",
+            transition: "all 0.2s",
+          }}>
+            {simOffset > 0 ? "+" : ""}{simOffset}%
+          </div>
+        </div>
+
+        {/* Simulation result cards */}
+        {isSimActive && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+            {/* Revenue delta */}
+            <div style={{
+              background: "white", borderRadius: 14, padding: "14px 18px",
+              border: `1px solid ${deltaRevenue >= 0 ? "#A7F3D0" : "#FCA5A5"}`,
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px" }}>
+                Bevétel változás
+              </p>
+              <p style={{ fontSize: 20, fontWeight: 800, color: deltaRevenue >= 0 ? "#10B981" : "#EF4444", margin: 0 }}>
+                {deltaRevenue >= 0 ? "+" : ""}{fmtM(deltaRevenue)} Ft
+              </p>
+              <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 0" }}>
+                {fmtM(annualRevenue)} → {fmtM(simAnnualRevenue)} Ft
+              </p>
+            </div>
+
+            {/* Profit delta */}
+            <div style={{
+              background: "white", borderRadius: 14, padding: "14px 18px",
+              border: `1px solid ${deltaProfit >= 0 ? "#A7F3D0" : "#FCA5A5"}`,
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px" }}>
+                Profit változás
+              </p>
+              <p style={{ fontSize: 20, fontWeight: 800, color: deltaProfit >= 0 ? "#10B981" : "#EF4444", margin: 0 }}>
+                {deltaProfit >= 0 ? "+" : ""}{fmtM(deltaProfit)} Ft
+              </p>
+              <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 0" }}>
+                {fmtM(annualProfit)} → {fmtM(simAnnualProfit)} Ft
+              </p>
+            </div>
+
+            {/* Occupancy → breakeven distance */}
+            <div style={{
+              background: "white", borderRadius: 14, padding: "14px 18px",
+              border: `1px solid ${simAnnualProfit >= 0 ? "#A7F3D0" : "#FCA5A5"}`,
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px" }}>
+                Kihasználtság (avg)
+              </p>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#7C3AED", margin: 0 }}>
+                {Math.round(simAvgOcc)}%
+              </p>
+              {annualBreakeven !== null && (
+                <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 0" }}>
+                  fedezeti pont: {Math.round(annualBreakeven)}%
+                  {simAvgOcc >= annualBreakeven
+                    ? ` ✓ +${Math.round(simAvgOcc - annualBreakeven)} pp`
+                    : ` ✗ ${Math.round(annualBreakeven - simAvgOcc)} pp hiányzik`}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION D — Charts */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 24 }}>
+
+        {/* Chart 1: Revenue & Profit */}
+        <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 20, padding: "20px 20px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Bevétel & Profit</h3>
+            {isSimActive && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "3px 8px", borderRadius: 6 }}>
+                SZIMULÁCIÓ AKTÍV
+              </span>
+            )}
+          </div>
+
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData} barGap={2} barCategoryGap="25%">
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: "#94A3B8" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 9, fill: "#94A3B8" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={v => fmtM(v)}
+                width={50}
+              />
+              <ReTooltip content={<ChartTooltipRevenue />} />
+              <ReferenceLine y={0} stroke="#E2E8F0" />
+
+              {isSimActive ? (
+                <>
+                  <Bar dataKey="simRevenue" name="simRevenue" fill="#7C3AED" radius={[4, 4, 0, 0]} opacity={0.9}>
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.hasData ? "#7C3AED" : "#E2E8F0"} />
+                    ))}
+                  </Bar>
+                  <Bar dataKey="simProfit" name="simProfit" fill="#10B981" radius={[4, 4, 0, 0]} opacity={0.85}>
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.hasData ? (entry.simProfit >= 0 ? "#10B981" : "#EF4444") : "#E2E8F0"} />
+                    ))}
+                  </Bar>
+                </>
+              ) : (
+                <>
+                  <Bar dataKey="revenue" name="revenue" fill="#3B82F6" radius={[4, 4, 0, 0]} opacity={0.9}>
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.hasData ? "#3B82F6" : "#E2E8F0"} />
+                    ))}
+                  </Bar>
+                  <Bar dataKey="profit" name="profit" fill="#10B981" radius={[4, 4, 0, 0]} opacity={0.85}>
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.hasData ? (entry.profit >= 0 ? "#10B981" : "#EF4444") : "#E2E8F0"} />
+                    ))}
+                  </Bar>
+                </>
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+
+          <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: isSimActive ? "#7C3AED" : "#3B82F6" }} />
+              <span style={{ fontSize: 11, color: "#64748B" }}>Bevétel</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: "#10B981" }} />
+              <span style={{ fontSize: 11, color: "#64748B" }}>Profit</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: "#EF4444" }} />
+              <span style={{ fontSize: 11, color: "#64748B" }}>Veszteség</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Chart 2: Occupancy + Breakeven */}
+        <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 20, padding: "20px 20px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Kihasználtság & Fedezeti pont</h3>
+            {isSimActive && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "3px 8px", borderRadius: 6 }}>
+                SZIMULÁCIÓ AKTÍV
+              </span>
+            )}
+          </div>
+
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData} barGap={2} barCategoryGap="25%">
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: "#94A3B8" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fontSize: 9, fill: "#94A3B8" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={v => `${v}%`}
+                width={36}
+              />
+              <ReTooltip content={<ChartTooltipOcc />} />
+
+              {/* Actual or simulated occupancy bars */}
+              {isSimActive ? (
+                <>
+                  <Bar dataKey="occ" name="occ" fill="#C4B5FD" radius={[3, 3, 0, 0]} opacity={0.5}>
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.hasData ? "#C4B5FD" : "#F1F5F9"} />
+                    ))}
+                  </Bar>
+                  <Bar dataKey="simOcc" name="simOcc" fill="#7C3AED" radius={[3, 3, 0, 0]} opacity={0.85}>
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.hasData ? "#7C3AED" : "#F1F5F9"} />
+                    ))}
+                  </Bar>
+                </>
+              ) : (
+                <Bar dataKey="occ" name="occ" fill="#7C3AED" radius={[4, 4, 0, 0]} opacity={0.85}>
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.hasData ? "#7C3AED" : "#E2E8F0"} />
+                  ))}
+                </Bar>
+              )}
+
+              {/* Breakeven reference line for each month — rendered as separate bars */}
+              <Bar dataKey="breakeven" name="breakeven" fill="none" radius={0} opacity={0}>
+                {chartData.map((entry, i) => (
+                  <Cell key={i} fill="transparent" />
+                ))}
+              </Bar>
+
+              {/* Annual breakeven horizontal line */}
+              {annualBreakeven !== null && (
+                <ReferenceLine
+                  y={annualBreakeven}
+                  stroke="#EF4444"
+                  strokeDasharray="5 3"
+                  strokeWidth={1.5}
+                  label={{ value: `BE: ${Math.round(annualBreakeven)}%`, position: "insideTopRight", fill: "#EF4444", fontSize: 10, fontWeight: 700 }}
+                />
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+
+          <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 6 }}>
+            {isSimActive ? (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "#C4B5FD" }} />
+                  <span style={{ fontSize: 11, color: "#64748B" }}>Terv</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "#7C3AED" }} />
+                  <span style={{ fontSize: 11, color: "#64748B" }}>Szimuláció</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: "#7C3AED" }} />
+                <span style={{ fontSize: 11, color: "#64748B" }}>Kihasználtság %</span>
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 16, height: 2, background: "#EF4444", borderRadius: 1 }} />
+              <span style={{ fontSize: 11, color: "#64748B" }}>Fedezeti pont</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION E — Monthly results table */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
       <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 20, overflow: "hidden", marginBottom: 24 }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #E2E8F0" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>Havi eredmények</h2>
+          {isSimActive && (
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "4px 10px", borderRadius: 8 }}>
+              Szimulált adatok megjelenítve
+            </span>
+          )}
         </div>
 
         <div style={{ overflowX: "auto" }}>
@@ -538,6 +1249,7 @@ export default function SimplePlanDetailPage() {
               <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
                 {[
                   { label: "Hónap", align: "left" },
+                  { label: "Kihasználtság", align: "right" },
                   { label: "Szobaéj", align: "right" },
                   { label: "Bevétel", align: "right" },
                   { label: "Kiadás", align: "right" },
@@ -557,17 +1269,29 @@ export default function SimplePlanDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {calcs.map(c => {
-                const m = months.find(m => m.month === c.month)!;
+              {(isSimActive ? simCalcs : calcs).map((c, i) => {
+                const m = (isSimActive ? simMonths : months).find(m => m.month === c.month)!;
+                const savedC = calcs[i];
+                const occChanged = isSimActive && m.occupancyPct !== months[i].occupancyPct;
                 return (
                   <tr key={c.month} style={{ borderBottom: "1px solid #F8FAFC", opacity: c.hasData ? 1 : 0.35 }}>
                     <td style={{ padding: "9px 16px", fontWeight: 600, color: "#0F172A" }}>
                       {HU_MONTHS[c.month - 1]}
                     </td>
+                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                      <span style={{ color: occChanged ? "#7C3AED" : "#334155", fontWeight: occChanged ? 700 : 400 }}>
+                        {c.hasData ? `${m.occupancyPct}%` : "—"}
+                      </span>
+                      {occChanged && (
+                        <span style={{ fontSize: 10, color: simOffset > 0 ? "#10B981" : "#EF4444", marginLeft: 4 }}>
+                          ({simOffset > 0 ? "+" : ""}{simOffset}pp)
+                        </span>
+                      )}
+                    </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155" }}>
                       {c.hasData ? fmt(c.roomNights) : "—"}
                     </td>
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155" }}>
+                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isSimActive && c.revenue !== savedC.revenue ? "#7C3AED" : "#334155", fontWeight: isSimActive && c.revenue !== savedC.revenue ? 600 : 400 }}>
                       {c.hasData ? fmtM(c.revenue) : "—"}
                     </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
@@ -591,20 +1315,25 @@ export default function SimplePlanDetailPage() {
                 <td style={{ padding: "10px 16px", fontWeight: 700, fontSize: 12, color: "#64748B", textTransform: "uppercase" }}>
                   Éves összesen
                 </td>
+                <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#7C3AED" }}>
+                  {Math.round(isSimActive ? simAvgOcc : avgOcc)}% avg
+                </td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#0F172A" }}>
-                  {fmt(calcs.reduce((s, c) => s + c.roomNights, 0))}
+                  {fmt((isSimActive ? simCalcs : calcs).reduce((s, c) => s + c.roomNights, 0))}
                 </td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#0F172A" }}>
-                  {fmtM(annualRevenue)}
+                  {fmtM(isSimActive ? simAnnualRevenue : annualRevenue)}
                 </td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
                   {fmtM(annualCost)}
                 </td>
-                <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: profitColor(annualProfit) }}>
-                  {annualProfit >= 0 ? "+" : ""}{fmtM(annualProfit)}
+                <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
+                  {(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}{fmtM(isSimActive ? simAnnualProfit : annualProfit)}
                 </td>
-                <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: profitColor(annualProfit) }}>
-                  {annualRevenue > 0 ? `${Math.round(annualProfit / annualRevenue * 100)}%` : "—"}
+                <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
+                  {(isSimActive ? simAnnualRevenue : annualRevenue) > 0
+                    ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}%`
+                    : "—"}
                 </td>
                 <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8" }}>
                   {annualBreakeven !== null ? `${Math.round(annualBreakeven)}%` : "—"}

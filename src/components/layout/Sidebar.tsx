@@ -17,12 +17,11 @@ import {
   ShieldCheck,
   Search,
   X,
-  Calculator,
+  Zap,
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard",         icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/simple-planner",    icon: Calculator,      label: "Simple Planner" },
   { href: "/revenue-planner",   icon: Calendar,        label: "Bevételtervező" },
   { href: "/scenarios",         icon: GitBranch,       label: "Szcenáriók" },
   { href: "/weighting",         icon: Scale,           label: "Súlyozás" },
@@ -95,6 +94,53 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose 
             </Link>
           );
         })}
+
+        {/* ── Simple Planner — kiemelt menüpont ── */}
+        <div style={{ paddingTop: 10, paddingBottom: 2 }}>
+          <div style={{ height: 1, background: "#1E293B", marginBottom: 10 }} />
+          {(() => {
+            const active = pathname === "/simple-planner" || pathname.startsWith("/simple-planner/");
+            return (
+              <Link
+                href="/simple-planner"
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative overflow-hidden"
+                style={{
+                  background: active
+                    ? "linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)"
+                    : "linear-gradient(135deg, #1E1B4B 0%, #1E293B 100%)",
+                  color: active ? "#F5F3FF" : "#A78BFA",
+                  border: `1px solid ${active ? "#7C3AED" : "#312E81"}`,
+                  boxShadow: active ? "0 0 16px #7C3AED44" : "none",
+                }}
+              >
+                {/* Fényes shimmer effekt */}
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.05) 50%, transparent 60%)",
+                  pointerEvents: "none",
+                }} />
+                <div style={{
+                  width: 22, height: 22, borderRadius: 7,
+                  background: active ? "rgba(255,255,255,0.2)" : "#312E81",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <Zap size={13} color={active ? "white" : "#A78BFA"} fill={active ? "white" : "none"} />
+                </div>
+                <span style={{ flex: 1 }}>Simple Planner</span>
+                <span style={{
+                  fontSize: 9, fontWeight: 800, letterSpacing: "0.06em",
+                  background: active ? "rgba(255,255,255,0.25)" : "#312E81",
+                  color: active ? "white" : "#A78BFA",
+                  padding: "2px 6px", borderRadius: 5,
+                  textTransform: "uppercase",
+                }}>
+                  BETA
+                </span>
+              </Link>
+            );
+          })()}
+        </div>
       </nav>
 
       {/* Bottom nav */}
