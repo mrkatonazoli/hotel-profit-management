@@ -6,15 +6,16 @@ type Ctx = { params: Promise<{ scenarioId: string; segmentId: string }> };
 
 // PUT /api/scenarios/[scenarioId]/segments/[segmentId]
 // Body can include: name, color, sortOrder, channelMixMode,
-//   monthShares: [{ month, sharePct }],
-//   channelMix:  [{ distributorId, month (null=annual), sharePct }]
+//   monthShares:    [{ month, sharePct }],
+//   channelMix:     [{ distributorId, month (null=annual), sharePct }],
+//   removeChannels: [{ distributorId, month (null=annual) }]  ← törli az adott channelt
 export async function PUT(req: Request, { params }: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { segmentId } = await params;
   const body = await req.json();
-  const { name, color, sortOrder, channelMixMode, useChannelMix, commissionPct, monthShares, channelMix } = body;
+  const { name, color, sortOrder, channelMixMode, useChannelMix, commissionPct, monthShares, channelMix, removeChannels } = body;
 
   // Update base fields
   await prisma.scenarioSegment.update({
@@ -48,6 +49,16 @@ export async function PUT(req: Request, { params }: Ctx) {
         where: { segmentId_distributorId_month: { segmentId, distributorId: cm.distributorId, month } },
         create: { segmentId, distributorId: cm.distributorId, month, sharePct: Number(cm.sharePct) },
         update: { sharePct: Number(cm.sharePct) },
+      });
+    }
+  }
+
+  // Remove channels from mix
+  if (Array.isArray(removeChannels)) {
+    for (const rc of removeChannels) {
+      const month = rc.month ?? null;
+      await prisma.scenarioSegmentChannel.deleteMany({
+        where: { segmentId, distributorId: rc.distributorId, month },
       });
     }
   }

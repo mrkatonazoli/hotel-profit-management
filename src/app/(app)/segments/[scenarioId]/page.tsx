@@ -71,6 +71,12 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
   const [showPicker, setShowPicker] = useState(false);
   const [customName, setCustomName] = useState("");
 
+  // Csatorna picker (melyik szegmensnél van nyitva)
+  const [channelPickerId, setChannelPickerId] = useState<string | null>(null);
+  const [newChannelForm, setNewChannelForm] = useState({ name: "", isCommission: true, commissionPct: "0" });
+  const [showNewChannelForm, setShowNewChannelForm] = useState(false);
+  const [channelSaving, setChannelSaving] = useState<string | null>(null);
+
   // Load data
   useEffect(() => {
     async function load() {
@@ -178,6 +184,61 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
       body: JSON.stringify({ channelMix: [{ distributorId: distId, month, sharePct: value }] }),
     });
     setSaving(null);
+  }
+
+  // ── Csatorna hozzáadása szegmenshez ──────────────────────────────────────────
+
+  async function addChannelToSegment(seg: Segment, dist: Distributor) {
+    // Már benne van?
+    if (seg.channelMix.some(c => c.distributorId === dist.id && c.month === null)) return;
+    const updated = {
+      ...seg,
+      channelMix: [...seg.channelMix, { distributorId: dist.id, month: null, sharePct: 0, distributor: dist }],
+    };
+    setSegments(prev => prev.map(s => s.id === seg.id ? updated : s));
+    await fetch(`/api/scenarios/${scenarioId}/segments/${seg.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channelMix: [{ distributorId: dist.id, month: null, sharePct: 0 }] }),
+    });
+    setChannelPickerId(null);
+  }
+
+  async function removeChannelFromSegment(seg: Segment, distId: string, month: number | null) {
+    const updated = {
+      ...seg,
+      channelMix: seg.channelMix.filter(c => !(c.distributorId === distId && c.month === month)),
+    };
+    setSegments(prev => prev.map(s => s.id === seg.id ? updated : s));
+    await fetch(`/api/scenarios/${scenarioId}/segments/${seg.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ removeChannels: [{ distributorId: distId, month }] }),
+    });
+  }
+
+  async function createAndAddChannel(seg: Segment) {
+    const name = newChannelForm.name.trim();
+    if (!name) return;
+    setChannelSaving(seg.id);
+    // 1. Csatorna létrehozása hotel szinten
+    const res = await fetch("/api/distributors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        isCommission: newChannelForm.isCommission,
+        commissionPct: Number(newChannelForm.commissionPct) || 0,
+        sortOrder: distributors.length,
+      }),
+    });
+    const dist: Distributor = await res.json();
+    setDistributors(prev => [...prev, dist]);
+    // 2. Szegmenshez hozzáadás
+    await addChannelToSegment(seg, dist);
+    setNewChannelForm({ name: "", isCommission: true, commissionPct: "0" });
+    setShowNewChannelForm(false);
+    setChannelSaving(null);
   }
 
   async function toggleChannelMixMode(seg: Segment) {
@@ -388,121 +449,251 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                   </div>
                 </div>
 
-                {seg.channelMixMode === "ANNUAL" ? (
-                  // Annual channel mix
-                  <div className="space-y-3">
-                    {distributors.map(dist => {
-                      const share = getChannelShare(seg, dist.id, null);
-                      const total = getChannelTotal(seg, null);
-                      const over = total > 100.05;
-                      return (
-                        <div key={dist.id} className="flex items-center gap-3">
-                          <span className="text-sm text-slate-600 w-36 truncate">{dist.name}</span>
-                          <input
-                            type="number" min={0} max={100} step={1}
-                            value={share === 0 ? "" : share}
-                            placeholder="0"
-                            onChange={e => updateChannelShare(seg, dist.id, null, Number(e.target.value) || 0)}
-                            className={`w-20 text-center text-sm font-semibold rounded-lg px-2 py-1.5 border outline-none transition-colors ${
-                              over ? "border-red-300 bg-red-50 text-red-600" : "border-slate-200 focus:border-violet-400 bg-slate-50"
-                            }`}
-                          />
-                          <span className="text-xs text-slate-400">%</span>
-                          {dist.isCommission && dist.commissionPct > 0 && (
-                            <span className="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full">
-                              {dist.commissionPct}% jutalék
-                            </span>
+                {(() => {
+                  // Csak az ehhez a szegmenshez hozzáadott csatornák
+                  const addedChannelIds = new Set(
+                    seg.channelMix.filter(c => c.month === null || seg.channelMixMode === "MONTHLY").map(c => c.distributorId)
+                  );
+                  const addedDistributors = distributors.filter(d => addedChannelIds.has(d.id));
+                  // Még nem hozzáadott globális csatornák (a pickerhez)
+                  const availableDistributors = distributors.filter(d => !addedChannelIds.has(d.id));
+                  const isPickerOpen = channelPickerId === seg.id;
+
+                  return (
+                    <div className="space-y-4">
+
+                      {/* Csatornák listája */}
+                      {seg.channelMixMode === "ANNUAL" ? (
+                        <div className="space-y-2">
+                          {addedDistributors.length === 0 && (
+                            <p className="text-sm text-slate-400 italic py-2">
+                              Még nincs csatorna hozzáadva ehhez a szegmenshez.
+                            </p>
+                          )}
+                          {addedDistributors.map(dist => {
+                            const share = getChannelShare(seg, dist.id, null);
+                            const total = getChannelTotal(seg, null);
+                            const over = total > 100.05;
+                            return (
+                              <div key={dist.id} className="flex items-center gap-3">
+                                <span className="text-sm text-slate-600 w-36 truncate">{dist.name}</span>
+                                <input
+                                  type="number" min={0} max={100} step={1}
+                                  value={share === 0 ? "" : share}
+                                  placeholder="0"
+                                  onChange={e => updateChannelShare(seg, dist.id, null, Number(e.target.value) || 0)}
+                                  className={`w-20 text-center text-sm font-semibold rounded-lg px-2 py-1.5 border outline-none transition-colors ${
+                                    over ? "border-red-300 bg-red-50 text-red-600" : "border-slate-200 focus:border-violet-400 bg-slate-50"
+                                  }`}
+                                />
+                                <span className="text-xs text-slate-400">%</span>
+                                {dist.isCommission && dist.commissionPct > 0 && (
+                                  <span className="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full">
+                                    {dist.commissionPct}% jutalék
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => removeChannelFromSegment(seg, dist.id, null)}
+                                  className="ml-auto text-slate-300 hover:text-red-400 transition-colors"
+                                  title="Eltávolítás ebből a szegmensből">
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            );
+                          })}
+
+                          {/* Összesen */}
+                          {addedDistributors.length > 0 && (
+                            <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+                              <span className="text-xs font-semibold text-slate-400 w-36">Összesen</span>
+                              <span className={`text-sm font-bold w-20 text-center ${
+                                Math.abs(getChannelTotal(seg, null) - 100) < 0.5 ? "text-emerald-600" :
+                                getChannelTotal(seg, null) > 100 ? "text-red-500" : "text-slate-400"
+                              }`}>{Math.round(getChannelTotal(seg, null))}%</span>
+                              <span className="text-xs text-slate-400 ml-4">
+                                Átlag jutalék: <strong className="text-amber-600">{calcCommission(seg, 1).toFixed(1)}%</strong>
+                              </span>
+                            </div>
                           )}
                         </div>
-                      );
-                    })}
-                    {/* Total & commission */}
-                    <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
-                      <span className="text-xs font-semibold text-slate-400 w-36">Összesen</span>
-                      <span className={`text-sm font-bold w-20 text-center ${
-                        Math.abs(getChannelTotal(seg, null) - 100) < 0.5 ? "text-emerald-600" :
-                        getChannelTotal(seg, null) > 100 ? "text-red-500" : "text-slate-400"
-                      }`}>{Math.round(getChannelTotal(seg, null))}%</span>
-                      <span className="text-xs text-slate-400 ml-4">
-                        Átlag jutalék: <strong className="text-amber-600">{calcCommission(seg, 1).toFixed(1)}%</strong>
-                      </span>
+                      ) : (
+                        // Havi csatorna mix
+                        <div className="overflow-x-auto">
+                          {addedDistributors.length === 0 && (
+                            <p className="text-sm text-slate-400 italic py-2">
+                              Még nincs csatorna hozzáadva ehhez a szegmenshez.
+                            </p>
+                          )}
+                          {addedDistributors.length > 0 && (
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr>
+                                  <th className="text-left text-slate-400 font-semibold pb-2 pr-3 w-32">Csatorna</th>
+                                  {HU_MONTHS.map(m => (
+                                    <th key={m} className="text-center text-slate-400 font-semibold pb-2 px-1">{m}</th>
+                                  ))}
+                                  <th className="w-6" />
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {addedDistributors.map(dist => (
+                                  <tr key={dist.id}>
+                                    <td className="pr-3 py-1">
+                                      <div className="text-slate-600 font-medium truncate max-w-[120px]">{dist.name}</div>
+                                      {dist.isCommission && dist.commissionPct > 0 && (
+                                        <div className="text-amber-500 text-xs">{dist.commissionPct}%</div>
+                                      )}
+                                    </td>
+                                    {HU_MONTHS.map((_, i) => {
+                                      const month = i + 1;
+                                      const share = getChannelShare(seg, dist.id, month);
+                                      const total = getChannelTotal(seg, month);
+                                      const over = total > 100.05;
+                                      return (
+                                        <td key={month} className="px-1 py-1">
+                                          <input
+                                            type="number" min={0} max={100} step={1}
+                                            value={share === 0 ? "" : share}
+                                            placeholder="0"
+                                            onChange={e => updateChannelShare(seg, dist.id, month, Number(e.target.value) || 0)}
+                                            className={`w-12 text-center font-semibold rounded px-1 py-1 border outline-none transition-colors ${
+                                              over ? "border-red-200 bg-red-50 text-red-600" : "border-slate-200 focus:border-violet-400 bg-slate-50"
+                                            }`}
+                                          />
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="pl-1">
+                                      <button onClick={() => removeChannelFromSegment(seg, dist.id, null)}
+                                        className="text-slate-300 hover:text-red-400 transition-colors" title="Eltávolítás">
+                                        <X size={13} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                                <tr className="border-t border-slate-100">
+                                  <td className="pr-3 py-1 text-slate-400 font-semibold">Összesen</td>
+                                  {HU_MONTHS.map((_, i) => {
+                                    const month = i + 1;
+                                    const total = getChannelTotal(seg, month);
+                                    const ok = Math.abs(total - 100) < 0.5;
+                                    return (
+                                      <td key={month} className={`px-1 py-1 text-center font-bold ${
+                                        ok ? "text-emerald-600" : total > 100 ? "text-red-500" : "text-slate-300"
+                                      }`}>
+                                        {total > 0 ? `${Math.round(total)}%` : "—"}
+                                      </td>
+                                    );
+                                  })}
+                                  <td />
+                                </tr>
+                                <tr>
+                                  <td className="pr-3 py-1 text-amber-600 font-semibold">Jutalék</td>
+                                  {HU_MONTHS.map((_, i) => {
+                                    const month = i + 1;
+                                    const comm = calcCommission(seg, month);
+                                    return (
+                                      <td key={month} className="px-1 py-1 text-center text-amber-600 font-semibold">
+                                        {comm > 0 ? `${comm.toFixed(1)}%` : "—"}
+                                      </td>
+                                    );
+                                  })}
+                                  <td />
+                                </tr>
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Csatorna hozzáadása gomb / picker */}
+                      {!isPickerOpen ? (
+                        <button
+                          onClick={() => { setChannelPickerId(seg.id); setShowNewChannelForm(false); setNewChannelForm({ name: "", isCommission: true, commissionPct: "0" }); }}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-violet-500 hover:text-violet-700 transition-colors"
+                        >
+                          <Plus size={13} /> Csatorna hozzáadása
+                        </button>
+                      ) : (
+                        <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-slate-600">Melyik csatornát adod hozzá?</p>
+                            <button onClick={() => { setChannelPickerId(null); setShowNewChannelForm(false); }}
+                              className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+                          </div>
+
+                          {/* Meglévő globális csatornák */}
+                          {availableDistributors.length > 0 && (
+                            <div>
+                              <p className="text-xs text-slate-400 mb-2">Meglévő csatornák:</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {availableDistributors.map(d => (
+                                  <button key={d.id}
+                                    onClick={() => addChannelToSegment(seg, d)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:border-violet-300 hover:text-violet-700 transition-colors"
+                                    style={{ color: "#334155" }}>
+                                    <Plus size={11} /> {d.name}
+                                    {d.isCommission && d.commissionPct > 0 && (
+                                      <span className="text-amber-500 font-normal">({d.commissionPct}%)</span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Új csatorna */}
+                          {!showNewChannelForm ? (
+                            <button
+                              onClick={() => setShowNewChannelForm(true)}
+                              className="text-xs font-semibold text-violet-600 hover:text-violet-800 flex items-center gap-1">
+                              <Plus size={12} /> Új csatorna létrehozása
+                            </button>
+                          ) : (
+                            <div className="space-y-2 pt-1 border-t border-violet-200">
+                              <p className="text-xs font-semibold text-slate-500">Új csatorna:</p>
+                              <div className="flex gap-2 flex-wrap">
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  placeholder="Csatorna neve (pl. MICE Agency)"
+                                  value={newChannelForm.name}
+                                  onChange={e => setNewChannelForm(f => ({ ...f, name: e.target.value }))}
+                                  className="flex-1 min-w-[180px] px-3 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-violet-400"
+                                />
+                                <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+                                  <input type="checkbox"
+                                    checked={newChannelForm.isCommission}
+                                    onChange={e => setNewChannelForm(f => ({ ...f, isCommission: e.target.checked }))}
+                                    className="rounded" />
+                                  Jutalékos
+                                </label>
+                                {newChannelForm.isCommission && (
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="number" min={0} max={100} step={0.5}
+                                      value={newChannelForm.commissionPct}
+                                      onChange={e => setNewChannelForm(f => ({ ...f, commissionPct: e.target.value }))}
+                                      className="w-16 text-center px-2 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-violet-400"
+                                    />
+                                    <span className="text-xs text-slate-400">% jut.</span>
+                                  </div>
+                                )}
+                                <button
+                                  onClick={() => createAndAddChannel(seg)}
+                                  disabled={!newChannelForm.name.trim() || channelSaving === seg.id}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-40"
+                                  style={{ background: "#7C3AED" }}>
+                                  {channelSaving === seg.id ? <Loader2 size={12} className="animate-spin" /> : "Hozzáadás"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ) : (
-                  // Monthly channel mix
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr>
-                          <th className="text-left text-slate-400 font-semibold pb-2 pr-3 w-32">Csatorna</th>
-                          {HU_MONTHS.map(m => (
-                            <th key={m} className="text-center text-slate-400 font-semibold pb-2 px-1">{m}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {distributors.map(dist => (
-                          <tr key={dist.id}>
-                            <td className="pr-3 py-1">
-                              <div className="text-slate-600 font-medium truncate max-w-[120px]">{dist.name}</div>
-                              {dist.isCommission && dist.commissionPct > 0 && (
-                                <div className="text-amber-500 text-xs">{dist.commissionPct}%</div>
-                              )}
-                            </td>
-                            {HU_MONTHS.map((_, i) => {
-                              const month = i + 1;
-                              const share = getChannelShare(seg, dist.id, month);
-                              const total = getChannelTotal(seg, month);
-                              const over = total > 100.05;
-                              return (
-                                <td key={month} className="px-1 py-1">
-                                  <input
-                                    type="number" min={0} max={100} step={1}
-                                    value={share === 0 ? "" : share}
-                                    placeholder="0"
-                                    onChange={e => updateChannelShare(seg, dist.id, month, Number(e.target.value) || 0)}
-                                    className={`w-12 text-center font-semibold rounded px-1 py-1 border outline-none transition-colors ${
-                                      over ? "border-red-200 bg-red-50 text-red-600" : "border-slate-200 focus:border-violet-400 bg-slate-50"
-                                    }`}
-                                  />
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                        {/* Totals row */}
-                        <tr className="border-t border-slate-100">
-                          <td className="pr-3 py-1 text-slate-400 font-semibold">Összesen</td>
-                          {HU_MONTHS.map((_, i) => {
-                            const month = i + 1;
-                            const total = getChannelTotal(seg, month);
-                            const ok = Math.abs(total - 100) < 0.5;
-                            return (
-                              <td key={month} className={`px-1 py-1 text-center font-bold ${
-                                ok ? "text-emerald-600" : total > 100 ? "text-red-500" : "text-slate-300"
-                              }`}>
-                                {total > 0 ? `${Math.round(total)}%` : "—"}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                        {/* Commission row */}
-                        <tr>
-                          <td className="pr-3 py-1 text-amber-600 font-semibold">Jutalék</td>
-                          {HU_MONTHS.map((_, i) => {
-                            const month = i + 1;
-                            const comm = calcCommission(seg, month);
-                            return (
-                              <td key={month} className="px-1 py-1 text-center text-amber-600 font-semibold">
-                                {comm > 0 ? `${comm.toFixed(1)}%` : "—"}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
 
