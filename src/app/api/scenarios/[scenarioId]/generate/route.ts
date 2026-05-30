@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { generatePlanDays, EMPTY_CONSTRAINTS } from "@/modules/weighting/weighting.service";
 import type { VariableConstraints } from "@/modules/weighting/weighting.service";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import Anthropic from "@anthropic-ai/sdk";
 import { ANTHROPIC_API_KEY } from "@/lib/anthropic";
 import { logTokenUsage } from "@/lib/token-log";
@@ -179,22 +180,28 @@ async function applySegmentCommissions(scenarioId: string) {
     monthlyCommissionRate[month] = rate / 100; // → 0.0–1.0
   }
 
-  // PlanDay-ek frissítése hónaponként
+  // PlanDay-ek frissítése — egyetlen bulk SQL, nem 365 párhuzamos update
   const planDays = await prisma.planDay.findMany({
     where: { scenarioId },
     select: { id: true, date: true, roomRevenue: true },
   });
 
-  // Batch update
-  await Promise.all(planDays.map(day => {
-    const month = new Date(day.date).getUTCMonth() + 1;
-    const rate  = monthlyCommissionRate[month] ?? 0;
-    const commissionCost = Math.round(day.roomRevenue * rate);
-    return prisma.planDay.update({
-      where: { id: day.id },
-      data: { commissionCost },
-    });
+  if (planDays.length === 0) return;
+
+  const updates = planDays.map(day => ({
+    id:             day.id,
+    commissionCost: Math.round(day.roomRevenue * (monthlyCommissionRate[new Date(day.date).getUTCMonth() + 1] ?? 0)),
   }));
+
+  // Egyetlen UPDATE ... FROM (VALUES ...) — nincs connection-verseny
+  await prisma.$executeRaw`
+    UPDATE "PlanDay" p
+    SET "commissionCost" = v.cost
+    FROM (VALUES ${Prisma.join(
+      updates.map(u => Prisma.sql`(${u.id}, ${u.commissionCost})`)
+    )}) AS v(id text, cost int)
+    WHERE p.id = v.id
+  `;
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────────
