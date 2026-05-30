@@ -485,7 +485,7 @@ export default function SimplePlannerSettingsPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* BLOKK 4 — Auto Folder (OOO) */}
+      {/* BLOKK 4 — Out of Order (OOO) */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
       <div style={{
@@ -497,7 +497,7 @@ export default function SimplePlannerSettingsPage() {
             <BedDouble size={15} color="#D97706" />
           </div>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
-            Auto Folder — nem kiadható szobaéjszakák
+            Out of Order — nem kiadható szobaéjszakák
           </h2>
         </div>
         <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
@@ -578,7 +578,7 @@ export default function SimplePlannerSettingsPage() {
         <p style={{ fontSize: 13, color: "#64748B", margin: 0, lineHeight: 1.7 }}>
           <strong>Kiadás sávok:</strong> ha nincs egyedi kiadás megadva, a kihasználtság alapján automatikusan a megfelelő sávból veszi az értéket.
           <br />
-          <strong>Auto Folder:</strong> az OOO szobaéjszakák levonásra kerülnek az elérhető kapacitásból —
+          <strong>Out of Order:</strong> az OOO szobaéjszakák levonásra kerülnek az elérhető kapacitásból —
           RevPAR = bevétel / (összes szoba × napok − OOO éjszakák), a kiadás és fedezeti pont szintén korrigált kapacitással számol.
         </p>
       </div>
