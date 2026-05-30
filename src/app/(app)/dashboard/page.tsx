@@ -205,6 +205,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [chartMetric, setChartMetric] = useState<"roomRevenue" | "avgOcc" | "totalRevenue" | "revpar" | "profit">("totalRevenue");
+  const [recalcLoading, setRecalcLoading] = useState(false);
 
   async function load(scenarioId?: string) {
     setLoading(true);
@@ -214,6 +215,17 @@ export default function DashboardPage() {
       if (res.ok) setData(await res.json());
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function recalcCommission() {
+    if (!data) return;
+    setRecalcLoading(true);
+    try {
+      await fetch(`/api/scenarios/${data.scenario.id}/recalc-commission`, { method: "POST" });
+      await load(data.scenario.id);
+    } finally {
+      setRecalcLoading(false);
     }
   }
 
@@ -348,6 +360,31 @@ export default function DashboardPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold flex-shrink-0"
             style={{ background: "#F59E0B", color: "white" }}>
             Generálás <ArrowRight size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Komisszió újraszámítás banner ── */}
+      {hasData && segments.length > 0 && (kpis.totalCommissionCost ?? 0) === 0 && (
+        <div className="rounded-2xl px-5 py-4 flex items-center gap-3"
+          style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+          <Receipt size={18} style={{ color: "#D97706", flexShrink: 0 }} />
+          <div className="flex-1">
+            <p className="text-sm font-semibold" style={{ color: "#92400E" }}>
+              A jutalékszámítás nincs naprakész
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: "#B45309" }}>
+              A szegmensek a generálás után lettek beállítva — kattints a frissítésre.
+            </p>
+          </div>
+          <button
+            onClick={recalcCommission}
+            disabled={recalcLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold flex-shrink-0"
+            style={{ background: "#D97706", color: "white", opacity: recalcLoading ? 0.6 : 1 }}>
+            {recalcLoading
+              ? <><Loader2 size={12} className="animate-spin" /> Számítás…</>
+              : <>Komisszió frissítése <ArrowRight size={12} /></>}
           </button>
         </div>
       )}
