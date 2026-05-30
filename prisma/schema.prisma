@@ -73,6 +73,7 @@ model Hotel {
   historicalData  HistoricalPickup[]
   exchangeRates   ExchangeRate[]
   childAgeGroups  ChildAgeGroup[]
+  simplePlans     SimplePlan[]
 }
 
 model HotelUser {
@@ -477,6 +478,30 @@ model AiTokenLog {
 
   @@index([date])
   @@index([feature])
+}
+
+// ─── SIMPLE PLANNER ──────────────────────────────────────────────────────────
+
+model SimplePlan {
+  id        String   @id @default(cuid())
+  hotelId   String
+  name      String
+  year      Int      @default(2026)
+  createdAt DateTime @default(now())
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  months    SimplePlanMonth[]
+}
+
+model SimplePlanMonth {
+  id           String     @id @default(cuid())
+  planId       String
+  month        Int        // 1–12
+  adr          Float      @default(0)
+  occupancyPct Float      @default(0)
+  monthlyCost  Float      @default(0)
+  plan         SimplePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, month])
 }
 
 // ─── CURRENCY ────────────────────────────────────────────────────────────────

@@ -17,10 +17,12 @@ import {
   ShieldCheck,
   Search,
   X,
+  Calculator,
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard",         icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/simple-planner",    icon: Calculator,      label: "Simple Planner" },
   { href: "/revenue-planner",   icon: Calendar,        label: "Bevételtervező" },
   { href: "/scenarios",         icon: GitBranch,       label: "Szcenáriók" },
   { href: "/weighting",         icon: Scale,           label: "Súlyozás" },
