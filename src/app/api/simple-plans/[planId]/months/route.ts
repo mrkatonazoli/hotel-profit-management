@@ -8,6 +8,7 @@ type MonthInput = {
   month: number;
   adr: number;
   occupancyPct: number;
+  roomRevenue: number;
   monthlyCost: number;
 };
 
@@ -35,6 +36,7 @@ export async function PUT(req: Request, { params }: Params) {
         data: {
           adr: m.adr,
           occupancyPct: m.occupancyPct,
+          roomRevenue: m.roomRevenue,
           monthlyCost: m.monthlyCost,
         },
       });
@@ -45,6 +47,7 @@ export async function PUT(req: Request, { params }: Params) {
           month: m.month,
           adr: m.adr,
           occupancyPct: m.occupancyPct,
+          roomRevenue: m.roomRevenue,
           monthlyCost: m.monthlyCost,
         },
       });

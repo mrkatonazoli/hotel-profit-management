@@ -498,6 +498,7 @@ model SimplePlanMonth {
   month        Int        // 1–12
   adr          Float      @default(0)
   occupancyPct Float      @default(0)
+  roomRevenue  Float      @default(0)   // ha kitöltik, ez az elsődleges bevétel (nem ADR×occ képlet)
   monthlyCost  Float      @default(0)
   plan         SimplePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 

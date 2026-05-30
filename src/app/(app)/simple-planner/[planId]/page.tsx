@@ -28,6 +28,7 @@ type MonthData = {
   month: number;
   adr: number;
   occupancyPct: number;
+  roomRevenue: number;    // közvetlenül bevitt szoba árbevétel (ha > 0, ez az elsődleges)
   monthlyCost: number;
 };
 
@@ -69,16 +70,18 @@ function getDaysInMonth(month: number, year: number) {
 
 function computeMonthCalc(m: MonthData, totalRooms: number, year: number): MonthCalc {
   const days = getDaysInMonth(m.month, year);
-  const hasData = m.adr > 0 || m.occupancyPct > 0 || m.monthlyCost > 0;
+  const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
   const roomNights = (m.occupancyPct / 100) * totalRooms * days;
-  const revenue = roomNights * m.adr;
+  // Ha közvetlenül megadott szoba árbevétel van → azt használjuk, egyébként ADR × szobaéj
+  const revenue = m.roomRevenue > 0 ? m.roomRevenue : roomNights * m.adr;
   // monthlyCost = Ft/szoba/éjszaka → teljes havi kiadás
   const cost = m.monthlyCost * totalRooms * days;
   const profit = revenue - cost;
   const margin = revenue > 0 ? (profit / revenue) * 100 : null;
-  // breakeven = costPerRoomNight / ADR × 100  (totalRooms × days kiesik)
-  const breakeven = m.adr > 0
-    ? (m.monthlyCost / m.adr) * 100
+  // breakeven = costPerRoomNight / ADR × 100 (ha van ADR); ha nincs ADR de van roomRevenue, becsüljük
+  const effectiveAdr = m.adr > 0 ? m.adr : (roomNights > 0 ? revenue / roomNights : 0);
+  const breakeven = effectiveAdr > 0
+    ? (m.monthlyCost / effectiveAdr) * 100
     : null;
   return { month: m.month, daysInMonth: days, roomNights, revenue, cost, profit, margin, breakeven, hasData };
 }
@@ -158,13 +161,15 @@ function EditableName({ value, onSave }: { value: string; onSave: (v: string) =>
 // ─── Month input cell ─────────────────────────────────────────────────────────
 
 function MonthInput({
-  label, value, onBlur, unit, step,
+  label, value, onBlur, unit, step, highlight, note,
 }: {
   label: string;
   value: number;
   onBlur: (v: number) => void;
   unit?: string;
   step?: number;
+  highlight?: boolean;
+  note?: string;
 }) {
   const [local, setLocal] = useState(String(value === 0 ? "" : value));
   const ref = useRef<HTMLInputElement>(null);
@@ -179,9 +184,11 @@ function MonthInput({
 
   return (
     <div style={{ marginBottom: 4 }}>
-      <p style={{ fontSize: 9, color: "#94A3B8", margin: "0 0 2px", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.04em" }}>
-        {label}{unit ? ` (${unit})` : ""}
-      </p>
+      {label !== "" && (
+        <p style={{ fontSize: 9, color: highlight ? "#7C3AED" : "#94A3B8", margin: "0 0 2px", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.04em" }}>
+          {label}{unit ? ` (${unit})` : ""}
+        </p>
+      )}
       <input
         ref={ref}
         type="number"
@@ -194,15 +201,17 @@ function MonthInput({
         style={{
           width: "100%", boxSizing: "border-box",
           fontSize: 12, fontWeight: 600, color: "#0F172A",
-          border: "1px solid #E2E8F0", borderRadius: 6, padding: "4px 6px",
-          outline: "none", background: "#FAFAFA",
+          border: `1px solid ${highlight ? "#A78BFA" : "#E2E8F0"}`,
+          borderRadius: 6, padding: "4px 6px",
+          outline: "none", background: highlight ? "#F5F3FF" : "#FAFAFA",
           fontVariantNumeric: "tabular-nums",
         }}
         onMouseEnter={e => (e.currentTarget.style.borderColor = "#A78BFA")}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = "#E2E8F0")}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = highlight ? "#A78BFA" : "#E2E8F0")}
         onFocusCapture={e => (e.currentTarget.style.borderColor = "#7C3AED")}
-        onBlurCapture={e => (e.currentTarget.style.borderColor = "#E2E8F0")}
+        onBlurCapture={e => (e.currentTarget.style.borderColor = highlight ? "#A78BFA" : "#E2E8F0")}
       />
+      {note && <p style={{ fontSize: 8, color: "#7C3AED", margin: "1px 0 0", fontWeight: 700 }}>{note}</p>}
     </div>
   );
 }
@@ -536,11 +545,12 @@ export default function SimplePlanDetailPage() {
     // Merge imported ADR + occ into saved months, keep costs
     const updated = months.map(m => {
       const imp = importedMonths.find(im => im.month === m.month);
-      if (!imp) return m;
+      if (!imp || imp.avgAdr === 0) return m;
       return {
         ...m,
-        adr: imp.avgAdr > 0 ? imp.avgAdr : m.adr,
-        occupancyPct: imp.avgAdr > 0 ? imp.avgOcc : m.occupancyPct,
+        adr: imp.avgAdr,
+        occupancyPct: imp.avgOcc,
+        // roomRevenue-t nem importáljuk — azt a felhasználó manuálisan viszi be
       };
     });
     setMonths(updated);
@@ -579,6 +589,7 @@ export default function SimplePlanDetailPage() {
         month: m.month,
         adr: m.adr,
         occupancyPct: m.occupancyPct,
+        roomRevenue: m.roomRevenue,
         monthlyCost: m.monthlyCost,
       })) }),
     });
@@ -605,7 +616,7 @@ export default function SimplePlanDetailPage() {
     showSaved();
   }
 
-  function updateMonthField(monthNum: number, field: keyof Pick<MonthData, "adr" | "occupancyPct" | "monthlyCost">, value: number) {
+  function updateMonthField(monthNum: number, field: keyof Pick<MonthData, "adr" | "occupancyPct" | "roomRevenue" | "monthlyCost">, value: number) {
     const updated = months.map(m =>
       m.month === monthNum ? { ...m, [field]: value } : m
     );
@@ -643,6 +654,10 @@ export default function SimplePlanDetailPage() {
   const simMonths: MonthData[] = months.map(m => ({
     ...m,
     occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
+    // Ha van egyedi roomRevenue, a szimulátor az ADR×occ delta-val arányosan skálázza
+    roomRevenue: m.roomRevenue > 0 && m.occupancyPct > 0
+      ? Math.round(m.roomRevenue * (Math.min(100, Math.max(0, m.occupancyPct + simOffset)) / m.occupancyPct))
+      : m.roomRevenue,
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m => computeMonthCalc(m, totalRooms, year));
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
@@ -821,6 +836,15 @@ export default function SimplePlanDetailPage() {
                 value={m.occupancyPct}
                 step={1}
                 onBlur={v => updateMonthField(m.month, "occupancyPct", Math.min(100, Math.max(0, v)))}
+              />
+              <MonthInput
+                label="Árbevétel"
+                unit="Ft"
+                value={m.roomRevenue}
+                step={10000}
+                highlight={m.roomRevenue > 0}
+                note={m.roomRevenue > 0 ? "↑ egyedi érték" : undefined}
+                onBlur={v => updateMonthField(m.month, "roomRevenue", v)}
               />
               <MonthInput
                 label="Kiadás"
