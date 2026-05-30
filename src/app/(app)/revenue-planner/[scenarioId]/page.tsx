@@ -609,6 +609,18 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
   const [editingGuestDay, setEditingGuestDay] = useState<string | null>(null); // date key of day being edited
   const [segmentData, setSegmentData]         = useState<MonthlySegmentData | null>(null);
   const [segmentLoading, setSegmentLoading]   = useState(false);
+  const [recalcLoading, setRecalcLoading]     = useState(false);
+
+  const recalcCommission = useCallback(async (scId: string, y: number, m: number) => {
+    setRecalcLoading(true);
+    try {
+      await fetch(`/api/scenarios/${scId}/recalc-commission`, { method: "POST" });
+      await loadSegments(scId, y, m);
+    } finally {
+      setRecalcLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadSegments = useCallback(async (scId: string, y: number, m: number) => {
     setSegmentLoading(true);
@@ -929,7 +941,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
       {hasData && (segmentLoading || (segmentData && segmentData.segments.length > 0)) && (
         <div className="rounded-2xl overflow-hidden" style={{ background: "white", border: "1px solid #E2E8F0" }}>
           {/* Panel fejléc */}
-          <div className="flex items-center justify-between px-5 py-3"
+          <div className="flex items-center justify-between px-5 py-3 gap-3 flex-wrap"
             style={{ borderBottom: "1px solid #F1F5F9", background: "#FAFBFF" }}>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg flex items-center justify-center"
@@ -940,19 +952,30 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
                 Szegmens mix · {HU_MONTHS[month - 1]} {year}
               </span>
             </div>
-            {!segmentLoading && segmentData && segmentData.totalCommission > 0 && (
-              <div className="text-sm">
-                <span style={{ color: "#94A3B8" }}>Havi komisszió: </span>
-                <span className="font-bold font-mono" style={{ color: "#D97706" }}>
-                  −{fmt(segmentData.totalCommission)} Ft
-                </span>
-                {segmentData.totalRoomRevenue > 0 && (
-                  <span className="text-xs ml-1.5" style={{ color: "#94A3B8" }}>
-                    ({Math.round(segmentData.totalCommission / segmentData.totalRoomRevenue * 1000) / 10}%)
+            <div className="flex items-center gap-2 flex-wrap">
+              {!segmentLoading && segmentData && segmentData.totalCommission > 0 && (
+                <div className="text-sm">
+                  <span style={{ color: "#94A3B8" }}>Havi komisszió: </span>
+                  <span className="font-bold font-mono" style={{ color: "#D97706" }}>
+                    −{fmt(segmentData.totalCommission)} Ft
                   </span>
-                )}
-              </div>
-            )}
+                  {segmentData.totalRoomRevenue > 0 && (
+                    <span className="text-xs ml-1.5" style={{ color: "#94A3B8" }}>
+                      ({Math.round(segmentData.totalCommission / segmentData.totalRoomRevenue * 1000) / 10}%)
+                    </span>
+                  )}
+                </div>
+              )}
+              <button
+                onClick={() => recalcCommission(scenarioId, year, month)}
+                disabled={recalcLoading}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+                style={{ background: "#FEF3C7", color: "#92400E", opacity: recalcLoading ? 0.6 : 1 }}>
+                {recalcLoading
+                  ? <><Loader2 size={10} className="animate-spin" /> Számítás…</>
+                  : "↻ Komisszió frissítése"}
+              </button>
+            </div>
           </div>
 
           {segmentLoading ? (
@@ -1008,7 +1031,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
               </div>
 
               {/* Összesítő sor */}
-              <div className="flex items-center gap-4 px-3 py-2 rounded-xl text-sm"
+              <div className="flex items-center gap-4 px-3 py-2 rounded-xl text-sm flex-wrap"
                 style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
                 <div className="flex-1">
                   <span style={{ color: "#94A3B8" }}>Szobabevétel: </span>
@@ -1018,9 +1041,24 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
                 </div>
                 <div>
                   <span style={{ color: "#94A3B8" }}>Komisszió összesen: </span>
-                  <span className="font-bold font-mono" style={{ color: "#D97706" }}>
-                    −{fmt(segmentData.totalCommission)} Ft
-                  </span>
+                  {segmentData.totalCommission > 0 ? (
+                    <span className="font-bold font-mono" style={{ color: "#D97706" }}>
+                      −{fmt(segmentData.totalCommission)} Ft
+                    </span>
+                  ) : (
+                    <span className="font-semibold" style={{ color: "#CBD5E1" }}>
+                      0 Ft —{" "}
+                      <button
+                        onClick={() => {
+                          const url = `/segments/${scenarioId}`;
+                          window.open(url, "_self");
+                        }}
+                        className="underline text-xs"
+                        style={{ color: "#94A3B8" }}>
+                        állíts be jutalék%-ot a szegmensnél
+                      </button>
+                    </span>
+                  )}
                 </div>
                 <div>
                   <span style={{ color: "#94A3B8" }}>Nettó szobabevétel: </span>
