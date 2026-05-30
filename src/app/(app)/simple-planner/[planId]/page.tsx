@@ -72,8 +72,9 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number): Month
   const days = getDaysInMonth(m.month, year);
   const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
   const roomNights = (m.occupancyPct / 100) * totalRooms * days;
-  // Ha közvetlenül megadott szoba árbevétel van → azt használjuk, egyébként ADR × szobaéj
-  const revenue = m.roomRevenue > 0 ? m.roomRevenue : roomNights * m.adr;
+  // Ha közvetlenül megadott szoba árbevétel van (Ft/szoba/éj) → totalRooms × days × érték
+  // Egyébként ADR × szobaéj (occ × rooms × days × adr)
+  const revenue = m.roomRevenue > 0 ? m.roomRevenue * totalRooms * days : roomNights * m.adr;
   // monthlyCost = Ft/szoba/éjszaka → teljes havi kiadás
   const cost = m.monthlyCost * totalRooms * days;
   const profit = revenue - cost;
@@ -678,10 +679,8 @@ export default function SimplePlanDetailPage() {
   const simMonths: MonthData[] = months.map(m => ({
     ...m,
     occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
-    // Ha van egyedi roomRevenue, a szimulátor az ADR×occ delta-val arányosan skálázza
-    roomRevenue: m.roomRevenue > 0 && m.occupancyPct > 0
-      ? Math.round(m.roomRevenue * (Math.min(100, Math.max(0, m.occupancyPct + simOffset)) / m.occupancyPct))
-      : m.roomRevenue,
+    // roomRevenue = Ft/szoba/éj → fix érték, nem változik az occ-eltolással
+    roomRevenue: m.roomRevenue,
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m => computeMonthCalc(m, totalRooms, year));
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
@@ -1302,6 +1301,7 @@ export default function SimplePlanDetailPage() {
                   { label: "Kihasználtság", align: "right" },
                   { label: "Szobaéj", align: "right" },
                   { label: "Bevétel", align: "right" },
+                  { label: "Árbevétel/szoba/éj", align: "right" },
                   { label: "Kiadás/szoba/éj", align: "right" },
                   { label: "Összes kiadás", align: "right" },
                   { label: "Profit", align: "right" },
@@ -1342,6 +1342,9 @@ export default function SimplePlanDetailPage() {
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155" }}>
                       {c.hasData ? fmt(c.roomNights) : "—"}
                     </td>
+                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: m.roomRevenue > 0 ? "#7C3AED" : "#CBD5E1" }}>
+                      {m.roomRevenue > 0 ? `${fmt(m.roomRevenue)} Ft` : "—"}
+                    </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isSimActive && c.revenue !== savedC.revenue ? "#7C3AED" : "#334155", fontWeight: isSimActive && c.revenue !== savedC.revenue ? 600 : 400 }}>
                       {c.hasData ? fmtM(c.revenue) : "—"}
                     </td>
@@ -1375,6 +1378,7 @@ export default function SimplePlanDetailPage() {
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#0F172A" }}>
                   {fmt((isSimActive ? simCalcs : calcs).reduce((s, c) => s + c.roomNights, 0))}
                 </td>
+                <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8", fontSize: 11 }}>—</td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#0F172A" }}>
                   {fmtM(isSimActive ? simAnnualRevenue : annualRevenue)}
                 </td>
