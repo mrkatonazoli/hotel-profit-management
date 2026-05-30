@@ -162,7 +162,7 @@ function EditableName({ value, onSave }: { value: string; onSave: (v: string) =>
 // ─── Month input cell ─────────────────────────────────────────────────────────
 
 function MonthInput({
-  label, value, onBlur, unit, step, highlight, note,
+  label, value, onBlur, unit, step, highlight, fromBand, note,
 }: {
   label: string;
   value: number;
@@ -170,6 +170,7 @@ function MonthInput({
   unit?: string;
   step?: number;
   highlight?: boolean;
+  fromBand?: boolean;
   note?: string;
 }) {
   const [local, setLocal] = useState(String(value === 0 ? "" : value));
@@ -186,7 +187,10 @@ function MonthInput({
   return (
     <div style={{ marginBottom: 4 }}>
       {label !== "" && (
-        <p style={{ fontSize: 9, color: highlight ? "#7C3AED" : "#94A3B8", margin: "0 0 2px", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.04em" }}>
+        <p style={{
+          fontSize: 9, margin: "0 0 2px", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.04em",
+          color: highlight ? "#7C3AED" : fromBand ? "#0EA5E9" : "#94A3B8",
+        }}>
           {label}{unit ? ` (${unit})` : ""}
         </p>
       )}
@@ -202,17 +206,23 @@ function MonthInput({
         style={{
           width: "100%", boxSizing: "border-box",
           fontSize: 12, fontWeight: 600, color: "#0F172A",
-          border: `1px solid ${highlight ? "#A78BFA" : "#E2E8F0"}`,
+          border: `1px solid ${highlight ? "#A78BFA" : fromBand ? "#BAE6FD" : "#E2E8F0"}`,
           borderRadius: 6, padding: "4px 6px",
-          outline: "none", background: highlight ? "#F5F3FF" : "#FAFAFA",
+          outline: "none",
+          background: highlight ? "#F5F3FF" : fromBand ? "#F0F9FF" : "#FAFAFA",
           fontVariantNumeric: "tabular-nums",
         }}
         onMouseEnter={e => (e.currentTarget.style.borderColor = "#A78BFA")}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = highlight ? "#A78BFA" : "#E2E8F0")}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = highlight ? "#A78BFA" : fromBand ? "#BAE6FD" : "#E2E8F0")}
         onFocusCapture={e => (e.currentTarget.style.borderColor = "#7C3AED")}
-        onBlurCapture={e => (e.currentTarget.style.borderColor = highlight ? "#A78BFA" : "#E2E8F0")}
+        onBlurCapture={e => (e.currentTarget.style.borderColor = highlight ? "#A78BFA" : fromBand ? "#BAE6FD" : "#E2E8F0")}
       />
-      {note && <p style={{ fontSize: 8, color: "#7C3AED", margin: "1px 0 0", fontWeight: 700 }}>{note}</p>}
+      {note && (
+        <p style={{
+          fontSize: 8, margin: "1px 0 0", fontWeight: 700,
+          color: fromBand ? "#0EA5E9" : "#7C3AED",
+        }}>{note}</p>
+      )}
     </div>
   );
 }
@@ -869,13 +879,27 @@ export default function SimplePlanDetailPage() {
                 note={m.roomRevenue > 0 ? "↑ egyedi érték" : undefined}
                 onBlur={v => updateMonthField(m.month, "roomRevenue", v)}
               />
-              <MonthInput
-                label="Kiadás"
-                unit="Ft/szoba/éj"
-                value={m.monthlyCost}
-                step={100}
-                onBlur={v => updateMonthField(m.month, "monthlyCost", v)}
-              />
+              {(() => {
+                const bandCost = m.monthlyCost === 0 ? getCostFromBands(m.occupancyPct) : null;
+                const effectiveCost = m.monthlyCost > 0 ? m.monthlyCost : (bandCost ?? 0);
+                const isFromBand = m.monthlyCost === 0 && bandCost !== null && bandCost > 0;
+                return (
+                  <MonthInput
+                    label="Kiadás"
+                    unit="Ft/szoba/éj"
+                    value={effectiveCost}
+                    step={100}
+                    highlight={m.monthlyCost > 0}
+                    fromBand={isFromBand}
+                    note={
+                      m.monthlyCost > 0 ? "↑ egyedi érték"
+                      : isFromBand ? "⚙ sávból"
+                      : undefined
+                    }
+                    onBlur={v => updateMonthField(m.month, "monthlyCost", v)}
+                  />
+                );
+              })()}
             </div>
           ))}
         </div>
