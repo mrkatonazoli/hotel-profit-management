@@ -6,12 +6,25 @@ import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, ArrowLeft,
   Star, Loader2, TrendingUp, Bed, DollarSign,
-  Sparkles, Building2, Users, ChevronDown, ChevronUp, Check, Pin,
+  Sparkles, Building2, Users, ChevronDown, ChevronUp, Check, Pin, Percent,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type RoomType = { id: string; name: string; count: number; occShareMult?: number };
+
+type SegmentMonth = {
+  id: string; name: string;
+  sharePct: number; roomRevenue: number;
+  effectiveCommPct: number; commission: number;
+  useChannelMix: boolean;
+};
+type MonthlySegmentData = {
+  segments: SegmentMonth[];
+  totalRoomRevenue: number;
+  totalCommission: number;
+  hasData: boolean;
+};
 
 type Scenario = {
   id: string; name: string; description: string | null;
@@ -594,6 +607,18 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
   const [rtGuestMap, setRtGuestMap]       = useState<Record<string, Record<string, GuestDay>>>({});
   const [rtGuestLoading, setRtGuestLoading] = useState(false);
   const [editingGuestDay, setEditingGuestDay] = useState<string | null>(null); // date key of day being edited
+  const [segmentData, setSegmentData]         = useState<MonthlySegmentData | null>(null);
+  const [segmentLoading, setSegmentLoading]   = useState(false);
+
+  const loadSegments = useCallback(async (scId: string, y: number, m: number) => {
+    setSegmentLoading(true);
+    try {
+      const res = await fetch(`/api/scenarios/${scId}/monthly-segments?month=${m}&year=${y}`);
+      if (res.ok) setSegmentData(await res.json());
+    } finally {
+      setSegmentLoading(false);
+    }
+  }, []);
 
   const loadMonth = useCallback(async (scId: string, y: number, m: number) => {
     setMonthLoading(true);
@@ -648,7 +673,10 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
       const initMonth = sc.year === now.getFullYear() ? now.getMonth() + 1 : 1;
       setYear(sc.year);
       setMonth(initMonth);
-      await loadMonth(sc.id, sc.year, initMonth);
+      await Promise.all([
+        loadMonth(sc.id, sc.year, initMonth),
+        loadSegments(sc.id, sc.year, initMonth),
+      ]);
       setLoading(false);
     }
     init();
@@ -661,13 +689,14 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
     setMonth(next);
     setDayMap({});
     setGuestMap({});
-    setRtGuestMap({});  // szobatípus adatokat is töröljük — újratöltjük menet közben
+    setRtGuestMap({});
     setExpandedDay(null);
-    await loadMonth(scenario.id, year, next);
-    // Ha épp egy szobatípus van aktív, töltsük be annak adatait is
-    if (activeRtId) {
-      await loadRtGuests(scenario.id, activeRtId, year, next);
-    }
+    setSegmentData(null);
+    await Promise.all([
+      loadMonth(scenario.id, year, next),
+      loadSegments(scenario.id, year, next),
+      activeRtId ? loadRtGuests(scenario.id, activeRtId, year, next) : Promise.resolve(),
+    ]);
   }
 
   // Szobatípus vendégadatainak betöltése
@@ -895,6 +924,115 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
             ? `${fmt(mAdults)}F · ${fmt(mChildren)}Gy · ${mAdultsPerRoom} F/szoba`
             : "Szobatípus fülön rögzíthető"} />
       </div>
+
+      {/* ── Szegmens mix + Komisszió panel ──────────────────────────────────── */}
+      {hasData && (segmentLoading || (segmentData && segmentData.segments.length > 0)) && (
+        <div className="rounded-2xl overflow-hidden" style={{ background: "white", border: "1px solid #E2E8F0" }}>
+          {/* Panel fejléc */}
+          <div className="flex items-center justify-between px-5 py-3"
+            style={{ borderBottom: "1px solid #F1F5F9", background: "#FAFBFF" }}>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center"
+                style={{ background: "#FEF3C7", color: "#D97706" }}>
+                <Percent size={13} />
+              </div>
+              <span className="text-sm font-semibold" style={{ color: "#0F172A" }}>
+                Szegmens mix · {HU_MONTHS[month - 1]} {year}
+              </span>
+            </div>
+            {!segmentLoading && segmentData && segmentData.totalCommission > 0 && (
+              <div className="text-sm">
+                <span style={{ color: "#94A3B8" }}>Havi komisszió: </span>
+                <span className="font-bold font-mono" style={{ color: "#D97706" }}>
+                  −{fmt(segmentData.totalCommission)} Ft
+                </span>
+                {segmentData.totalRoomRevenue > 0 && (
+                  <span className="text-xs ml-1.5" style={{ color: "#94A3B8" }}>
+                    ({Math.round(segmentData.totalCommission / segmentData.totalRoomRevenue * 1000) / 10}%)
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {segmentLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 size={16} className="animate-spin" style={{ color: "#D97706" }} />
+            </div>
+          ) : segmentData && segmentData.segments.length > 0 ? (
+            <div className="p-4">
+              {/* Szegmens kártyák */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
+                {segmentData.segments.filter(s => s.sharePct > 0).map((seg, idx) => {
+                  const COLORS = [
+                    { bg: "#EDE9FE", bar: "#7C3AED", text: "#5B21B6" },
+                    { bg: "#D1FAE5", bar: "#10B981", text: "#065F46" },
+                    { bg: "#DBEAFE", bar: "#3B82F6", text: "#1D4ED8" },
+                    { bg: "#FEF3C7", bar: "#F59E0B", text: "#92400E" },
+                    { bg: "#FCE7F3", bar: "#EC4899", text: "#9D174D" },
+                    { bg: "#E0F2FE", bar: "#0EA5E9", text: "#075985" },
+                  ];
+                  const c = COLORS[idx % COLORS.length];
+                  return (
+                    <div key={seg.id} className="rounded-xl p-3 relative overflow-hidden"
+                      style={{ background: c.bg, border: `1px solid ${c.bar}20` }}>
+                      {/* Progress bar alul */}
+                      <div className="absolute bottom-0 left-0 h-0.5 rounded-full"
+                        style={{ width: `${seg.sharePct}%`, background: c.bar, opacity: 0.5 }} />
+                      <div className="text-xs font-semibold mb-2 truncate" style={{ color: c.text }}>
+                        {seg.name}
+                      </div>
+                      <div className="flex items-end justify-between gap-1">
+                        <div>
+                          <div className="text-xl font-bold font-mono" style={{ color: c.text }}>
+                            {seg.sharePct}%
+                          </div>
+                          <div className="text-xs mt-0.5" style={{ color: c.bar, opacity: 0.8 }}>
+                            {fmt(Math.round(seg.roomRevenue / 1000))} E Ft
+                          </div>
+                        </div>
+                        {seg.effectiveCommPct > 0 && (
+                          <div className="text-right">
+                            <div className="text-xs font-semibold" style={{ color: "#D97706" }}>
+                              −{fmt(Math.round(seg.commission / 1000))} E Ft
+                            </div>
+                            <div className="text-xs" style={{ color: "#94A3B8" }}>
+                              {seg.effectiveCommPct}% jut.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Összesítő sor */}
+              <div className="flex items-center gap-4 px-3 py-2 rounded-xl text-sm"
+                style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
+                <div className="flex-1">
+                  <span style={{ color: "#94A3B8" }}>Szobabevétel: </span>
+                  <span className="font-semibold font-mono" style={{ color: "#0F172A" }}>
+                    {fmt(segmentData.totalRoomRevenue)} Ft
+                  </span>
+                </div>
+                <div>
+                  <span style={{ color: "#94A3B8" }}>Komisszió összesen: </span>
+                  <span className="font-bold font-mono" style={{ color: "#D97706" }}>
+                    −{fmt(segmentData.totalCommission)} Ft
+                  </span>
+                </div>
+                <div>
+                  <span style={{ color: "#94A3B8" }}>Nettó szobabevétel: </span>
+                  <span className="font-bold font-mono" style={{ color: "#059669" }}>
+                    {fmt(segmentData.totalRoomRevenue - segmentData.totalCommission)} Ft
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* No data */}
       {!hasData && !monthLoading && (
