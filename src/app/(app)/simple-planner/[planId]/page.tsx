@@ -72,11 +72,13 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number): Month
   const hasData = m.adr > 0 || m.occupancyPct > 0 || m.monthlyCost > 0;
   const roomNights = (m.occupancyPct / 100) * totalRooms * days;
   const revenue = roomNights * m.adr;
-  const cost = m.monthlyCost;
+  // monthlyCost = Ft/szoba/éjszaka → teljes havi kiadás
+  const cost = m.monthlyCost * totalRooms * days;
   const profit = revenue - cost;
   const margin = revenue > 0 ? (profit / revenue) * 100 : null;
-  const breakeven = (m.adr > 0 && totalRooms > 0)
-    ? (m.monthlyCost / (totalRooms * days * m.adr)) * 100
+  // breakeven = costPerRoomNight / ADR × 100  (totalRooms × days kiesik)
+  const breakeven = m.adr > 0
+    ? (m.monthlyCost / m.adr) * 100
     : null;
   return { month: m.month, daysInMonth: days, roomNights, revenue, cost, profit, margin, breakeven, hasData };
 }
@@ -822,9 +824,9 @@ export default function SimplePlanDetailPage() {
               />
               <MonthInput
                 label="Kiadás"
-                unit="Ft"
+                unit="Ft/szoba/éj"
                 value={m.monthlyCost}
-                step={10000}
+                step={100}
                 onBlur={v => updateMonthField(m.month, "monthlyCost", v)}
               />
             </div>
@@ -1252,7 +1254,8 @@ export default function SimplePlanDetailPage() {
                   { label: "Kihasználtság", align: "right" },
                   { label: "Szobaéj", align: "right" },
                   { label: "Bevétel", align: "right" },
-                  { label: "Kiadás", align: "right" },
+                  { label: "Kiadás/szoba/éj", align: "right" },
+                  { label: "Összes kiadás", align: "right" },
                   { label: "Profit", align: "right" },
                   { label: "Margin %", align: "right" },
                   { label: "Fedezeti pont %", align: "right" },
@@ -1295,6 +1298,9 @@ export default function SimplePlanDetailPage() {
                       {c.hasData ? fmtM(c.revenue) : "—"}
                     </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
+                      {c.hasData && m.monthlyCost > 0 ? `${fmt(m.monthlyCost)} Ft` : "—"}
+                    </td>
+                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
                       {c.hasData ? fmtM(c.cost) : "—"}
                     </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: c.hasData ? profitColor(c.profit) : "#CBD5E1" }}>
@@ -1323,6 +1329,9 @@ export default function SimplePlanDetailPage() {
                 </td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#0F172A" }}>
                   {fmtM(isSimActive ? simAnnualRevenue : annualRevenue)}
+                </td>
+                <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8", fontSize: 11 }}>
+                  —
                 </td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
                   {fmtM(annualCost)}
