@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import Anthropic from "@anthropic-ai/sdk";
 import { ANTHROPIC_API_KEY } from "@/lib/anthropic";
 import { logTokenUsage } from "@/lib/token-log";
+import { calcMonthlyCommissionRate } from "@/lib/segment-commission";
 
 // ─── Parse variables → structured constraints via Claude ──────────────────────
 
@@ -143,41 +144,29 @@ Visszaadandó JSON (semmi más, csak ez):
 // ─── Komisszió számítás szegmens mix alapján ──────────────────────────────────
 
 async function applySegmentCommissions(scenarioId: string) {
-  // Szegmensek betöltése csatorna mixszel
-  const segments = await prisma.scenarioSegment.findMany({
-    where: { scenarioId },
-    include: {
-      monthShares: true,
-      channelMix: { include: { distributor: true } },
-    },
-  });
+  // Szegmensek + hotel csatornák párhuzamos betöltése
+  const [segments, scenario] = await Promise.all([
+    prisma.scenarioSegment.findMany({
+      where: { scenarioId },
+      include: {
+        monthShares: true,
+        channelMix: { include: { distributor: true } },
+      },
+    }),
+    prisma.scenario.findUnique({
+      where: { id: scenarioId },
+      select: { hotel: { select: { distributors: true } } },
+    }),
+  ]);
 
   if (segments.length === 0) return;
 
-  // Havi effektív komisszió ráta: Σ(segmentShare% × segmentCommission%)
+  const hotelDistributors = scenario?.hotel.distributors ?? [];
+
+  // Havi effektív komisszió ráta: lib helper számolja (fallback: hotel csatornák)
   const monthlyCommissionRate: Record<number, number> = {};
   for (let month = 1; month <= 12; month++) {
-    let rate = 0;
-    for (const seg of segments) {
-      const segShare = (seg.monthShares.find(m => m.month === month)?.sharePct ?? 0) / 100;
-      if (segShare === 0) continue;
-
-      let segCommPct = 0;
-      if (seg.useChannelMix) {
-        // Csatorna mix alapján számolt komisszió
-        const annualChannels = seg.channelMix.filter(c => c.month === null);
-        const monthChannels  = seg.channelMix.filter(c => c.month === month);
-        const channels = monthChannels.length > 0 ? monthChannels : annualChannels;
-        segCommPct = channels.reduce((sum, c) => {
-          return sum + (c.sharePct / 100) * (c.distributor.isCommission ? c.distributor.commissionPct : 0);
-        }, 0);
-      } else {
-        segCommPct = seg.commissionPct;
-      }
-
-      rate += segShare * segCommPct;
-    }
-    monthlyCommissionRate[month] = rate / 100; // → 0.0–1.0
+    monthlyCommissionRate[month] = calcMonthlyCommissionRate(segments, month, hotelDistributors);
   }
 
   // PlanDay-ek frissítése — egyetlen bulk SQL, nem 365 párhuzamos update

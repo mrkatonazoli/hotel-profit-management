@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { calcEffectiveCommPct } from "@/lib/segment-commission";
 
 // GET /api/scenarios/[scenarioId]/monthly-segments?month=6&year=2026
 export async function GET(
@@ -30,18 +31,26 @@ export async function GET(
     return NextResponse.json({ segments: [], totalRoomRevenue: 0, totalCommission: 0, hasData: false });
   }
 
-  // Szegmensek betöltése
-  const segments = await prisma.scenarioSegment.findMany({
-    where: { scenarioId },
-    include: {
-      monthShares: { where: { month } },
-      channelMix: {
-        include: { distributor: true },
-        where: { OR: [{ month: null }, { month }] },
+  // Szegmensek + hotel csatornák betöltése
+  const [segments, scenario] = await Promise.all([
+    prisma.scenarioSegment.findMany({
+      where: { scenarioId },
+      include: {
+        monthShares: { where: { month } },
+        channelMix: {
+          include: { distributor: true },
+          where: { OR: [{ month: null }, { month }] },
+        },
       },
-    },
-    orderBy: { sortOrder: "asc" },
-  });
+      orderBy: { sortOrder: "asc" },
+    }),
+    prisma.scenario.findUnique({
+      where: { id: scenarioId },
+      select: { hotel: { select: { distributors: true } } },
+    }),
+  ]);
+
+  const hotelDistributors = scenario?.hotel.distributors ?? [];
 
   if (segments.length === 0) {
     return NextResponse.json({ segments: [], totalRoomRevenue, totalCommission, hasData: true });
@@ -51,18 +60,8 @@ export async function GET(
     const sharePct = seg.monthShares[0]?.sharePct ?? 0;
     const segRevenue = Math.round(totalRoomRevenue * sharePct / 100);
 
-    // Effektív komisszió ráta
-    let effectiveCommPct = 0;
-    if (seg.useChannelMix) {
-      const annualCh = seg.channelMix.filter(c => c.month === null);
-      const monthCh  = seg.channelMix.filter(c => c.month === month);
-      const channels = monthCh.length > 0 ? monthCh : annualCh;
-      effectiveCommPct = channels.reduce((s: number, c: { sharePct: number; distributor: { isCommission: boolean; commissionPct: number } }) =>
-        s + (c.sharePct / 100) * (c.distributor.isCommission ? c.distributor.commissionPct : 0), 0,
-      );
-    } else {
-      effectiveCommPct = seg.commissionPct;
-    }
+    // Effektív komisszió ráta — fallback: hotel csatornák ha nincs szegmens-specifikus beállítás
+    const effectiveCommPct = calcEffectiveCommPct(seg, month, hotelDistributors);
 
     const segCommission = Math.round(segRevenue * effectiveCommPct / 100);
 
