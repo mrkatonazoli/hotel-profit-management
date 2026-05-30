@@ -9,7 +9,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Distributor = { id: string; name: string; commissionPct: number; isCommission: boolean };
+type Distributor = { id: string; name: string; commissionPct: number; isCommission: boolean; segmentTags: string };
 
 type ChannelEntry = { distributorId: string; month: number | null; sharePct: number };
 
@@ -622,25 +622,55 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                               className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
                           </div>
 
-                          {/* Meglévő globális csatornák */}
-                          {availableDistributors.length > 0 && (
-                            <div>
-                              <p className="text-xs text-slate-400 mb-2">Meglévő csatornák:</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {availableDistributors.map(d => (
-                                  <button key={d.id}
-                                    onClick={() => addChannelToSegment(seg, d)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:border-violet-300 hover:text-violet-700 transition-colors"
-                                    style={{ color: "#334155" }}>
-                                    <Plus size={11} /> {d.name}
-                                    {d.isCommission && d.commissionPct > 0 && (
-                                      <span className="text-amber-500 font-normal">({d.commissionPct}%)</span>
-                                    )}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                          {/* Meglévő globális csatornák — szegmens tag alapján szűrve */}
+                          {(() => {
+                            const recommended = availableDistributors.filter(d => {
+                              if (!d.segmentTags || d.segmentTags.trim() === "") return true; // untagged = mindenhol
+                              return d.segmentTags.split(",").some(t => t.trim().toLowerCase() === seg.name.toLowerCase());
+                            });
+                            const others = availableDistributors.filter(d => {
+                              if (!d.segmentTags || d.segmentTags.trim() === "") return false;
+                              return !d.segmentTags.split(",").some(t => t.trim().toLowerCase() === seg.name.toLowerCase());
+                            });
+
+                            const renderBtn = (d: Distributor) => (
+                              <button key={d.id}
+                                onClick={() => addChannelToSegment(seg, d)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:border-violet-300 hover:text-violet-700 transition-colors"
+                                style={{ color: "#334155" }}>
+                                <Plus size={11} /> {d.name}
+                                {d.isCommission && d.commissionPct > 0 && (
+                                  <span className="text-amber-500 font-normal">({d.commissionPct}%)</span>
+                                )}
+                              </button>
+                            );
+
+                            return (
+                              <>
+                                {recommended.length > 0 && (
+                                  <div>
+                                    <p className="text-xs text-slate-400 mb-2">
+                                      Ehhez a szegmenshez ajánlott:
+                                    </p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {recommended.map(renderBtn)}
+                                    </div>
+                                  </div>
+                                )}
+                                {others.length > 0 && (
+                                  <div>
+                                    <p className="text-xs text-slate-300 mb-2">Egyéb csatornák:</p>
+                                    <div className="flex flex-wrap gap-1.5 opacity-70">
+                                      {others.map(renderBtn)}
+                                    </div>
+                                  </div>
+                                )}
+                                {availableDistributors.length === 0 && (
+                                  <p className="text-xs text-slate-400 italic">Nincs több elérhető csatorna.</p>
+                                )}
+                              </>
+                            );
+                          })()}
 
                           {/* Új csatorna */}
                           {!showNewChannelForm ? (

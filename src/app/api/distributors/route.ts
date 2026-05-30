@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 404 });
 
     const body = await req.json();
-    const { name, isCommission, commissionPct, sortOrder } = body;
+    const { name, isCommission, commissionPct, sortOrder, segmentTags } = body;
 
     const dist = await prisma.distributor.create({
       data: {
@@ -41,6 +41,7 @@ export async function POST(req: Request) {
         isCommission: Boolean(isCommission ?? true),
         commissionPct: Number(commissionPct ?? 0),
         sortOrder: Number(sortOrder ?? 0),
+        segmentTags: Array.isArray(segmentTags) ? segmentTags.join(",") : String(segmentTags ?? ""),
       },
     });
 

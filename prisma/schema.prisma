@@ -399,6 +399,7 @@ model Distributor {
   isCommission  Boolean  @default(true)   // jutalékos csatorna-e?
   commissionPct Float    @default(0)      // jutalék %, csak ha isCommission=true
   sortOrder     Int      @default(0)
+  segmentTags   String   @default("")     // vesszővel elválasztott szegmensnevek, pl. "Egyéni,MICE" (üres = minden szegmens)
   createdAt     DateTime @default(now())
   hotel         Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   segmentChannels ScenarioSegmentChannel[]

@@ -9,7 +9,7 @@ export async function PUT(req: Request, { params }: Ctx) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { distributorId } = await params;
-  const { name, isCommission, commissionPct, sortOrder } = await req.json();
+  const { name, isCommission, commissionPct, sortOrder, segmentTags } = await req.json();
 
   const dist = await prisma.distributor.update({
     where: { id: distributorId },
@@ -18,6 +18,9 @@ export async function PUT(req: Request, { params }: Ctx) {
       ...(isCommission !== undefined && { isCommission: Boolean(isCommission) }),
       ...(commissionPct !== undefined && { commissionPct: Number(commissionPct) }),
       ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) }),
+      ...(segmentTags !== undefined && {
+        segmentTags: Array.isArray(segmentTags) ? segmentTags.join(",") : String(segmentTags),
+      }),
     },
   });
 

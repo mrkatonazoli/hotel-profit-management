@@ -5,7 +5,9 @@ import { Plus, Trash2, Save, Building2, Bed, Loader2, Pencil, X, Check, Phone, M
 
 type RoomType = { id: string; name: string; count: number; maxOccupancy: number | null };
 type ChildAgeGroup = { id: string; name: string; minAge: number; maxAge: number; sortOrder: number };
-type SalesChannel = { id: string; name: string; isCommission: boolean; sortOrder: number };
+type SalesChannel = { id: string; name: string; isCommission: boolean; sortOrder: number; segmentTags: string };
+
+const SEGMENT_OPTIONS = ["Egyéni", "Corporate", "MICE", "Utazási iroda"];
 type Hotel = {
   id: string; name: string; city: string; country: string; baseCurrency: string;
   totalRooms: number | null; contactName: string | null; contactEmail: string | null; contactPhone: string | null;
@@ -65,9 +67,9 @@ export default function HotelConfigPage() {
   // Sales channels
   const [channels, setChannels] = useState<SalesChannel[]>([]);
   const [addingChannel, setAddingChannel] = useState(false);
-  const [newChannel, setNewChannel] = useState({ name: "", isCommission: true });
+  const [newChannel, setNewChannel] = useState({ name: "", isCommission: true, segmentTags: [] as string[] });
   const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
-  const [editChannel, setEditChannel] = useState({ name: "", isCommission: true });
+  const [editChannel, setEditChannel] = useState({ name: "", isCommission: true, segmentTags: [] as string[] });
   const [channelLoading, setChannelLoading] = useState<string | null>(null);
   const [channelError, setChannelError] = useState<string | null>(null);
 
@@ -214,12 +216,12 @@ export default function HotelConfigPage() {
       const res = await fetch("/api/distributors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, isCommission: newChannel.isCommission, sortOrder: channels.length }),
+        body: JSON.stringify({ name, isCommission: newChannel.isCommission, sortOrder: channels.length, segmentTags: newChannel.segmentTags }),
       });
       const data = await res.json();
       if (res.ok) {
         setChannels(prev => [...prev, data]);
-        setNewChannel({ name: "", isCommission: true });
+        setNewChannel({ name: "", isCommission: true, segmentTags: [] });
         setAddingChannel(false);
       } else {
         console.error("[handleAddChannel] API error:", res.status, data);
@@ -241,7 +243,7 @@ export default function HotelConfigPage() {
       const res = await fetch(`/api/distributors/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, isCommission: editChannel.isCommission }),
+        body: JSON.stringify({ name, isCommission: editChannel.isCommission, segmentTags: editChannel.segmentTags }),
       });
       if (res.ok) {
         const ch = await res.json();
@@ -883,30 +885,52 @@ export default function HotelConfigPage() {
               style={{ border: "1.5px solid #E2E8F0", background: "#FAFAFA" }}>
 
               {editingChannelId === ch.id ? (
-                <>
-                  <input
-                    className="hp-input flex-1 text-sm"
-                    value={editChannel.name}
-                    onChange={e => setEditChannel(p => ({ ...p, name: e.target.value }))}
-                    onKeyDown={e => e.key === "Enter" && handleUpdateChannel(ch.id)}
-                    autoFocus
-                  />
-                  <Toggle
-                    checked={editChannel.isCommission}
-                    onChange={() => setEditChannel(p => ({ ...p, isCommission: !p.isCommission }))}
-                    label={editChannel.isCommission ? "Jutalékos" : "Közvetlen"}
-                  />
-                  <button onClick={() => handleUpdateChannel(ch.id)} disabled={channelLoading === ch.id}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: "#D1FAE5", color: "#065F46" }}>
-                    {channelLoading === ch.id ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-                  </button>
-                  <button onClick={() => setEditingChannelId(null)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: "#F1F5F9", color: "#64748B" }}>
-                    <X size={13} />
-                  </button>
-                </>
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <input
+                      className="hp-input flex-1 text-sm"
+                      value={editChannel.name}
+                      onChange={e => setEditChannel(p => ({ ...p, name: e.target.value }))}
+                      onKeyDown={e => e.key === "Enter" && handleUpdateChannel(ch.id)}
+                      autoFocus
+                    />
+                    <Toggle
+                      checked={editChannel.isCommission}
+                      onChange={() => setEditChannel(p => ({ ...p, isCommission: !p.isCommission }))}
+                      label={editChannel.isCommission ? "Jutalékos" : "Közvetlen"}
+                    />
+                    <button onClick={() => handleUpdateChannel(ch.id)} disabled={channelLoading === ch.id}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: "#D1FAE5", color: "#065F46" }}>
+                      {channelLoading === ch.id ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                    </button>
+                    <button onClick={() => setEditingChannelId(null)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: "#F1F5F9", color: "#64748B" }}>
+                      <X size={13} />
+                    </button>
+                  </div>
+                  {/* Szegmens tagek */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-slate-400 font-medium">Szegmens:</span>
+                    {SEGMENT_OPTIONS.map(seg => {
+                      const checked = editChannel.segmentTags.includes(seg);
+                      return (
+                        <label key={seg} className="flex items-center gap-1 cursor-pointer select-none">
+                          <input type="checkbox" checked={checked} className="rounded"
+                            onChange={() => setEditChannel(p => ({
+                              ...p,
+                              segmentTags: checked ? p.segmentTags.filter(t => t !== seg) : [...p.segmentTags, seg],
+                            }))} />
+                          <span className="text-xs font-medium" style={{ color: "#334155" }}>{seg}</span>
+                        </label>
+                      );
+                    })}
+                    <span className="text-xs text-slate-300 italic ml-1">
+                      {editChannel.segmentTags.length === 0 ? "(minden szegmens)" : ""}
+                    </span>
+                  </div>
+                </div>
               ) : (
                 <>
                   <Toggle
@@ -915,7 +939,19 @@ export default function HotelConfigPage() {
                     label={ch.isCommission ? "Jutalékos" : "Közvetlen"}
                   />
 
-                  <span className="flex-1 text-sm font-medium" style={{ color: "#0F172A" }}>{ch.name}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{ch.name}</span>
+                    {ch.segmentTags && ch.segmentTags.length > 0 && (
+                      <div className="flex gap-1 mt-0.5 flex-wrap">
+                        {ch.segmentTags.split(",").filter(Boolean).map(tag => (
+                          <span key={tag} className="text-xs px-1.5 py-0.5 rounded font-medium"
+                            style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   <span className="px-2 py-0.5 rounded-lg text-xs font-semibold flex-shrink-0"
                     style={{
@@ -925,7 +961,7 @@ export default function HotelConfigPage() {
                     {ch.isCommission ? "Jutalékos" : "Közvetlen"}
                   </span>
 
-                  <button onClick={() => { setEditingChannelId(ch.id); setEditChannel({ name: ch.name, isCommission: ch.isCommission }); }}
+                  <button onClick={() => { setEditingChannelId(ch.id); setEditChannel({ name: ch.name, isCommission: ch.isCommission, segmentTags: ch.segmentTags ? ch.segmentTags.split(",").filter(Boolean) : [] }); }}
                     className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ background: "#F1F5F9", color: "#64748B" }}>
                     <Pencil size={13} />
@@ -966,11 +1002,32 @@ export default function HotelConfigPage() {
                   {channelLoading === "new" ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                   Mentés
                 </button>
-                <button type="button" onClick={() => { setAddingChannel(false); setChannelError(null); }}
+                <button type="button" onClick={() => { setAddingChannel(false); setChannelError(null); setNewChannel({ name: "", isCommission: true, segmentTags: [] }); }}
                   className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ background: "#F1F5F9", color: "#64748B" }}>
                   <X size={13} />
                 </button>
+              </div>
+              {/* Szegmens tagek — új csatornánál */}
+              <div className="flex items-center gap-2 px-4 pb-3 flex-wrap">
+                <Users size={13} style={{ color: "#94A3B8", flexShrink: 0 }} />
+                <span className="text-xs text-slate-400 font-medium">Szegmens:</span>
+                {SEGMENT_OPTIONS.map(seg => {
+                  const checked = newChannel.segmentTags.includes(seg);
+                  return (
+                    <label key={seg} className="flex items-center gap-1 cursor-pointer select-none">
+                      <input type="checkbox" checked={checked} className="rounded"
+                        onChange={() => setNewChannel(p => ({
+                          ...p,
+                          segmentTags: checked ? p.segmentTags.filter(t => t !== seg) : [...p.segmentTags, seg],
+                        }))} />
+                      <span className="text-xs font-medium" style={{ color: "#334155" }}>{seg}</span>
+                    </label>
+                  );
+                })}
+                <span className="text-xs text-slate-400 italic">
+                  {newChannel.segmentTags.length === 0 ? "— üresen hagyva = minden szegmensben megjelenik" : ""}
+                </span>
               </div>
               {channelError && (
                 <div className="px-4 py-2 text-xs font-medium" style={{ background: "#FEE2E2", color: "#B91C1C" }}>
