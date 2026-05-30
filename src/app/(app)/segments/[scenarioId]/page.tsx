@@ -67,6 +67,10 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
   const [expanded, setExpanded] = useState<string | null>(null);
   const [scenarioName, setScenarioName] = useState("");
 
+  // Szegmens picker
+  const [showPicker, setShowPicker] = useState(false);
+  const [customName, setCustomName] = useState("");
+
   // Load data
   useEffect(() => {
     async function load() {
@@ -515,16 +519,88 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
         );
       })}
 
-      {/* Add segment button */}
+      {/* Add segment — picker */}
       {segments.length > 0 && (
-        <button
-          onClick={() => addSegment()}
-          disabled={saving === "new"}
-          className="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-violet-300 hover:text-violet-500 transition-colors text-sm font-semibold flex items-center justify-center gap-2"
-        >
-          {saving === "new" ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-          Új szegmens hozzáadása
-        </button>
+        <div className="relative">
+          {!showPicker ? (
+            <button
+              onClick={() => { setShowPicker(true); setCustomName(""); }}
+              disabled={saving === "new"}
+              className="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-violet-300 hover:text-violet-500 transition-colors text-sm font-semibold flex items-center justify-center gap-2"
+            >
+              {saving === "new" ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+              Új szegmens hozzáadása
+            </button>
+          ) : (
+            <div className="rounded-2xl border-2 border-violet-200 bg-white shadow-lg p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-slate-700">Melyik szegmenst adod hozzá?</p>
+                <button onClick={() => setShowPicker(false)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Előre definiált szegmensek — kiszűrve a már meglévőket */}
+              {(() => {
+                const existingNames = new Set(segments.map(s => s.name.toLowerCase()));
+                const available = DEFAULT_SEGMENTS.filter(d => !existingNames.has(d.name.toLowerCase()));
+                return available.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Szokásos szegmensek</p>
+                    <div className="flex flex-wrap gap-2">
+                      {available.map(s => (
+                        <button key={s.name}
+                          onClick={async () => { setShowPicker(false); await addSegment(s); }}
+                          disabled={saving === "new"}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                          style={{ background: s.color }}>
+                          <Plus size={13} /> {s.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">Minden szokásos szegmens már hozzá van adva.</p>
+                );
+              })()}
+
+              {/* Egyéni szegmens */}
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Vagy egyéni névvel</p>
+                <form
+                  onSubmit={async e => {
+                    e.preventDefault();
+                    const name = customName.trim();
+                    if (!name) return;
+                    setShowPicker(false);
+                    await addSegment({
+                      name,
+                      color: SEGMENT_COLORS[segments.length % SEGMENT_COLORS.length],
+                    });
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    autoFocus
+                    type="text"
+                    value={customName}
+                    onChange={e => setCustomName(e.target.value)}
+                    placeholder="pl. Kormányzati, Long-stay, …"
+                    className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-violet-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!customName.trim() || saving === "new"}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-40 transition-opacity"
+                    style={{ background: "#7C3AED" }}>
+                    Hozzáadás
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Summary — éves átlag */}
