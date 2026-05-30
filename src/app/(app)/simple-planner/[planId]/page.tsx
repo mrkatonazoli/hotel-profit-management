@@ -79,10 +79,15 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number): Month
   const cost = m.monthlyCost * totalRooms * days;
   const profit = revenue - cost;
   const margin = revenue > 0 ? (profit / revenue) * 100 : null;
-  // breakeven = costPerRoomNight / ADR × 100 (ha van ADR); ha nincs ADR de van roomRevenue, becsüljük
-  const effectiveAdr = m.adr > 0 ? m.adr : (roomNights > 0 ? revenue / roomNights : 0);
-  const breakeven = effectiveAdr > 0
-    ? (m.monthlyCost / effectiveAdr) * 100
+  // Egységes fedezeti pont képlet: (cost / revenue) × occ%
+  // – Ha roomRevenue (RevPAR) alapú: breakeven = kiadás × occ / roomRevenue
+  //   (pl. 39000 × 56 / 42000 = 52%)
+  // – Ha ADR alapú: breakeven = kiadás / ADR × 100
+  //   (a cost/revenue × occ leegyszerűsödik ugyanerre)
+  const breakeven = revenue > 0 && m.occupancyPct > 0
+    ? (cost / revenue) * m.occupancyPct
+    : m.adr > 0 && m.monthlyCost > 0
+    ? (m.monthlyCost / m.adr) * 100
     : null;
   return { month: m.month, daysInMonth: days, roomNights, revenue, cost, profit, margin, breakeven, hasData };
 }
@@ -677,12 +682,10 @@ export default function SimplePlanDetailPage() {
     ? filledCalcs.filter(c => c.margin !== null).reduce((s, c) => s + (c.margin ?? 0), 0) / filledCalcs.filter(c => c.margin !== null).length
     : 0;
 
-  const totalDays = calcs.reduce((s, c) => s + c.daysInMonth, 0);
-  const weightedAdr = filledCalcs.length > 0
-    ? filledCalcs.reduce((s, c) => s + (months.find(m => m.month === c.month)?.adr ?? 0), 0) / filledCalcs.length
-    : 0;
-  const annualBreakeven = (totalRooms > 0 && weightedAdr > 0)
-    ? (annualCost / (totalRooms * totalDays * weightedAdr)) * 100
+  // Éves fedezeti pont: (annualCost / annualRevenue) × avgOcc%
+  // Egységes képlet — működik RevPAR és ADR alapú hónapok keverékénél is
+  const annualBreakeven = (annualRevenue > 0 && avgOcc > 0)
+    ? (annualCost / annualRevenue) * avgOcc
     : null;
 
   // Simulated calcs (with occupancy offset)
