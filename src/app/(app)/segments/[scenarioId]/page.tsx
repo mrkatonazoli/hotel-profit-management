@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus, Trash2, Loader2, ChevronDown, ChevronUp,
@@ -39,6 +39,41 @@ const DEFAULT_SEGMENTS = [
   { name: "MICE", color: "#10B981" },
   { name: "Utazási iroda", color: "#F59E0B" },
 ];
+
+// ─── SegNumInput — lokális draft, csak onBlur-ra ment (nincs race condition) ──
+
+function SegNumInput({
+  value, onCommit, className, step = 1,
+}: { value: number; onCommit: (v: number) => void; className?: string; step?: number }) {
+  const [draft, setDraft] = useState(value > 0 ? String(value) : "");
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setDraft(value > 0 ? String(value) : ""); }, [value]);
+
+  const commit = () => {
+    const n = Math.max(0, Math.min(100, parseFloat(draft.replace(",", ".")) || 0));
+    setDraft(n > 0 ? String(n) : "");
+    onCommit(n);
+  };
+
+  return (
+    <input
+      ref={ref}
+      type="number" min={0} max={100} step={step}
+      value={draft}
+      placeholder="0"
+      onChange={e => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === "Enter") { commit(); ref.current?.blur(); } }}
+      className={className ?? "w-20 text-center text-sm font-semibold rounded-lg px-2 py-1.5 border border-slate-200 focus:border-violet-400 bg-white outline-none"}
+    />
+  );
+}
+
+// Visszafelé kompatibilis alias
+function CommissionInput({ value, onCommit }: { value: number; onCommit: (v: number) => void }) {
+  return <SegNumInput value={value} onCommit={onCommit} step={0.5} />;
+}
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
 
@@ -364,11 +399,9 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                   return (
                     <div key={month} className="flex flex-col gap-1">
                       <span className="text-xs text-slate-400 text-center">{label}</span>
-                      <input
-                        type="number" min={0} max={100} step={1}
-                        value={val === 0 ? "" : val}
-                        placeholder="0"
-                        onChange={e => updateMonthShare(seg, month, Number(e.target.value) || 0)}
+                      <SegNumInput
+                        value={val}
+                        onCommit={v => updateMonthShare(seg, month, v)}
                         className={`w-full text-center text-sm font-semibold rounded-lg px-1 py-1.5 border outline-none transition-colors ${
                           over ? "border-red-300 bg-red-50 text-red-600" : "border-slate-200 focus:border-violet-400 bg-slate-50"
                         }`}
@@ -414,12 +447,9 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                 {!seg.useChannelMix && (
                   <div className="flex items-center gap-3 mt-3">
                     <label className="text-sm text-slate-600">Fix jutalék:</label>
-                    <input
-                      type="number" min={0} max={100} step={0.5}
-                      value={seg.commissionPct === 0 ? "" : seg.commissionPct}
-                      placeholder="0"
-                      onChange={e => updateCommissionPct(seg, Number(e.target.value) || 0)}
-                      className="w-20 text-center text-sm font-semibold rounded-lg px-2 py-1.5 border border-slate-200 focus:border-violet-400 bg-white outline-none"
+                    <CommissionInput
+                      value={seg.commissionPct}
+                      onCommit={v => updateCommissionPct(seg, v)}
                     />
                     <span className="text-sm text-slate-400">%</span>
                     {seg.commissionPct > 0 && (
@@ -477,11 +507,9 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                             return (
                               <div key={dist.id} className="flex items-center gap-3">
                                 <span className="text-sm text-slate-600 w-36 truncate">{dist.name}</span>
-                                <input
-                                  type="number" min={0} max={100} step={1}
-                                  value={share === 0 ? "" : share}
-                                  placeholder="0"
-                                  onChange={e => updateChannelShare(seg, dist.id, null, Number(e.target.value) || 0)}
+                                <SegNumInput
+                                  value={share}
+                                  onCommit={v => updateChannelShare(seg, dist.id, null, v)}
                                   className={`w-20 text-center text-sm font-semibold rounded-lg px-2 py-1.5 border outline-none transition-colors ${
                                     over ? "border-red-300 bg-red-50 text-red-600" : "border-slate-200 focus:border-violet-400 bg-slate-50"
                                   }`}
@@ -551,11 +579,9 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                                       const over = total > 100.05;
                                       return (
                                         <td key={month} className="px-1 py-1">
-                                          <input
-                                            type="number" min={0} max={100} step={1}
-                                            value={share === 0 ? "" : share}
-                                            placeholder="0"
-                                            onChange={e => updateChannelShare(seg, dist.id, month, Number(e.target.value) || 0)}
+                                          <SegNumInput
+                                            value={share}
+                                            onCommit={v => updateChannelShare(seg, dist.id, month, v)}
                                             className={`w-12 text-center font-semibold rounded px-1 py-1 border outline-none transition-colors ${
                                               over ? "border-red-200 bg-red-50 text-red-600" : "border-slate-200 focus:border-violet-400 bg-slate-50"
                                             }`}
