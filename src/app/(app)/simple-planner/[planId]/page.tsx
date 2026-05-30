@@ -68,15 +68,18 @@ function getDaysInMonth(month: number, year: number) {
   return new Date(year, month, 0).getDate();
 }
 
-function computeMonthCalc(m: MonthData, totalRooms: number, year: number): MonthCalc {
+function computeMonthCalc(m: MonthData, totalRooms: number, year: number, outOfOrderNights = 0): MonthCalc {
   const days = getDaysInMonth(m.month, year);
+  // Elérhető szobaéjszakák = összes − OOO
+  const availableNights = Math.max(0, totalRooms * days - outOfOrderNights);
   const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
-  const roomNights = (m.occupancyPct / 100) * totalRooms * days;
-  // Ha közvetlenül megadott szoba árbevétel van (Ft/szoba/éj) → totalRooms × days × érték
-  // Egyébként ADR × szobaéj (occ × rooms × days × adr)
-  const revenue = m.roomRevenue > 0 ? m.roomRevenue * totalRooms * days : roomNights * m.adr;
-  // monthlyCost = Ft/szoba/éjszaka → teljes havi kiadás
-  const cost = m.monthlyCost * totalRooms * days;
+  // Foglalt szobaéj = occ% × elérhető kapacitás
+  const roomNights = (m.occupancyPct / 100) * availableNights;
+  // RevPAR (Ft/elérhető szoba/éj) → revenue = RevPAR × availableNights
+  // Ha nincs RevPAR: ADR × foglalt szobaéj
+  const revenue = m.roomRevenue > 0 ? m.roomRevenue * availableNights : roomNights * m.adr;
+  // monthlyCost = Ft/elérhető szoba/éj → kiadás csak az elérhető kapacitásra számolódik
+  const cost = m.monthlyCost * availableNights;
   const profit = revenue - cost;
   const margin = revenue > 0 ? (profit / revenue) * 100 : null;
   // Egységes fedezeti pont képlet: (cost / revenue) × occ%
@@ -550,14 +553,23 @@ export default function SimplePlanDetailPage() {
   const [months, setMonths] = useState<MonthData[]>([]);
   const [year, setYear] = useState(2026);
 
-  // ─── Cost band settings (from SimplePlannerSettings) ─────────────────────
+  // ─── Cost band + folder month settings ───────────────────────────────────
   const [costBands, setCostBands] = useState<{ fromOccPct: number; toOccPct: number; costPerRoom: number }[]>([]);
+  const [folderNights, setFolderNights] = useState<Record<number, number>>({}); // month → OOO nights
 
   useEffect(() => {
     fetch("/api/simple-planner-settings")
       .then(r => r.json())
-      .then((data: { costBands: { fromOccPct: number; toOccPct: number; costPerRoom: number }[] } | null) => {
+      .then((data: {
+        costBands?: { fromOccPct: number; toOccPct: number; costPerRoom: number }[];
+        folderMonths?: { month: number; outOfOrderNights: number }[];
+      } | null) => {
         if (data?.costBands?.length) setCostBands(data.costBands);
+        if (data?.folderMonths?.length) {
+          const map: Record<number, number> = {};
+          data.folderMonths.forEach(f => { map[f.month] = f.outOfOrderNights; });
+          setFolderNights(map);
+        }
       });
   }, []);
 
@@ -668,8 +680,10 @@ export default function SimplePlanDetailPage() {
     return bandCost !== null ? { ...m, monthlyCost: bandCost } : m;
   });
 
-  // Saved calcs
-  const calcs: MonthCalc[] = monthsWithBands.map(m => computeMonthCalc(m, totalRooms, year));
+  // Saved calcs (OOO korrigálva)
+  const calcs: MonthCalc[] = monthsWithBands.map(m =>
+    computeMonthCalc(m, totalRooms, year, folderNights[m.month] ?? 0)
+  );
   const filledCalcs = calcs.filter(c => c.hasData);
 
   const annualRevenue = calcs.reduce((s, c) => s + c.revenue, 0);
@@ -695,7 +709,9 @@ export default function SimplePlanDetailPage() {
     // roomRevenue = Ft/szoba/éj → fix érték, nem változik az occ-eltolással
     roomRevenue: m.roomRevenue,
   }));
-  const simCalcs: MonthCalc[] = simMonths.map(m => computeMonthCalc(m, totalRooms, year));
+  const simCalcs: MonthCalc[] = simMonths.map(m =>
+    computeMonthCalc(m, totalRooms, year, folderNights[m.month] ?? 0)
+  );
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
 
   const simAnnualRevenue = simCalcs.reduce((s, c) => s + c.revenue, 0);
@@ -874,7 +890,7 @@ export default function SimplePlanDetailPage() {
                 onBlur={v => updateMonthField(m.month, "occupancyPct", Math.min(100, Math.max(0, v)))}
               />
               <MonthInput
-                label="Szobaárb."
+                label="RevPAR"
                 unit="Ft/szoba/éj"
                 value={m.roomRevenue}
                 step={10000}
@@ -1328,7 +1344,7 @@ export default function SimplePlanDetailPage() {
                   { label: "Kihasználtság", align: "right" },
                   { label: "Szobaéj", align: "right" },
                   { label: "Bevétel", align: "right" },
-                  { label: "Szobaárbevétel/szoba/éj", align: "right" },
+                  { label: "RevPAR (Ft/szoba/éj)", align: "right" },
                   { label: "Kiadás/szoba/éj", align: "right" },
                   { label: "Összes kiadás", align: "right" },
                   { label: "Profit", align: "right" },
