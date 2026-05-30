@@ -18,6 +18,7 @@ import {
   Search,
   X,
   Zap,
+  SlidersHorizontal,
 } from "lucide-react";
 
 const navItems = [
@@ -137,6 +138,29 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose 
                 }}>
                   BETA
                 </span>
+              </Link>
+            );
+          })()}
+
+          {/* Simple Planner — Beállítások almenü */}
+          {(() => {
+            const inSimplePlanner = pathname === "/simple-planner" || pathname.startsWith("/simple-planner/");
+            const activeSettings = pathname === "/simple-planner/settings";
+            if (!inSimplePlanner) return null;
+            return (
+              <Link
+                href="/simple-planner/settings"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  marginTop: 3,
+                  marginLeft: 10,
+                  color: activeSettings ? "#A78BFA" : "#475569",
+                  background: activeSettings ? "#1E1B4B" : "transparent",
+                  fontSize: 12,
+                }}
+              >
+                <SlidersHorizontal size={13} color={activeSettings ? "#A78BFA" : "#475569"} />
+                Beállítások
               </Link>
             );
           })()}

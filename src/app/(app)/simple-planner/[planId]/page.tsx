@@ -534,6 +534,23 @@ export default function SimplePlanDetailPage() {
   const [months, setMonths] = useState<MonthData[]>([]);
   const [year, setYear] = useState(2026);
 
+  // ─── Cost band settings (from SimplePlannerSettings) ─────────────────────
+  const [costBands, setCostBands] = useState<{ fromOccPct: number; toOccPct: number; costPerRoom: number }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/simple-planner-settings")
+      .then(r => r.json())
+      .then((data: { costBands: { fromOccPct: number; toOccPct: number; costPerRoom: number }[] } | null) => {
+        if (data?.costBands?.length) setCostBands(data.costBands);
+      });
+  }, []);
+
+  function getCostFromBands(occupancyPct: number): number | null {
+    if (costBands.length === 0) return null;
+    const band = costBands.find(b => occupancyPct >= b.fromOccPct && occupancyPct <= b.toOccPct);
+    return band ? band.costPerRoom : null;
+  }
+
   // ─── Simulator state ──────────────────────────────────────────────────────
   const [simOffset, setSimOffset] = useState(0); // global occ % offset
   const isSimActive = simOffset !== 0;
@@ -628,8 +645,15 @@ export default function SimplePlanDetailPage() {
 
   const totalRooms = plan?.hotel?.totalRooms ?? 0;
 
+  // Ha nincs egyedi kiadás a hónapban, de van cost band → azt töltjük be
+  const monthsWithBands: MonthData[] = months.map(m => {
+    if (m.monthlyCost > 0) return m; // egyedi érték prioritás
+    const bandCost = getCostFromBands(m.occupancyPct);
+    return bandCost !== null ? { ...m, monthlyCost: bandCost } : m;
+  });
+
   // Saved calcs
-  const calcs: MonthCalc[] = months.map(m => computeMonthCalc(m, totalRooms, year));
+  const calcs: MonthCalc[] = monthsWithBands.map(m => computeMonthCalc(m, totalRooms, year));
   const filledCalcs = calcs.filter(c => c.hasData);
 
   const annualRevenue = calcs.reduce((s, c) => s + c.revenue, 0);

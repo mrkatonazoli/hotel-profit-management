@@ -74,6 +74,7 @@ model Hotel {
   exchangeRates   ExchangeRate[]
   childAgeGroups  ChildAgeGroup[]
   simplePlans     SimplePlan[]
+  simplePlannerSettings SimplePlannerSettings?
 }
 
 model HotelUser {
@@ -503,6 +504,28 @@ model SimplePlanMonth {
   plan         SimplePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@unique([planId, month])
+}
+
+// ─── SIMPLE PLANNER SETTINGS ─────────────────────────────────────────────────
+
+model SimplePlannerSettings {
+  id                  String   @id @default(cuid())
+  hotelId             String   @unique
+  optimalOccupancyPct Float    @default(70)   // referencia kihasználtság %
+  hotel               Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  costBands           SimplePlannerCostBand[]
+}
+
+// Kiadás sávok: pl. 0–50% kihasnáltnál X Ft/szoba/éj, 50–75% Y Ft/szoba/éj, stb.
+model SimplePlannerCostBand {
+  id          String                @id @default(cuid())
+  settingsId  String
+  fromOccPct  Float                 // pl. 0
+  toOccPct    Float                 // pl. 50
+  costPerRoom Float                 // Ft/szoba/éjszaka
+  label       String?               // opcionális leírás (pl. "Alacsony szezon")
+  sortOrder   Int       @default(0)
+  settings    SimplePlannerSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
 }
 
 // ─── CURRENCY ────────────────────────────────────────────────────────────────
