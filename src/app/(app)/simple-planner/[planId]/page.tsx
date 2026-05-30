@@ -871,8 +871,8 @@ export default function SimplePlanDetailPage() {
                 onBlur={v => updateMonthField(m.month, "occupancyPct", Math.min(100, Math.max(0, v)))}
               />
               <MonthInput
-                label="Árbevétel"
-                unit="Ft"
+                label="Szobaárb."
+                unit="Ft/szoba/éj"
                 value={m.roomRevenue}
                 step={10000}
                 highlight={m.roomRevenue > 0}
@@ -1325,7 +1325,7 @@ export default function SimplePlanDetailPage() {
                   { label: "Kihasználtság", align: "right" },
                   { label: "Szobaéj", align: "right" },
                   { label: "Bevétel", align: "right" },
-                  { label: "Árbevétel/szoba/éj", align: "right" },
+                  { label: "Szobaárbevétel/szoba/éj", align: "right" },
                   { label: "Kiadás/szoba/éj", align: "right" },
                   { label: "Összes kiadás", align: "right" },
                   { label: "Profit", align: "right" },
