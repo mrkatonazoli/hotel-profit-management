@@ -30,26 +30,42 @@ export async function PUT(req: Request, { params }: Ctx) {
     },
   });
 
-  // Upsert month shares
+  // Month shares — findFirst + update/create (upsert null-safe)
   if (Array.isArray(monthShares)) {
     for (const ms of monthShares) {
-      await prisma.scenarioSegmentMonth.upsert({
-        where: { segmentId_month: { segmentId, month: ms.month } },
-        create: { segmentId, month: ms.month, sharePct: Number(ms.sharePct) },
-        update: { sharePct: Number(ms.sharePct) },
+      const existing = await prisma.scenarioSegmentMonth.findFirst({
+        where: { segmentId, month: Number(ms.month) },
       });
+      if (existing) {
+        await prisma.scenarioSegmentMonth.update({
+          where: { id: existing.id },
+          data: { sharePct: Number(ms.sharePct) },
+        });
+      } else {
+        await prisma.scenarioSegmentMonth.create({
+          data: { segmentId, month: Number(ms.month), sharePct: Number(ms.sharePct) },
+        });
+      }
     }
   }
 
-  // Upsert channel mix
+  // Channel mix — findFirst + update/create (upsert megbízhatatlan month:null esetén)
   if (Array.isArray(channelMix)) {
     for (const cm of channelMix) {
       const month = cm.month ?? null;
-      await prisma.scenarioSegmentChannel.upsert({
-        where: { segmentId_distributorId_month: { segmentId, distributorId: cm.distributorId, month } },
-        create: { segmentId, distributorId: cm.distributorId, month, sharePct: Number(cm.sharePct) },
-        update: { sharePct: Number(cm.sharePct) },
+      const existing = await prisma.scenarioSegmentChannel.findFirst({
+        where: { segmentId, distributorId: cm.distributorId, month },
       });
+      if (existing) {
+        await prisma.scenarioSegmentChannel.update({
+          where: { id: existing.id },
+          data: { sharePct: Number(cm.sharePct) },
+        });
+      } else {
+        await prisma.scenarioSegmentChannel.create({
+          data: { segmentId, distributorId: cm.distributorId, month, sharePct: Number(cm.sharePct) },
+        });
+      }
     }
   }
 
