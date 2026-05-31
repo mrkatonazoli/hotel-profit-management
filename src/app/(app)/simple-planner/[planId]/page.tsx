@@ -586,6 +586,16 @@ export default function SimplePlanDetailPage() {
   // ─── Import modal state ───────────────────────────────────────────────────
   const [showImport, setShowImport] = useState(false);
 
+  // ─── Module access ────────────────────────────────────────────────────────
+  const [allowedModules, setAllowedModules] = useState<string[] | null>(null);
+  useEffect(() => {
+    fetch("/api/me/modules")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setAllowedModules(d.allowedModules); });
+  }, []);
+  // null = teljes hozzáférés; string[] = korlátozott lista
+  const canAccessScenarios = allowedModules === null || allowedModules.includes("SCENARIOS");
+
   // ─── Share modal state ────────────────────────────────────────────────────
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareState, setShareState] = useState<{
@@ -1167,22 +1177,24 @@ export default function SimplePlanDetailPage() {
             Ügyfél prezentáció
           </button>
 
-          {/* Import from scenario button */}
-          <button
-            onClick={() => setShowImport(true)}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: "white", border: "1px solid #E2E8F0", borderRadius: 10,
-              padding: "8px 14px", cursor: "pointer", color: "#7C3AED",
-              fontSize: 13, fontWeight: 600,
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#7C3AED"; e.currentTarget.style.background = "#F5F3FF"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = "white"; }}
-          >
-            <Download size={14} />
-            Importálás szcenárióból
-          </button>
+          {/* Import from scenario button — only if SCENARIOS module is accessible */}
+          {canAccessScenarios && (
+            <button
+              onClick={() => setShowImport(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: "white", border: "1px solid #E2E8F0", borderRadius: 10,
+                padding: "8px 14px", cursor: "pointer", color: "#7C3AED",
+                fontSize: 13, fontWeight: 600,
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#7C3AED"; e.currentTarget.style.background = "#F5F3FF"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = "white"; }}
+            >
+              <Download size={14} />
+              Importálás szcenárióból
+            </button>
+          )}
 
           <select
             value={year}
