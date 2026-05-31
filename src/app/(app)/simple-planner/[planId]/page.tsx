@@ -1582,6 +1582,25 @@ export default function SimplePlanDetailPage() {
           saveMonths(updated);
         }
 
+        // Kiszámolja és elmenti az ADR+F&B+egyéb bevételt roomRevenue-ként minden hónapra
+        function saveComputedRevenues() {
+          const updated = months.map(m => {
+            const mWithDef = applyBoardDefaults(m);
+            const bPct = mWithDef.breakfastPct;
+            const hPct = mWithDef.halfboardPct;
+            const board = avgPaxPerRoom * ((bPct / 100) * breakfastPrice + (hPct / 100) * halfboardPrice);
+            const extraPct =
+              (fbOtherEnabled ? fbOtherPct : 0) +
+              (spaEnabled ? spaPct : 0) +
+              (otherRevenueEnabled ? otherRevenuePct : 0);
+            const extra = m.adr * (extraPct / 100);
+            const computed = m.adr > 0 ? Math.round(m.adr + board + extra) : 0;
+            return { ...m, roomRevenue: computed };
+          });
+          setMonths(updated);
+          saveMonths(updated);
+        }
+
         return (
           <div style={{
             background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
@@ -1602,6 +1621,19 @@ export default function SimplePlanDetailPage() {
                   </p>
                 </div>
               </div>
+              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <button
+                  onClick={saveComputedRevenues}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    background: "#10B981", color: "white",
+                    border: "none", borderRadius: 10, padding: "8px 16px",
+                    fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  }}
+                  title="ADR + F&B felár + egyéb bevétel kiszámítva és elmentve roomRevenue-ként minden hónapra"
+                >
+                  💾 Bevétel rögzítése a tervbe
+                </button>
               <button
                 onClick={fillAllMonths}
                 style={{
@@ -1609,11 +1641,11 @@ export default function SimplePlanDetailPage() {
                   background: "#7C3AED", color: "white",
                   border: "none", borderRadius: 10, padding: "8px 16px",
                   fontSize: 13, fontWeight: 600, cursor: "pointer",
-                  flexShrink: 0,
                 }}
               >
                 ✓ Alkalmazás mind a 12 hónapra
               </button>
+              </div>
             </div>
 
             {/* Visual 3-way split bar */}
