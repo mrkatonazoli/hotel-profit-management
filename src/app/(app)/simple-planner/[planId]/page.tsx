@@ -1905,7 +1905,7 @@ export default function SimplePlanDetailPage() {
       {/* SECTION B — KPI Cards */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
-      <div style={{ display: "grid", gridTemplateColumns: tfhEnabled ? "repeat(7, 1fr)" : "repeat(6, 1fr)", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
         <KpiCard
           label="Éves bevétel"
           value={`${fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft`}
