@@ -1354,8 +1354,8 @@ export default function SimplePlanDetailPage() {
                   { label: "Hónap", align: "left" },
                   { label: "Kihasználtság", align: "right" },
                   { label: "Szobaéj", align: "right" },
-                  { label: "Bevétel", align: "right" },
                   { label: "Szobaárbevétel/szoba/éj", align: "right" },
+                  { label: "Bevétel", align: "right" },
                   { label: "Kiadás/szoba/éj", align: "right" },
                   { label: "Összes kiadás", align: "right" },
                   ...(tfhEnabled ? [{ label: `TFH (${tfhRate}%)`, align: "right" }] : []),
@@ -1400,11 +1400,11 @@ export default function SimplePlanDetailPage() {
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155" }}>
                       {c.hasData ? fmt(c.roomNights) : "—"}
                     </td>
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isSimActive && c.revenue !== savedC.revenue ? "#7C3AED" : "#334155", fontWeight: isSimActive && c.revenue !== savedC.revenue ? 600 : 400 }}>
-                      {c.hasData ? fmtM(c.revenue) : "—"}
-                    </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: m.roomRevenue > 0 ? "#7C3AED" : "#CBD5E1" }}>
                       {m.roomRevenue > 0 ? `${fmt(m.roomRevenue)} Ft` : "—"}
+                    </td>
+                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isSimActive && c.revenue !== savedC.revenue ? "#7C3AED" : "#334155", fontWeight: isSimActive && c.revenue !== savedC.revenue ? 600 : 400 }}>
+                      {c.hasData ? fmtM(c.revenue) : "—"}
                     </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: costIsFromBand ? "#0EA5E9" : "#94A3B8" }}>
                       {c.hasData && effectiveCost > 0 ? `${fmt(effectiveCost)} Ft` : "—"}
@@ -1445,9 +1445,7 @@ export default function SimplePlanDetailPage() {
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#0F172A" }}>
                   {fmtM(isSimActive ? simAnnualRevenue : annualRevenue)}
                 </td>
-                <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8", fontSize: 11 }}>
-                  —
-                </td>
+                <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8", fontSize: 11 }}>—</td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
                   {fmtM(annualCost)}
                 </td>
