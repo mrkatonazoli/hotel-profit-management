@@ -510,13 +510,17 @@ model HotelUserModule {
 // ─── SIMPLE PLANNER ──────────────────────────────────────────────────────────
 
 model SimplePlan {
-  id        String   @id @default(cuid())
-  hotelId   String
-  name      String
-  year      Int      @default(2026)
-  createdAt DateTime @default(now())
-  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  months    SimplePlanMonth[]
+  id             String    @id @default(cuid())
+  hotelId        String
+  name           String
+  year           Int       @default(2026)
+  createdAt      DateTime  @default(now())
+  shareToken     String?   @unique
+  shareEnabled   Boolean   @default(false)
+  shareSummary   String?
+  shareExpiresAt DateTime?
+  hotel          Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  months         SimplePlanMonth[]
 }
 
 model SimplePlanMonth {

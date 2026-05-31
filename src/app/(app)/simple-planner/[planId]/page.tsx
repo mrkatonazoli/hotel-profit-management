@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed, Sliders, RotateCcw, Download, X, GitBranch, ChevronRight, Landmark } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed, Sliders, RotateCcw, Download, X, GitBranch, ChevronRight, Landmark, Share2, Sparkles, Copy, ExternalLink, Trash2 } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart, Bar,
@@ -586,6 +586,108 @@ export default function SimplePlanDetailPage() {
   // ─── Import modal state ───────────────────────────────────────────────────
   const [showImport, setShowImport] = useState(false);
 
+  // ─── Share modal state ────────────────────────────────────────────────────
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareState, setShareState] = useState<{
+    shareToken: string | null;
+    shareEnabled: boolean;
+    shareSummary: string;
+    shareExpiresAt: string | null;
+  } | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareSaving, setShareSaving] = useState(false);
+  const [shareSummaryStreaming, setShareSummaryStreaming] = useState(false);
+  const [shareExpiry, setShareExpiry] = useState<"forever" | "custom">("forever");
+  const [shareExpiryDate, setShareExpiryDate] = useState("");
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
+
+  async function loadShareState() {
+    setShareLoading(true);
+    const res = await fetch(`/api/simple-plans/${planId}/share`);
+    if (res.ok) {
+      const data = await res.json();
+      setShareState(data);
+      if (data.shareExpiresAt) {
+        setShareExpiry("custom");
+        setShareExpiryDate(data.shareExpiresAt.slice(0, 10));
+      } else {
+        setShareExpiry("forever");
+        setShareExpiryDate("");
+      }
+    }
+    setShareLoading(false);
+  }
+
+  function openShareModal() {
+    setShowShareModal(true);
+    loadShareState();
+  }
+
+  async function saveShare() {
+    setShareSaving(true);
+    const res = await fetch(`/api/simple-plans/${planId}/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        enabled: shareState?.shareEnabled ?? false,
+        summary: shareState?.shareSummary ?? "",
+        expiresAt: shareExpiry === "forever" ? null : shareExpiryDate || null,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setShareState(data);
+    }
+    setShareSaving(false);
+  }
+
+  async function revokeShare() {
+    const res = await fetch(`/api/simple-plans/${planId}/share`, { method: "DELETE" });
+    if (res.ok) {
+      const data = await res.json();
+      setShareState(data);
+    }
+  }
+
+  async function generateSummary() {
+    setShareSummaryStreaming(true);
+    setShareState(prev => prev ? { ...prev, shareSummary: "" } : prev);
+
+    const res = await fetch(`/api/simple-plans/${planId}/share/generate-summary`, { method: "POST" });
+    if (!res.ok || !res.body) { setShareSummaryStreaming(false); return; }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        try {
+          const msg = JSON.parse(line.slice(6));
+          if (msg.type === "text") {
+            setShareState(prev => prev ? { ...prev, shareSummary: (prev.shareSummary ?? "") + msg.text } : prev);
+          }
+        } catch {}
+      }
+    }
+    setShareSummaryStreaming(false);
+  }
+
+  function copyShareLink() {
+    if (!shareState?.shareToken) return;
+    const url = `${window.location.origin}/share/${shareState.shareToken}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedShareLink(true);
+      setTimeout(() => setCopiedShareLink(false), 2000);
+    });
+  }
+
   async function handleImport(importedMonths: ImportMonth[], scenarioName: string) {
     // Merge imported ADR + occ into saved months, keep costs
     const updated = months.map(m => {
@@ -768,6 +870,258 @@ export default function SimplePlanDetailPage() {
         />
       )}
 
+      {/* ── Share modal ── */}
+      {showShareModal && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowShareModal(false); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <div style={{
+            background: "white", borderRadius: 24, width: "100%", maxWidth: 560,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
+            display: "flex", flexDirection: "column", maxHeight: "90vh", overflow: "hidden",
+          }}>
+            {/* Header */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "20px 24px", borderBottom: "1px solid #E2E8F0",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Share2 size={16} color="#7C3AED" />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", margin: 0 }}>Ügyfél prezentáció</h2>
+                  <p style={{ fontSize: 12, color: "#94A3B8", margin: 0 }}>Megosztható link generálása az ügyfélnek</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowShareModal(false)}
+                style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #E2E8F0", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <X size={16} color="#64748B" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+              {shareLoading ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
+                  <Loader2 size={20} style={{ color: "#7C3AED" }} className="animate-spin" />
+                </div>
+              ) : (
+                <>
+                  {/* Section 1: Link settings */}
+                  <div>
+                    <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: "0 0 14px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Link beállítások
+                    </h3>
+
+                    {/* Toggle */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                      <div>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", margin: 0 }}>Megosztható link</p>
+                        <p style={{ fontSize: 12, color: "#94A3B8", margin: "2px 0 0" }}>
+                          {shareState?.shareEnabled ? "Az ügyfél elérheti a prezentációt" : "A link jelenleg letiltva"}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShareState(prev => prev ? { ...prev, shareEnabled: !prev.shareEnabled } : prev)}
+                        style={{
+                          width: 48, height: 26, borderRadius: 13, border: "none", cursor: "pointer",
+                          background: shareState?.shareEnabled ? "#7C3AED" : "#E2E8F0",
+                          position: "relative", transition: "background 0.2s", flexShrink: 0,
+                        }}
+                      >
+                        <div style={{
+                          position: "absolute", top: 3, left: shareState?.shareEnabled ? 25 : 3,
+                          width: 20, height: 20, borderRadius: "50%", background: "white",
+                          transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                        }} />
+                      </button>
+                    </div>
+
+                    {shareState?.shareEnabled && (
+                      <>
+                        {/* Expiry */}
+                        <div style={{ marginBottom: 14 }}>
+                          <p style={{ fontSize: 12, fontWeight: 600, color: "#64748B", margin: "0 0 8px" }}>Lejárat</p>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                              <input
+                                type="radio"
+                                checked={shareExpiry === "forever"}
+                                onChange={() => setShareExpiry("forever")}
+                                style={{ accentColor: "#7C3AED" }}
+                              />
+                              <span style={{ fontSize: 13, color: "#0F172A" }}>Örök érvényű</span>
+                            </label>
+                            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                              <input
+                                type="radio"
+                                checked={shareExpiry === "custom"}
+                                onChange={() => setShareExpiry("custom")}
+                                style={{ accentColor: "#7C3AED" }}
+                              />
+                              <span style={{ fontSize: 13, color: "#0F172A" }}>Időkorlátos</span>
+                              {shareExpiry === "custom" && (
+                                <input
+                                  type="date"
+                                  value={shareExpiryDate}
+                                  onChange={e => setShareExpiryDate(e.target.value)}
+                                  style={{
+                                    marginLeft: 8, border: "1px solid #E2E8F0", borderRadius: 8,
+                                    padding: "4px 10px", fontSize: 13, color: "#0F172A",
+                                    outline: "none",
+                                  }}
+                                />
+                              )}
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Link display */}
+                        {shareState?.shareToken && (
+                          <div style={{
+                            background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12,
+                            padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
+                          }}>
+                            <p style={{
+                              flex: 1, fontSize: 12, color: "#64748B", margin: 0,
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                              fontFamily: "monospace",
+                            }}>
+                              {typeof window !== "undefined" ? `${window.location.origin}/share/${shareState.shareToken}` : `/share/${shareState.shareToken}`}
+                            </p>
+                            <button
+                              onClick={copyShareLink}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 4,
+                                padding: "5px 10px", borderRadius: 8,
+                                border: "1px solid #E2E8F0", background: "white",
+                                cursor: "pointer", fontSize: 11, fontWeight: 600,
+                                color: copiedShareLink ? "#10B981" : "#7C3AED",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {copiedShareLink ? <Check size={12} /> : <Copy size={12} />}
+                              {copiedShareLink ? "Másolva" : "Másolás"}
+                            </button>
+                            <button
+                              onClick={() => window.open(`/share/${shareState?.shareToken}`, "_blank")}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 4,
+                                padding: "5px 10px", borderRadius: 8,
+                                border: "1px solid #E2E8F0", background: "white",
+                                cursor: "pointer", fontSize: 11, fontWeight: 600, color: "#64748B",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <ExternalLink size={12} />
+                              Megnyitás
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Section 2: Summary */}
+                  <div>
+                    <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Összefoglaló szöveg
+                    </h3>
+                    <p style={{ fontSize: 12, color: "#94A3B8", margin: "0 0 10px" }}>
+                      Ez jelenik meg a megosztott linken az adatok felett.
+                    </p>
+                    <textarea
+                      rows={5}
+                      value={shareState?.shareSummary ?? ""}
+                      onChange={e => setShareState(prev => prev ? { ...prev, shareSummary: e.target.value } : prev)}
+                      placeholder="Az összefoglaló szöveg ide kerül..."
+                      style={{
+                        width: "100%", boxSizing: "border-box",
+                        border: "1px solid #E2E8F0", borderRadius: 12, padding: "10px 14px",
+                        fontSize: 13, color: "#0F172A", resize: "vertical", outline: "none",
+                        fontFamily: "inherit", lineHeight: 1.6,
+                      }}
+                    />
+                    <button
+                      onClick={generateSummary}
+                      disabled={shareSummaryStreaming}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        marginTop: 8, padding: "8px 14px", borderRadius: 10,
+                        border: "1px solid #7C3AED", background: shareSummaryStreaming ? "#F5F3FF" : "white",
+                        cursor: shareSummaryStreaming ? "not-allowed" : "pointer",
+                        color: "#7C3AED", fontSize: 13, fontWeight: 600,
+                      }}
+                    >
+                      {shareSummaryStreaming ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                      AI generálás
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "16px 24px", borderTop: "1px solid #E2E8F0", background: "white",
+            }}>
+              <div>
+                {shareState?.shareToken && (
+                  <button
+                    onClick={revokeShare}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "8px 14px", borderRadius: 10,
+                      border: "1px solid #FCA5A5", background: "white",
+                      cursor: "pointer", color: "#EF4444", fontSize: 13, fontWeight: 600,
+                    }}
+                  >
+                    <Trash2 size={13} />
+                    Link visszavonása
+                  </button>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  style={{
+                    padding: "9px 18px", borderRadius: 10, border: "1px solid #E2E8F0",
+                    background: "white", color: "#64748B", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  }}
+                >
+                  Bezárás
+                </button>
+                <button
+                  onClick={saveShare}
+                  disabled={shareSaving || shareLoading}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "9px 20px", borderRadius: 10, border: "none",
+                    background: shareSaving || shareLoading ? "#E2E8F0" : "#7C3AED",
+                    color: shareSaving || shareLoading ? "#94A3B8" : "white",
+                    fontSize: 13, fontWeight: 700,
+                    cursor: shareSaving || shareLoading ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {shareSaving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                  Mentés
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Back link ── */}
       <button
         onClick={() => router.push("/simple-planner")}
@@ -795,6 +1149,23 @@ export default function SimplePlanDetailPage() {
               <Check size={14} /> Mentve
             </span>
           )}
+
+          {/* Share button */}
+          <button
+            onClick={openShareModal}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "white", border: "1px solid #E2E8F0", borderRadius: 10,
+              padding: "8px 14px", cursor: "pointer", color: "#7C3AED",
+              fontSize: 13, fontWeight: 600,
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#7C3AED"; e.currentTarget.style.background = "#F5F3FF"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = "white"; }}
+          >
+            <Share2 size={14} />
+            Ügyfél prezentáció
+          </button>
 
           {/* Import from scenario button */}
           <button
