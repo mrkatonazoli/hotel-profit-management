@@ -977,11 +977,10 @@ export default function SimplePlanDetailPage() {
     ? (annualCost / annualNetRevenue) * avgOcc
     : null;
 
-  // Simulated calcs (with occupancy offset + TFH) — board mix fallback is applied here too
-  const simMonths: MonthData[] = months.map(m => ({
-    ...applyBoardDefaults(m),
+  // Simulated calcs (with occupancy offset + TFH) — use monthsWithBands so monthlyCost is filled from bands
+  const simMonths: MonthData[] = monthsWithBands.map(m => ({
+    ...m,
     occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
-    roomRevenue: m.roomRevenue,
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m =>
     computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb)
