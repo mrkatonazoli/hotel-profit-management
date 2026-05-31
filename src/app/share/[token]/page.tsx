@@ -728,6 +728,212 @@ export default function SharePage() {
           />
         </div>
 
+        {/* ── Board mix + bevételi struktúra ── */}
+        {settings.fbEnabled && (() => {
+          const bPct = settings.defaultBreakfastPct;
+          const hPct = settings.defaultHalfboardPct;
+          const roomOnlyPct = Math.max(0, 100 - bPct - hPct);
+          const brContrib = settings.avgPaxPerRoom * (bPct / 100) * settings.breakfastPrice;
+          const hbContrib = settings.avgPaxPerRoom * (hPct / 100) * settings.halfboardPrice;
+          const boardTotal = brContrib + hbContrib;
+          const extraPct =
+            (settings.fbOtherEnabled ? settings.fbOtherPct : 0) +
+            (settings.spaEnabled ? settings.spaPct : 0) +
+            (settings.otherRevenueEnabled ? settings.otherRevenuePct : 0);
+          const hasAnyRevenue = bPct > 0 || hPct > 0 || extraPct > 0;
+          if (!hasAnyRevenue) return null;
+
+          // Weighted avg ADR across filled months
+          const filledM = months.filter(m => m.adr > 0);
+          const avgAdr = filledM.length > 0
+            ? filledM.reduce((s, m) => s + m.adr, 0) / filledM.length
+            : 0;
+          const extraPerRoom = avgAdr * (extraPct / 100);
+
+          return (
+            <div style={{
+              background: "white", border: "1px solid #E2E8F0",
+              borderRadius: 18, marginBottom: 24, overflow: "hidden",
+              boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+            }}>
+              {/* Header */}
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "14px 24px", borderBottom: "1px solid #F1F5F9", background: "#FAFAFA",
+              }}>
+                <span style={{ fontSize: 16 }}>🍽️</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#059669", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                  Étkezési & bevételi struktúra
+                </span>
+              </div>
+
+              <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 18 }}>
+
+                {/* 3-way split bar */}
+                {(bPct > 0 || hPct > 0) && (
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
+                      Vendégmix megoszlás
+                    </p>
+                    <div style={{ display: "flex", height: 32, borderRadius: 10, overflow: "hidden", border: "1px solid #E2E8F0" }}>
+                      {roomOnlyPct > 0 && (
+                        <div style={{
+                          width: `${roomOnlyPct}%`, background: "#F1F5F9",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 11, fontWeight: 700, color: "#64748B",
+                          overflow: "hidden", whiteSpace: "nowrap",
+                        }}>
+                          {roomOnlyPct >= 10 ? `🛏️ Csak szoba ${Math.round(roomOnlyPct)}%` : ""}
+                        </div>
+                      )}
+                      {bPct > 0 && (
+                        <div style={{
+                          width: `${bPct}%`, background: "#FDE68A",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 11, fontWeight: 700, color: "#92400E",
+                          overflow: "hidden", whiteSpace: "nowrap",
+                        }}>
+                          {bPct >= 8 ? `🌅 Reggeli ${Math.round(bPct)}%` : ""}
+                        </div>
+                      )}
+                      {hPct > 0 && (
+                        <div style={{
+                          width: `${hPct}%`, background: "#BBF7D0",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 11, fontWeight: 700, color: "#065F46",
+                          overflow: "hidden", whiteSpace: "nowrap",
+                        }}>
+                          {hPct >= 8 ? `🍽️ Félpanzió ${Math.round(hPct)}%` : ""}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                      {roomOnlyPct > 0 && <span style={{ fontSize: 11, color: "#94A3B8" }}>🛏️ Csak szoba: {Math.round(roomOnlyPct)}%</span>}
+                      {bPct > 0 && <span style={{ fontSize: 11, color: "#D97706", fontWeight: 600 }}>🌅 Reggeli: {Math.round(bPct)}%</span>}
+                      {hPct > 0 && <span style={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>🍽️ Félpanzió: {Math.round(hPct)}%</span>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Category cards */}
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${[bPct > 0, hPct > 0, extraPct > 0].filter(Boolean).length}, 1fr)`, gap: 12 }}>
+                  {bPct > 0 && (
+                    <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "14px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 20 }}>🌅</span>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: 0 }}>Reggeli</p>
+                          <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>{fmt(settings.breakfastPrice)} Ft/fő/éj</p>
+                        </div>
+                        <div style={{
+                          marginLeft: "auto", background: "#FEF3C7", borderRadius: 8, padding: "4px 10px",
+                          fontSize: 18, fontWeight: 800, color: "#D97706",
+                        }}>
+                          {Math.round(bPct)}%
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "#D97706", margin: 0 }}>
+                        +{fmt(Math.round(brContrib))} Ft/szoba/éj
+                      </p>
+                      <p style={{ fontSize: 10, color: "#B45309", margin: "2px 0 0" }}>
+                        {Math.round(bPct)}% × {fmt(settings.breakfastPrice)} Ft × {settings.avgPaxPerRoom} fő
+                      </p>
+                    </div>
+                  )}
+                  {hPct > 0 && (
+                    <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "14px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 20 }}>🍽️</span>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#065F46", margin: 0 }}>Félpanzió</p>
+                          <p style={{ fontSize: 11, color: "#047857", margin: 0 }}>{fmt(settings.halfboardPrice)} Ft/fő/éj</p>
+                        </div>
+                        <div style={{
+                          marginLeft: "auto", background: "#DCFCE7", borderRadius: 8, padding: "4px 10px",
+                          fontSize: 18, fontWeight: 800, color: "#059669",
+                        }}>
+                          {Math.round(hPct)}%
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "#059669", margin: 0 }}>
+                        +{fmt(Math.round(hbContrib))} Ft/szoba/éj
+                      </p>
+                      <p style={{ fontSize: 10, color: "#047857", margin: "2px 0 0" }}>
+                        {Math.round(hPct)}% × {fmt(settings.halfboardPrice)} Ft × {settings.avgPaxPerRoom} fő
+                      </p>
+                    </div>
+                  )}
+                  {extraPct > 0 && (
+                    <div style={{ background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 12, padding: "14px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 20 }}>💰</span>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#5B21B6", margin: 0 }}>Egyéb bevételek</p>
+                          <p style={{ fontSize: 11, color: "#7C3AED", margin: 0 }}>
+                            {[
+                              settings.fbOtherEnabled && `Egyéb F&B ${settings.fbOtherPct}%`,
+                              settings.spaEnabled && `Spa ${settings.spaPct}%`,
+                              settings.otherRevenueEnabled && `Egyéb ${settings.otherRevenuePct}%`,
+                            ].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                        <div style={{
+                          marginLeft: "auto", background: "#EDE9FE", borderRadius: 8, padding: "4px 10px",
+                          fontSize: 18, fontWeight: 800, color: "#7C3AED",
+                        }}>
+                          {extraPct.toFixed(1)}%
+                        </div>
+                      </div>
+                      {avgAdr > 0 && (
+                        <>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#7C3AED", margin: 0 }}>
+                            +{fmt(Math.round(extraPerRoom))} Ft/szoba/éj
+                          </p>
+                          <p style={{ fontSize: 10, color: "#7C3AED", margin: "2px 0 0" }}>
+                            átl. ADR {fmt(Math.round(avgAdr))} Ft × {extraPct.toFixed(1)}%
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Formula */}
+                {boardTotal > 0 && (
+                  <div style={{
+                    background: "#F5F3FF", border: "1px solid #DDD6FE",
+                    borderRadius: 12, padding: "14px 18px",
+                    display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
+                  }}>
+                    <div>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Képlet — súlyozott átlag
+                      </p>
+                      <p style={{ fontSize: 12, color: "#5B21B6", margin: 0, fontFamily: "monospace", lineHeight: 1.6 }}>
+                        ({Math.round(bPct)}% × {fmt(settings.breakfastPrice)}
+                        {hPct > 0 && ` + ${Math.round(hPct)}% × ${fmt(settings.halfboardPrice)}`})
+                        {" "}× {settings.avgPaxPerRoom} fő = <strong>{fmt(Math.round(boardTotal))} Ft</strong>
+                      </p>
+                      <p style={{ fontSize: 10, color: "#A78BFA", margin: "3px 0 0" }}>
+                        Ez adódik hozzá az ADR-hez minden szobaéjszakára
+                      </p>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <p style={{ fontSize: 10, color: "#7C3AED", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase" }}>
+                        Összes F&amp;B felár
+                      </p>
+                      <p style={{ fontSize: 26, fontWeight: 800, color: "#7C3AED", margin: 0, letterSpacing: "-0.02em" }}>
+                        +{fmt(Math.round(boardTotal))} Ft
+                      </p>
+                      <p style={{ fontSize: 10, color: "#A78BFA", margin: 0 }}>/szoba/éj átlag</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── Simulator ── */}
         <div style={{
           background: "white",
