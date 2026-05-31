@@ -33,6 +33,7 @@ type ShareData = {
   settings: {
     tfhEnabled: boolean; tfhRate: number; costBands: CostBand[];
     fbEnabled: boolean; breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
+    defaultBreakfastPct: number; defaultHalfboardPct: number;
     fbOtherEnabled: boolean; fbOtherPct: number;
     spaEnabled: boolean; spaPct: number;
     otherRevenueEnabled: boolean; otherRevenuePct: number;
@@ -476,10 +477,25 @@ export default function SharePage() {
     otherRevenuePct: settings.otherRevenuePct,
   };
 
+  // Ha egy hónapnál nincs saját board mix (0/0) → settings alapértelmezettjeit használjuk
+  function applyBoardDefaults(m: MonthData): MonthData {
+    if (
+      settings.fbEnabled &&
+      m.breakfastPct === 0 && m.halfboardPct === 0 &&
+      (settings.defaultBreakfastPct > 0 || settings.defaultHalfboardPct > 0)
+    ) {
+      return { ...m, breakfastPct: settings.defaultBreakfastPct, halfboardPct: settings.defaultHalfboardPct };
+    }
+    return m;
+  }
+
   const monthsWithBands = months.map(m => {
-    if (m.monthlyCost > 0) return m;
-    const bandCost = getCostFromBands(m.occupancyPct, settings.costBands);
-    return bandCost !== null ? { ...m, monthlyCost: bandCost } : m;
+    let updated = applyBoardDefaults(m);
+    if (updated.monthlyCost === 0) {
+      const bandCost = getCostFromBands(updated.occupancyPct, settings.costBands);
+      if (bandCost !== null) updated = { ...updated, monthlyCost: bandCost };
+    }
+    return updated;
   });
 
   const calcs: MonthCalc[] = monthsWithBands.map(m =>
@@ -500,7 +516,7 @@ export default function SharePage() {
 
   const isSimActive = simOffset !== 0;
   const simMonths = months.map(m => ({
-    ...m,
+    ...applyBoardDefaults(m),
     occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m =>

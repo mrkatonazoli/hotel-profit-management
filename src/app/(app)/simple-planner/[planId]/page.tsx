@@ -889,11 +889,22 @@ export default function SimplePlanDetailPage() {
     otherRevenuePct,
   };
 
-  // Ha nincs egyedi kiadás a hónapban, de van cost band → azt töltjük be
+  // Ha egy hónapnál nincs saját board mix beállítva (0/0) → settings alapértelmezettjeit használjuk
+  function applyBoardDefaults(m: MonthData): MonthData {
+    if (fbEnabled && m.breakfastPct === 0 && m.halfboardPct === 0 && (breakfastPct > 0 || halfboardPct > 0)) {
+      return { ...m, breakfastPct, halfboardPct };
+    }
+    return m;
+  }
+
+  // Ha nincs egyedi kiadás a hónapban, de van cost band → azt töltjük be; + board mix fallback
   const monthsWithBands: MonthData[] = months.map(m => {
-    if (m.monthlyCost > 0) return m; // egyedi érték prioritás
-    const bandCost = getCostFromBands(m.occupancyPct);
-    return bandCost !== null ? { ...m, monthlyCost: bandCost } : m;
+    let updated = applyBoardDefaults(m);
+    if (updated.monthlyCost === 0) {
+      const bandCost = getCostFromBands(updated.occupancyPct);
+      if (bandCost !== null) updated = { ...updated, monthlyCost: bandCost };
+    }
+    return updated;
   });
 
   // Saved calcs (TFH korrigálva)
@@ -919,9 +930,9 @@ export default function SimplePlanDetailPage() {
     ? (annualCost / annualNetRevenue) * avgOcc
     : null;
 
-  // Simulated calcs (with occupancy offset + TFH)
+  // Simulated calcs (with occupancy offset + TFH) — board mix fallback is applied here too
   const simMonths: MonthData[] = months.map(m => ({
-    ...m,
+    ...applyBoardDefaults(m),
     occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
     roomRevenue: m.roomRevenue,
   }));

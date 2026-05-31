@@ -59,6 +59,8 @@ export async function GET(req: Request, { params }: Params) {
       breakfastPrice: settings?.breakfastPrice ?? 0,
       halfboardPrice: settings?.halfboardPrice ?? 0,
       avgPaxPerRoom: settings?.avgPaxPerRoom ?? 1.8,
+      defaultBreakfastPct: settings?.defaultBreakfastPct ?? 0,
+      defaultHalfboardPct: settings?.defaultHalfboardPct ?? 0,
       fbOtherEnabled: settings?.fbOtherEnabled ?? false,
       fbOtherPct: settings?.fbOtherPct ?? 0,
       spaEnabled: settings?.spaEnabled ?? false,
