@@ -5,7 +5,6 @@ import { getActiveHotel } from "@/lib/get-hotel";
 
 const include = {
   costBands: { orderBy: { fromOccPct: "asc" as const } },
-  folderMonths: { orderBy: { month: "asc" as const } },
 };
 
 // GET — beállítások lekérése (ha nincs, null-t ad vissza)
@@ -24,7 +23,7 @@ export async function GET() {
   return NextResponse.json(settings);
 }
 
-// PUT — beállítások mentése (upsert) + cost bands + folder months
+// PUT — beállítások mentése (upsert) + cost bands
 export async function PUT(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -33,12 +32,11 @@ export async function PUT(req: Request) {
   if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
 
   const body = await req.json();
-  const { optimalOccupancyPct, costBands, folderMonths, tfhEnabled, tfhRate } = body as {
+  const { optimalOccupancyPct, costBands, tfhEnabled, tfhRate } = body as {
     optimalOccupancyPct?: number;
     tfhEnabled?: boolean;
     tfhRate?: number;
     costBands?: { fromOccPct: number; toOccPct: number; costPerRoom: number; label?: string; sortOrder?: number }[];
-    folderMonths?: { month: number; outOfOrderNights: number }[];
   };
 
   // Upsert alap rekord
@@ -72,25 +70,6 @@ export async function PUT(req: Request) {
           sortOrder: b.sortOrder ?? i,
         })),
       });
-    }
-  }
-
-  // Ha jöttek folder months → findFirst + update/create (null-safe unique)
-  if (Array.isArray(folderMonths)) {
-    for (const fm of folderMonths) {
-      const existing = await prisma.simplePlannerFolderMonth.findFirst({
-        where: { settingsId: settings.id, month: fm.month },
-      });
-      if (existing) {
-        await prisma.simplePlannerFolderMonth.update({
-          where: { id: existing.id },
-          data: { outOfOrderNights: fm.outOfOrderNights },
-        });
-      } else {
-        await prisma.simplePlannerFolderMonth.create({
-          data: { settingsId: settings.id, month: fm.month, outOfOrderNights: fm.outOfOrderNights },
-        });
-      }
     }
   }
 

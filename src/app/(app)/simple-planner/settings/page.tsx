@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, Trash2, Save, Loader2, Check,
-  Settings2, TrendingDown, TrendingUp, BedDouble, Landmark,
+  Settings2, TrendingDown, TrendingUp, Landmark,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -17,25 +17,13 @@ type CostBand = {
   label: string;
 };
 
-type FolderMonth = {
-  month: number;
-  outOfOrderNights: number;
-};
-
 type Settings = {
   id: string;
   optimalOccupancyPct: number;
   tfhEnabled: boolean;
   tfhRate: number;
   costBands: CostBand[];
-  folderMonths: FolderMonth[];
 };
-
-const HU_MONTHS_SHORT = ["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","Sze","Okt","Nov","Dec"];
-
-function getDaysInMonth(month: number) {
-  return new Date(new Date().getFullYear(), month, 0).getDate();
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -117,9 +105,6 @@ export default function SimplePlannerSettingsPage() {
   const [tfhEnabled, setTfhEnabled] = useState(true);
   const [tfhRate, setTfhRate] = useState(4);
   const [bands, setBands] = useState<CostBand[]>(DEFAULT_BANDS);
-  const [folderMonths, setFolderMonths] = useState<FolderMonth[]>(
-    Array.from({ length: 12 }, (_, i) => ({ month: i + 1, outOfOrderNights: 0 }))
-  );
 
   // ─── Load ──────────────────────────────────────────────────────────────────
 
@@ -132,14 +117,6 @@ export default function SimplePlannerSettingsPage() {
           setTfhEnabled(data.tfhEnabled ?? true);
           setTfhRate(data.tfhRate ?? 4);
           setBands(data.costBands.length > 0 ? data.costBands : DEFAULT_BANDS);
-          if (data.folderMonths?.length > 0) {
-            setFolderMonths(
-              Array.from({ length: 12 }, (_, i) => {
-                const saved = data.folderMonths.find(f => f.month === i + 1);
-                return { month: i + 1, outOfOrderNights: saved?.outOfOrderNights ?? 0 };
-              })
-            );
-          }
         }
       })
       .finally(() => setLoading(false));
@@ -158,7 +135,6 @@ export default function SimplePlannerSettingsPage() {
           tfhEnabled,
           tfhRate,
           costBands: bands.map((b, i) => ({ ...b, sortOrder: i })),
-          folderMonths,
         }),
       });
       setSaved(true);
@@ -167,10 +143,6 @@ export default function SimplePlannerSettingsPage() {
     } finally {
       setSaving(false);
     }
-  }
-
-  function updateFolderMonth(month: number, nights: number) {
-    setFolderMonths(prev => prev.map(f => f.month === month ? { ...f, outOfOrderNights: nights } : f));
   }
 
   // ─── Band editing ──────────────────────────────────────────────────────────
@@ -493,86 +465,6 @@ export default function SimplePlannerSettingsPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* BLOKK 4 — Out of Order (OOO) */}
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-
-      <div style={{
-        background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
-        padding: "24px", marginBottom: 20,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <BedDouble size={15} color="#D97706" />
-          </div>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
-            Out of Order — nem kiadható szobaéjszakák
-          </h2>
-        </div>
-        <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
-          Havi bontásban add meg, hogy várhatóan hány szobaéjszaka <strong>nem lesz kiadható</strong>
-          (felújítás, karbantartás, OOO). A Simple Planner ezzel korrigálja az elérhető szobaéjszakák számát —
-          a RevPAR, a kiadás és a fedezeti pont is a valós elérhető kapacitással számol.
-        </p>
-
-        {/* 12 hónap grid */}
-        <div style={{
-          display: "grid", gridTemplateColumns: "repeat(6, 1fr)",
-          gap: 10, marginBottom: 16,
-        }}>
-          {folderMonths.map(fm => {
-            const maxNights = getDaysInMonth(fm.month) * 200; // laza limit
-            const isActive = fm.outOfOrderNights > 0;
-            return (
-              <div key={fm.month} style={{
-                background: isActive ? "#FFFBEB" : "#F8FAFC",
-                border: `1px solid ${isActive ? "#FDE68A" : "#E2E8F0"}`,
-                borderRadius: 12, padding: "12px 10px", textAlign: "center",
-              }}>
-                <p style={{
-                  fontSize: 11, fontWeight: 700, margin: "0 0 8px",
-                  color: isActive ? "#D97706" : "#94A3B8",
-                  textTransform: "uppercase", letterSpacing: "0.04em",
-                }}>
-                  {HU_MONTHS_SHORT[fm.month - 1]}
-                </p>
-                <NumInput
-                  value={fm.outOfOrderNights}
-                  onChange={v => updateFolderMonth(fm.month, Math.round(v))}
-                  min={0}
-                  step={1}
-                  width={70}
-                />
-                <p style={{ fontSize: 10, color: "#94A3B8", margin: "4px 0 0" }}>
-                  szobaéj
-                </p>
-                {isActive && (
-                  <p style={{ fontSize: 9, fontWeight: 700, color: "#D97706", margin: "4px 0 0" }}>
-                    {getDaysInMonth(fm.month) * 100} - {fm.outOfOrderNights} el.
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Összesítő sor */}
-        {folderMonths.some(f => f.outOfOrderNights > 0) && (
-          <div style={{
-            background: "#FFFBEB", border: "1px solid #FDE68A",
-            borderRadius: 12, padding: "10px 16px",
-            display: "flex", alignItems: "center", gap: 10,
-          }}>
-            <BedDouble size={14} color="#D97706" />
-            <p style={{ fontSize: 12, color: "#92400E", margin: 0 }}>
-              Éves szinten összesen{" "}
-              <strong>{folderMonths.reduce((s, f) => s + f.outOfOrderNights, 0).toLocaleString("hu-HU")}</strong>{" "}
-              szobaéjszaka nem lesz kiadható — a Simple Planner ezeket levonja az elérhető kapacitásból.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* BLOKK 5 — TFH */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
@@ -679,9 +571,6 @@ export default function SimplePlannerSettingsPage() {
         </p>
         <p style={{ fontSize: 13, color: "#64748B", margin: 0, lineHeight: 1.7 }}>
           <strong>Kiadás sávok:</strong> ha nincs egyedi kiadás megadva, a kihasználtság alapján automatikusan a megfelelő sávból veszi az értéket.
-          <br />
-          <strong>Out of Order:</strong> az OOO szobaéjszakák levonásra kerülnek az elérhető kapacitásból —
-          a kiadás és fedezeti pont szintén korrigált kapacitással számol.
           <br />
           <strong>TFH:</strong> ha be van kapcsolva, a profit = bevétel − kiadás − TFH. A fedezeti pont is
           a TFH-val korrigált nettó bevételt veszi alapul.

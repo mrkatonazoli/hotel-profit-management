@@ -516,18 +516,6 @@ model SimplePlannerSettings {
   tfhRate             Float    @default(4)     // TFH mértéke % (alapértelmezett 4%)
   hotel               Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   costBands           SimplePlannerCostBand[]
-  folderMonths        SimplePlannerFolderMonth[]
-}
-
-// Auto Folder (OOO): havi bontásban hány szobaéjszaka nem lesz kiadható
-model SimplePlannerFolderMonth {
-  id               String                @id @default(cuid())
-  settingsId       String
-  month            Int                   // 1–12
-  outOfOrderNights Int                   @default(0)
-  settings         SimplePlannerSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
-
-  @@unique([settingsId, month])
 }
 
 // Kiadás sávok: pl. 0–50% kihasnáltnál X Ft/szoba/éj, 50–75% Y Ft/szoba/éj, stb.

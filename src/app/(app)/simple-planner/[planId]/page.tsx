@@ -69,10 +69,9 @@ function getDaysInMonth(month: number, year: number) {
   return new Date(year, month, 0).getDate();
 }
 
-function computeMonthCalc(m: MonthData, totalRooms: number, year: number, outOfOrderNights = 0, tfhRate = 0): MonthCalc {
+function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate = 0): MonthCalc {
   const days = getDaysInMonth(m.month, year);
-  // Elérhető szobaéjszakák = összes − OOO
-  const availableNights = Math.max(0, totalRooms * days - outOfOrderNights);
+  const availableNights = totalRooms * days;
   const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
   // Foglalt szobaéj = occ% × elérhető kapacitás
   const roomNights = (m.occupancyPct / 100) * availableNights;
@@ -557,7 +556,6 @@ export default function SimplePlanDetailPage() {
 
   // ─── Cost band + folder month settings ───────────────────────────────────
   const [costBands, setCostBands] = useState<{ fromOccPct: number; toOccPct: number; costPerRoom: number }[]>([]);
-  const [folderNights, setFolderNights] = useState<Record<number, number>>({}); // month → OOO nights
   const [tfhEnabled, setTfhEnabled] = useState(false);
   const [tfhRate, setTfhRate] = useState(4);
 
@@ -566,16 +564,10 @@ export default function SimplePlanDetailPage() {
       .then(r => r.json())
       .then((data: {
         costBands?: { fromOccPct: number; toOccPct: number; costPerRoom: number }[];
-        folderMonths?: { month: number; outOfOrderNights: number }[];
         tfhEnabled?: boolean;
         tfhRate?: number;
       } | null) => {
         if (data?.costBands?.length) setCostBands(data.costBands);
-        if (data?.folderMonths?.length) {
-          const map: Record<number, number> = {};
-          data.folderMonths.forEach(f => { map[f.month] = f.outOfOrderNights; });
-          setFolderNights(map);
-        }
         if (data?.tfhEnabled !== undefined) setTfhEnabled(data.tfhEnabled);
         if (data?.tfhRate !== undefined) setTfhRate(data.tfhRate);
       });
@@ -689,9 +681,9 @@ export default function SimplePlanDetailPage() {
     return bandCost !== null ? { ...m, monthlyCost: bandCost } : m;
   });
 
-  // Saved calcs (OOO + TFH korrigálva)
+  // Saved calcs (TFH korrigálva)
   const calcs: MonthCalc[] = monthsWithBands.map(m =>
-    computeMonthCalc(m, totalRooms, year, folderNights[m.month] ?? 0, effectiveTfhRate)
+    computeMonthCalc(m, totalRooms, year, effectiveTfhRate)
   );
   const filledCalcs = calcs.filter(c => c.hasData);
 
@@ -719,7 +711,7 @@ export default function SimplePlanDetailPage() {
     roomRevenue: m.roomRevenue,
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m =>
-    computeMonthCalc(m, totalRooms, year, folderNights[m.month] ?? 0, effectiveTfhRate)
+    computeMonthCalc(m, totalRooms, year, effectiveTfhRate)
   );
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
 
