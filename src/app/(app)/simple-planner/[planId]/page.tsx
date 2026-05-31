@@ -1608,13 +1608,31 @@ export default function SimplePlanDetailPage() {
         const totalBoardSuppl = brContrib + hbContrib;
 
         function fillAllMonths() {
-          const updated = months.map(m => ({
-            ...m,
-            breakfastPct: Math.min(breakfastPct, 100 - halfboardPct),
-            halfboardPct: Math.min(halfboardPct, 100 - breakfastPct),
-          }));
+          const bPct = Math.min(breakfastPct, 100 - halfboardPct);
+          const hPct = Math.min(halfboardPct, 100 - breakfastPct);
+          const updated = months.map(m => {
+            let board = 0;
+            if (fbEnabled && m.adr > 0) {
+              board = avgPaxPerRoom * (
+                (bPct / 100) * breakfastPrice +
+                (hPct / 100) * halfboardPrice
+              );
+            }
+            const extraPct =
+              (fbOtherEnabled ? fbOtherPct : 0) +
+              (spaEnabled ? spaPct : 0) +
+              (otherRevenueEnabled ? otherRevenuePct : 0);
+            const extra = m.adr > 0 ? m.adr * (extraPct / 100) : 0;
+            return {
+              ...m,
+              breakfastPct: bPct,
+              halfboardPct: hPct,
+              ...(m.adr > 0 && { roomRevenue: Math.round(m.adr + board + extra) }),
+            };
+          });
           setMonths(updated);
           saveMonths(updated);
+          setBoardMixDirty(false);
         }
 
         return (
