@@ -32,10 +32,15 @@ export async function PUT(req: Request) {
   if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
 
   const body = await req.json();
-  const { optimalOccupancyPct, costBands, tfhEnabled, tfhRate } = body as {
+  const { optimalOccupancyPct, costBands, tfhEnabled, tfhRate,
+          fbEnabled, breakfastPrice, halfboardPrice, avgPaxPerRoom } = body as {
     optimalOccupancyPct?: number;
     tfhEnabled?: boolean;
     tfhRate?: number;
+    fbEnabled?: boolean;
+    breakfastPrice?: number;
+    halfboardPrice?: number;
+    avgPaxPerRoom?: number;
     costBands?: { fromOccPct: number; toOccPct: number; costPerRoom: number; label?: string; sortOrder?: number }[];
   };
 
@@ -47,11 +52,19 @@ export async function PUT(req: Request) {
       optimalOccupancyPct: optimalOccupancyPct ?? 70,
       tfhEnabled: tfhEnabled ?? true,
       tfhRate: tfhRate ?? 4,
+      fbEnabled: fbEnabled ?? false,
+      breakfastPrice: breakfastPrice ?? 0,
+      halfboardPrice: halfboardPrice ?? 0,
+      avgPaxPerRoom: avgPaxPerRoom ?? 1.8,
     },
     update: {
       ...(optimalOccupancyPct !== undefined && { optimalOccupancyPct }),
       ...(tfhEnabled !== undefined && { tfhEnabled }),
       ...(tfhRate !== undefined && { tfhRate }),
+      ...(fbEnabled !== undefined && { fbEnabled }),
+      ...(breakfastPrice !== undefined && { breakfastPrice }),
+      ...(halfboardPrice !== undefined && { halfboardPrice }),
+      ...(avgPaxPerRoom !== undefined && { avgPaxPerRoom }),
     },
     include,
   });

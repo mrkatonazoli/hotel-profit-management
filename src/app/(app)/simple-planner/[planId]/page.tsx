@@ -41,6 +41,8 @@ type Plan = {
   createdAt: string;
   hotel: Hotel;
   months: MonthData[];
+  breakfastPct: number;
+  halfboardPct: number;
 };
 
 type MonthCalc = {
@@ -69,25 +71,33 @@ function getDaysInMonth(month: number, year: number) {
   return new Date(year, month, 0).getDate();
 }
 
-function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate = 0): MonthCalc {
+type FbParams = { enabled: boolean; breakfastPct: number; halfboardPct: number; breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number };
+
+function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate = 0, fb?: FbParams): MonthCalc {
   const days = getDaysInMonth(m.month, year);
   const availableNights = totalRooms * days;
   const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
-  // Foglalt szobaéj = occ% × elérhető kapacitás
   const roomNights = (m.occupancyPct / 100) * availableNights;
-  // Szobaárbevétel (Ft/szoba/éj) → revenue = roomRevenue × foglalt szobaéj (mint ADR)
-  // Ha nincs roomRevenue: ADR × foglalt szobaéj
-  const revenue = m.roomRevenue > 0 ? m.roomRevenue * roomNights : roomNights * m.adr;
-  // monthlyCost = Ft/foglalt szoba/éj → kiadás csak a ténylegesen kiadott szobaéjekre számolódik
+
+  // Étkezési felár/szoba/éj — csak ha nincs manuális roomRevenue (az már tartalmazza)
+  let boardPerRoomNight = 0;
+  if (fb?.enabled && m.roomRevenue === 0) {
+    boardPerRoomNight = fb.avgPaxPerRoom * (
+      (fb.breakfastPct / 100) * fb.breakfastPrice +
+      (fb.halfboardPct / 100) * fb.halfboardPrice
+    );
+  }
+
+  // Ha van manuális szobaárbevétel → felülírja; különben ADR + étkezési felár
+  const revenuePerRoomNight = m.roomRevenue > 0 ? m.roomRevenue : m.adr + boardPerRoomNight;
+  const revenue = revenuePerRoomNight * roomNights;
+
   const cost = m.monthlyCost * roomNights;
-  // TFH = nettó szobaárbevétel × tfhRate%
   const tfh = revenue * (tfhRate / 100);
   const profit = revenue - cost - tfh;
   const margin = revenue > 0 ? (profit / revenue) * 100 : null;
-  // Fedezeti pont: occ ahol (revenue − tfh) = cost
-  // = cost / (revenue × (1 − tfhRate/100)) × occ = (cost / netRevenue) × occ
   const netRevenue = revenue - tfh;
-  const unitRate = m.roomRevenue > 0 ? m.roomRevenue : m.adr;
+  const unitRate = revenuePerRoomNight;
   const breakeven = netRevenue > 0 && m.occupancyPct > 0
     ? (cost / netRevenue) * m.occupancyPct
     : unitRate > 0 && m.monthlyCost > 0
@@ -554,22 +564,35 @@ export default function SimplePlanDetailPage() {
   const [months, setMonths] = useState<MonthData[]>([]);
   const [year, setYear] = useState(2026);
 
-  // ─── Cost band + folder month settings ───────────────────────────────────
+  // ─── Board mix (plan-level) ───────────────────────────────────────────────
+  const [breakfastPct, setBreakfastPct] = useState(0);
+  const [halfboardPct, setHalfboardPct] = useState(0);
+
+  // ─── Cost band + TFH + F&B settings ─────────────────────────────────────
   const [costBands, setCostBands] = useState<{ fromOccPct: number; toOccPct: number; costPerRoom: number }[]>([]);
   const [tfhEnabled, setTfhEnabled] = useState(false);
   const [tfhRate, setTfhRate] = useState(4);
+  const [fbEnabled, setFbEnabled] = useState(false);
+  const [breakfastPrice, setBreakfastPrice] = useState(0);
+  const [halfboardPrice, setHalfboardPrice] = useState(0);
+  const [avgPaxPerRoom, setAvgPaxPerRoom] = useState(1.8);
 
   useEffect(() => {
     fetch("/api/simple-planner-settings")
       .then(r => r.json())
       .then((data: {
         costBands?: { fromOccPct: number; toOccPct: number; costPerRoom: number }[];
-        tfhEnabled?: boolean;
-        tfhRate?: number;
+        tfhEnabled?: boolean; tfhRate?: number;
+        fbEnabled?: boolean; breakfastPrice?: number;
+        halfboardPrice?: number; avgPaxPerRoom?: number;
       } | null) => {
         if (data?.costBands?.length) setCostBands(data.costBands);
         if (data?.tfhEnabled !== undefined) setTfhEnabled(data.tfhEnabled);
         if (data?.tfhRate !== undefined) setTfhRate(data.tfhRate);
+        if (data?.fbEnabled !== undefined) setFbEnabled(data.fbEnabled);
+        if (data?.breakfastPrice !== undefined) setBreakfastPrice(data.breakfastPrice);
+        if (data?.halfboardPrice !== undefined) setHalfboardPrice(data.halfboardPrice);
+        if (data?.avgPaxPerRoom !== undefined) setAvgPaxPerRoom(data.avgPaxPerRoom);
       });
   }, []);
 
@@ -740,6 +763,8 @@ export default function SimplePlanDetailPage() {
         setPlan(data);
         setMonths(data.months);
         setYear(data.year);
+        setBreakfastPct(data.breakfastPct ?? 0);
+        setHalfboardPct(data.halfboardPct ?? 0);
       }
     } finally {
       setLoading(false);
@@ -789,6 +814,15 @@ export default function SimplePlanDetailPage() {
     showSaved();
   }
 
+  async function saveBoardMix(bPct: number, hPct: number) {
+    await fetch(`/api/simple-plans/${planId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ breakfastPct: bPct, halfboardPct: hPct }),
+    });
+    showSaved();
+  }
+
   function updateMonthField(monthNum: number, field: keyof Pick<MonthData, "adr" | "occupancyPct" | "roomRevenue" | "monthlyCost">, value: number) {
     const updated = months.map(m =>
       m.month === monthNum ? { ...m, [field]: value } : m
@@ -802,6 +836,16 @@ export default function SimplePlanDetailPage() {
   const totalRooms = plan?.hotel?.totalRooms ?? 0;
   const effectiveTfhRate = tfhEnabled ? tfhRate : 0;
 
+  // F&B params bundle
+  const fb: FbParams = {
+    enabled: fbEnabled,
+    breakfastPct,
+    halfboardPct,
+    breakfastPrice,
+    halfboardPrice,
+    avgPaxPerRoom,
+  };
+
   // Ha nincs egyedi kiadás a hónapban, de van cost band → azt töltjük be
   const monthsWithBands: MonthData[] = months.map(m => {
     if (m.monthlyCost > 0) return m; // egyedi érték prioritás
@@ -811,7 +855,7 @@ export default function SimplePlanDetailPage() {
 
   // Saved calcs (TFH korrigálva)
   const calcs: MonthCalc[] = monthsWithBands.map(m =>
-    computeMonthCalc(m, totalRooms, year, effectiveTfhRate)
+    computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb)
   );
   const filledCalcs = calcs.filter(c => c.hasData);
 
@@ -839,7 +883,7 @@ export default function SimplePlanDetailPage() {
     roomRevenue: m.roomRevenue,
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m =>
-    computeMonthCalc(m, totalRooms, year, effectiveTfhRate)
+    computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb)
   );
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
 
@@ -1445,6 +1489,259 @@ export default function SimplePlanDetailPage() {
           Az értékek elhagyásakor (onBlur) automatikusan mentésre kerülnek.
         </p>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION A2 — Board mix (F&B) — only shown if fbEnabled in settings */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
+      {fbEnabled && (
+        <div style={{
+          background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
+          padding: "20px 24px", marginBottom: 24,
+        }}>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                🍽️
+              </div>
+              <div>
+                <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>Étkezési mix (terv szintű)</h2>
+                <p style={{ fontSize: 12, color: "#94A3B8", margin: "2px 0 0" }}>
+                  Reggeli és félpanzió arány — az ADR-re rakódik rá
+                </p>
+              </div>
+            </div>
+            {/* Per-room supplement preview */}
+            {(breakfastPct + halfboardPct) > 0 && (() => {
+              const roomOnlyPct = Math.max(0, 100 - breakfastPct - halfboardPct);
+              const boardSuppl = avgPaxPerRoom * (
+                (breakfastPct / 100) * breakfastPrice +
+                (halfboardPct / 100) * halfboardPrice
+              );
+              return (
+                <div style={{
+                  background: "#FFF7ED", border: "1px solid #FED7AA",
+                  borderRadius: 12, padding: "8px 14px", textAlign: "right",
+                }}>
+                  <p style={{ fontSize: 10, fontWeight: 600, color: "#92400E", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    Étkezési felár/szoba/éj
+                  </p>
+                  <p style={{ fontSize: 18, fontWeight: 800, color: "#EA580C", margin: "2px 0 0" }}>
+                    +{fmt(boardSuppl)} Ft
+                  </p>
+                  <p style={{ fontSize: 10, color: "#C2410C", margin: "2px 0 0" }}>
+                    Szoba only: {Math.round(roomOnlyPct)}%
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Mix sliders */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+            {/* Breakfast */}
+            <div style={{
+              background: "#FFFBEB", border: "1px solid #FDE68A",
+              borderRadius: 14, padding: "14px 16px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 20 }}>🌅</span>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: 0 }}>Reggeli</p>
+                  <p style={{ fontSize: 11, color: "#B45309", margin: 0 }}>{fmt(breakfastPrice)} Ft/fő/éj</p>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={breakfastPct}
+                  onChange={e => {
+                    const v = Number(e.target.value);
+                    const newBrPct = Math.min(v, 100 - halfboardPct);
+                    setBreakfastPct(newBrPct);
+                  }}
+                  onMouseUp={e => {
+                    const v = Math.min(Number((e.target as HTMLInputElement).value), 100 - halfboardPct);
+                    saveBoardMix(v, halfboardPct);
+                  }}
+                  onTouchEnd={e => {
+                    const v = Math.min(Number((e.currentTarget as HTMLInputElement).value), 100 - halfboardPct);
+                    saveBoardMix(v, halfboardPct);
+                  }}
+                  style={{ flex: 1, accentColor: "#D97706", cursor: "pointer" }}
+                />
+                <div style={{
+                  minWidth: 52, textAlign: "center",
+                  background: "#FEF3C7", borderRadius: 8, padding: "4px 8px",
+                  fontSize: 16, fontWeight: 800, color: "#D97706",
+                }}>
+                  {Math.round(breakfastPct)}%
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 4 }}>
+                {[0, 25, 50, 75, 100].map(v => (
+                  <button
+                    key={v}
+                    onClick={() => {
+                      const newBrPct = Math.min(v, 100 - halfboardPct);
+                      setBreakfastPct(newBrPct);
+                      saveBoardMix(newBrPct, halfboardPct);
+                    }}
+                    style={{
+                      flex: 1, fontSize: 10, fontWeight: 600,
+                      padding: "3px 0", borderRadius: 6, cursor: "pointer",
+                      background: Math.round(breakfastPct) === v ? "#D97706" : "#FEF3C7",
+                      color: Math.round(breakfastPct) === v ? "white" : "#92400E",
+                      border: "none",
+                    }}
+                  >
+                    {v}%
+                  </button>
+                ))}
+              </div>
+              {breakfastPct > 0 && (
+                <p style={{ fontSize: 10, color: "#92400E", margin: "8px 0 0", fontWeight: 600 }}>
+                  Felár: +{fmt(avgPaxPerRoom * (breakfastPct / 100) * breakfastPrice)} Ft/szoba/éj
+                </p>
+              )}
+            </div>
+
+            {/* Halfboard */}
+            <div style={{
+              background: "#F0FDF4", border: "1px solid #BBF7D0",
+              borderRadius: 14, padding: "14px 16px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 20 }}>🍽️</span>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#065F46", margin: 0 }}>Félpanzió</p>
+                  <p style={{ fontSize: 11, color: "#047857", margin: 0 }}>{fmt(halfboardPrice)} Ft/fő/éj</p>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={halfboardPct}
+                  onChange={e => {
+                    const v = Number(e.target.value);
+                    const newHbPct = Math.min(v, 100 - breakfastPct);
+                    setHalfboardPct(newHbPct);
+                  }}
+                  onMouseUp={e => {
+                    const v = Math.min(Number((e.target as HTMLInputElement).value), 100 - breakfastPct);
+                    saveBoardMix(breakfastPct, v);
+                  }}
+                  onTouchEnd={e => {
+                    const v = Math.min(Number((e.currentTarget as HTMLInputElement).value), 100 - breakfastPct);
+                    saveBoardMix(breakfastPct, v);
+                  }}
+                  style={{ flex: 1, accentColor: "#059669", cursor: "pointer" }}
+                />
+                <div style={{
+                  minWidth: 52, textAlign: "center",
+                  background: "#DCFCE7", borderRadius: 8, padding: "4px 8px",
+                  fontSize: 16, fontWeight: 800, color: "#059669",
+                }}>
+                  {Math.round(halfboardPct)}%
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 4 }}>
+                {[0, 25, 50, 75, 100].map(v => (
+                  <button
+                    key={v}
+                    onClick={() => {
+                      const newHbPct = Math.min(v, 100 - breakfastPct);
+                      setHalfboardPct(newHbPct);
+                      saveBoardMix(breakfastPct, newHbPct);
+                    }}
+                    style={{
+                      flex: 1, fontSize: 10, fontWeight: 600,
+                      padding: "3px 0", borderRadius: 6, cursor: "pointer",
+                      background: Math.round(halfboardPct) === v ? "#059669" : "#DCFCE7",
+                      color: Math.round(halfboardPct) === v ? "white" : "#065F46",
+                      border: "none",
+                    }}
+                  >
+                    {v}%
+                  </button>
+                ))}
+              </div>
+              {halfboardPct > 0 && (
+                <p style={{ fontSize: 10, color: "#065F46", margin: "8px 0 0", fontWeight: 600 }}>
+                  Felár: +{fmt(avgPaxPerRoom * (halfboardPct / 100) * halfboardPrice)} Ft/szoba/éj
+                </p>
+              )}
+            </div>
+
+            {/* Room only summary */}
+            <div style={{
+              background: "#F8FAFC", border: "1px solid #E2E8F0",
+              borderRadius: 14, padding: "14px 16px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 20 }}>🛏️</span>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0 }}>Összefoglalás</p>
+                  <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>Vendégenkénti mix arányok</p>
+                </div>
+              </div>
+              {/* Progress bars */}
+              <div style={{ marginBottom: 10 }}>
+                {[
+                  { label: "Csak szoba", pct: Math.max(0, 100 - breakfastPct - halfboardPct), color: "#94A3B8" },
+                  { label: "Reggeli", pct: breakfastPct, color: "#D97706" },
+                  { label: "Félpanzió", pct: halfboardPct, color: "#059669" },
+                ].map(({ label, pct, color }) => (
+                  <div key={label} style={{ marginBottom: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                      <span style={{ fontSize: 10, color: "#64748B", fontWeight: 600 }}>{label}</span>
+                      <span style={{ fontSize: 10, color, fontWeight: 700 }}>{Math.round(pct)}%</span>
+                    </div>
+                    <div style={{ height: 6, background: "#E2E8F0", borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 3, transition: "width 0.2s" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Total supplement */}
+              <div style={{ background: "white", borderRadius: 10, padding: "8px 12px", border: "1px solid #E2E8F0" }}>
+                <p style={{ fontSize: 10, color: "#94A3B8", margin: "0 0 2px", fontWeight: 600, textTransform: "uppercase" }}>
+                  Összes étkezési felár/szoba/éj
+                </p>
+                <p style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                  +{fmt(avgPaxPerRoom * (
+                    (breakfastPct / 100) * breakfastPrice +
+                    (halfboardPct / 100) * halfboardPrice
+                  ))} Ft
+                </p>
+                <p style={{ fontSize: 10, color: "#64748B", margin: "2px 0 0" }}>
+                  {avgPaxPerRoom} fő/szoba alapján
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {(breakfastPct + halfboardPct) > 100 && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              background: "#FEF2F2", border: "1px solid #FCA5A5",
+              borderRadius: 10, padding: "8px 14px", marginTop: 12,
+            }}>
+              <AlertTriangle size={14} color="#EF4444" />
+              <p style={{ fontSize: 12, color: "#EF4444", margin: 0, fontWeight: 600 }}>
+                A reggeli és félpanzió arány együttesen meghaladja a 100%-ot — kérjük javítsd!
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* SECTION B — KPI Cards */}

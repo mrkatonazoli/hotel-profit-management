@@ -55,11 +55,19 @@ export async function GET(req: Request, { params }: Params) {
     settings: {
       tfhEnabled: settings?.tfhEnabled ?? false,
       tfhRate: settings?.tfhRate ?? 4,
+      fbEnabled: settings?.fbEnabled ?? false,
+      breakfastPrice: settings?.breakfastPrice ?? 0,
+      halfboardPrice: settings?.halfboardPrice ?? 0,
+      avgPaxPerRoom: settings?.avgPaxPerRoom ?? 1.8,
       costBands: settings?.costBands?.map(b => ({
         fromOccPct: b.fromOccPct,
         toOccPct: b.toOccPct,
         costPerRoom: b.costPerRoom,
       })) ?? [],
+    },
+    boardMix: {
+      breakfastPct: plan.breakfastPct,
+      halfboardPct: plan.halfboardPct,
     },
   });
 }

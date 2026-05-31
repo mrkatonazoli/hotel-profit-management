@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, Trash2, Save, Loader2, Check,
-  Settings2, TrendingDown, TrendingUp, Landmark,
+  Settings2, TrendingDown, TrendingUp, Landmark, Utensils, Users,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -22,6 +22,10 @@ type Settings = {
   optimalOccupancyPct: number;
   tfhEnabled: boolean;
   tfhRate: number;
+  fbEnabled: boolean;
+  breakfastPrice: number;
+  halfboardPrice: number;
+  avgPaxPerRoom: number;
   costBands: CostBand[];
 };
 
@@ -104,6 +108,10 @@ export default function SimplePlannerSettingsPage() {
   const [optimalOcc, setOptimalOcc] = useState(70);
   const [tfhEnabled, setTfhEnabled] = useState(true);
   const [tfhRate, setTfhRate] = useState(4);
+  const [fbEnabled, setFbEnabled] = useState(false);
+  const [breakfastPrice, setBreakfastPrice] = useState(0);
+  const [halfboardPrice, setHalfboardPrice] = useState(0);
+  const [avgPaxPerRoom, setAvgPaxPerRoom] = useState(1.8);
   const [bands, setBands] = useState<CostBand[]>(DEFAULT_BANDS);
 
   // ─── Load ──────────────────────────────────────────────────────────────────
@@ -116,6 +124,10 @@ export default function SimplePlannerSettingsPage() {
           setOptimalOcc(data.optimalOccupancyPct);
           setTfhEnabled(data.tfhEnabled ?? true);
           setTfhRate(data.tfhRate ?? 4);
+          setFbEnabled(data.fbEnabled ?? false);
+          setBreakfastPrice(data.breakfastPrice ?? 0);
+          setHalfboardPrice(data.halfboardPrice ?? 0);
+          setAvgPaxPerRoom(data.avgPaxPerRoom ?? 1.8);
           setBands(data.costBands.length > 0 ? data.costBands : DEFAULT_BANDS);
         }
       })
@@ -134,6 +146,10 @@ export default function SimplePlannerSettingsPage() {
           optimalOccupancyPct: optimalOcc,
           tfhEnabled,
           tfhRate,
+          fbEnabled,
+          breakfastPrice,
+          halfboardPrice,
+          avgPaxPerRoom,
           costBands: bands.map((b, i) => ({ ...b, sortOrder: i })),
         }),
       });
@@ -463,6 +479,150 @@ export default function SimplePlannerSettingsPage() {
           </p>
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* BLOKK 4 — Étkezési bevételek */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
+      <div style={{
+        background: "white", border: `1px solid ${fbEnabled ? "#BBF7D0" : "#E2E8F0"}`,
+        borderRadius: 20, padding: "24px", marginBottom: 20,
+        transition: "border-color 0.2s",
+      }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: fbEnabled ? "#DCFCE7" : "#F1F5F9",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.2s",
+            }}>
+              <Utensils size={15} color={fbEnabled ? "#059669" : "#94A3B8"} />
+            </div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+              Étkezési bevételek (F&amp;B)
+            </h2>
+          </div>
+
+          {/* Toggle */}
+          <button
+            onClick={() => setFbEnabled(v => !v)}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              background: fbEnabled ? "#F0FDF4" : "#F8FAFC",
+              border: `1px solid ${fbEnabled ? "#BBF7D0" : "#E2E8F0"}`,
+              borderRadius: 10, padding: "7px 14px",
+              cursor: "pointer", transition: "all 0.2s",
+            }}
+          >
+            <div style={{
+              width: 32, height: 18, borderRadius: 9,
+              background: fbEnabled ? "#059669" : "#CBD5E1",
+              position: "relative", transition: "background 0.2s", flexShrink: 0,
+            }}>
+              <div style={{
+                position: "absolute", top: 3, left: fbEnabled ? 17 : 3,
+                width: 12, height: 12, borderRadius: "50%", background: "white",
+                transition: "left 0.15s",
+              }} />
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: fbEnabled ? "#059669" : "#94A3B8" }}>
+              {fbEnabled ? "Bekapcsolva" : "Kikapcsolva"}
+            </span>
+          </button>
+        </div>
+
+        <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
+          Reggeli és félpanzió felárak kalkulációja. Bekapcsolt állapotban a terven beállított étkezési mix
+          alapján a felár hozzáadódik az ADR-hez — ebből számolódik a szobaárbevétel.
+        </p>
+
+        <div style={{
+          display: "flex", flexDirection: "column", gap: 16,
+          opacity: fbEnabled ? 1 : 0.4,
+          transition: "opacity 0.2s",
+          pointerEvents: fbEnabled ? "auto" : "none",
+        }}>
+          {/* Átlagos vendégek/szoba */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: "#F8FAFC", border: "1px solid #E2E8F0",
+            borderRadius: 14, padding: "14px 20px",
+          }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#6366F1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Users size={16} color="white" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 11, color: "#6366F1", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Átlagos vendégek / szoba
+              </p>
+              <NumInput value={avgPaxPerRoom} onChange={setAvgPaxPerRoom} min={1} max={6} step={0.1} suffix="fő/szoba" width={70} />
+            </div>
+            <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.5, maxWidth: 260 }}>
+              Hány vendéggel számolsz szobánként átlagosan? Ezt az értéket szorozza a rendszer az étkezési felárral.
+            </div>
+          </div>
+
+          {/* Két ár egymás mellett */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            {/* Reggeli */}
+            <div style={{
+              background: "#FFF7ED", border: "1px solid #FED7AA",
+              borderRadius: 14, padding: "16px 20px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: 20 }}>🌅</span>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: 0 }}>Reggeli</p>
+              </div>
+              <p style={{ fontSize: 11, color: "#B45309", margin: "0 0 10px" }}>
+                Felár az ADR-re · Ft/fő/éj
+              </p>
+              <NumInput value={breakfastPrice} onChange={setBreakfastPrice} min={0} step={100} suffix="Ft" width={100} />
+              {fbEnabled && breakfastPrice > 0 && avgPaxPerRoom > 0 && (
+                <p style={{ fontSize: 11, color: "#92400E", margin: "8px 0 0", fontWeight: 600 }}>
+                  → {Math.round(breakfastPrice * avgPaxPerRoom).toLocaleString("hu-HU")} Ft/szoba/éj
+                </p>
+              )}
+            </div>
+
+            {/* Félpanzió */}
+            <div style={{
+              background: "#F0FDF4", border: "1px solid #BBF7D0",
+              borderRadius: 14, padding: "16px 20px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: 20 }}>🍽️</span>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#065F46", margin: 0 }}>Félpanzió</p>
+              </div>
+              <p style={{ fontSize: 11, color: "#047857", margin: "0 0 10px" }}>
+                Felár az ADR-re · Ft/fő/éj
+              </p>
+              <NumInput value={halfboardPrice} onChange={setHalfboardPrice} min={0} step={100} suffix="Ft" width={100} />
+              {fbEnabled && halfboardPrice > 0 && avgPaxPerRoom > 0 && (
+                <p style={{ fontSize: 11, color: "#065F46", margin: "8px 0 0", fontWeight: 600 }}>
+                  → {Math.round(halfboardPrice * avgPaxPerRoom).toLocaleString("hu-HU")} Ft/szoba/éj
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Példa kalkuláció */}
+          {fbEnabled && (breakfastPrice > 0 || halfboardPrice > 0) && (
+            <div style={{
+              background: "#F5F3FF", border: "1px solid #DDD6FE",
+              borderRadius: 12, padding: "12px 16px",
+              fontSize: 12, color: "#5B21B6", lineHeight: 1.7,
+            }}>
+              <strong>Példa:</strong> ha 60% reggeli és 20% félpanzió mix → felár/szoba/éj =&nbsp;
+              <strong>
+                {Math.round(avgPaxPerRoom * (0.6 * breakfastPrice + 0.2 * halfboardPrice)).toLocaleString("hu-HU")} Ft
+              </strong>
+              &nbsp;(1.8 fő × (60% × {breakfastPrice.toLocaleString("hu-HU")} + 20% × {halfboardPrice.toLocaleString("hu-HU")} Ft))
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* BLOKK 5 — TFH */}

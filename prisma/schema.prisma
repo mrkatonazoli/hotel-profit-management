@@ -520,6 +520,8 @@ model SimplePlan {
   shareSummary   String?
   shareExpiresAt DateTime?
   sharePassword  String?   // SHA-256 hash, null = no password
+  breakfastPct   Float     @default(0)   // % of room nights with breakfast
+  halfboardPct   Float     @default(0)   // % of room nights with half board
   hotel          Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   months         SimplePlanMonth[]
 }
@@ -545,6 +547,10 @@ model SimplePlannerSettings {
   optimalOccupancyPct Float    @default(70)   // referencia kihasználtság %
   tfhEnabled          Boolean  @default(true)  // Turizmusfejlesztési Hozzájárulás bekapcsolva?
   tfhRate             Float    @default(4)     // TFH mértéke % (alapértelmezett 4%)
+  fbEnabled           Boolean  @default(false) // étkezési bevételek kalkuláció bekapcsolva?
+  breakfastPrice      Float    @default(0)     // reggeli felár Ft/fő/éj
+  halfboardPrice      Float    @default(0)     // félpanzió felár Ft/fő/éj
+  avgPaxPerRoom       Float    @default(1.8)   // átlagos vendégek/szoba
   hotel               Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   costBands           SimplePlannerCostBand[]
 }

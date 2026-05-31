@@ -36,6 +36,8 @@ export async function PUT(req: Request, { params }: Params) {
     data: {
       ...(body.name !== undefined ? { name: body.name } : {}),
       ...(body.year !== undefined ? { year: Number(body.year) } : {}),
+      ...(body.breakfastPct !== undefined ? { breakfastPct: Number(body.breakfastPct) } : {}),
+      ...(body.halfboardPct !== undefined ? { halfboardPct: Number(body.halfboardPct) } : {}),
     },
     include: { months: { orderBy: { month: "asc" } } },
   });

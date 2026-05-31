@@ -29,7 +29,11 @@ type ShareData = {
   plan: { id: string; name: string; year: number; shareSummary: string | null; shareExpiresAt: string | null };
   hotel: { name: string; totalRooms: number | null };
   months: MonthData[];
-  settings: { tfhEnabled: boolean; tfhRate: number; costBands: CostBand[] };
+  settings: {
+    tfhEnabled: boolean; tfhRate: number; costBands: CostBand[];
+    fbEnabled: boolean; breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
+  };
+  boardMix: { breakfastPct: number; halfboardPct: number };
 };
 type MonthCalc = {
   month: number; daysInMonth: number; roomNights: number;
@@ -51,19 +55,32 @@ function getCostFromBands(occupancyPct: number, costBands: CostBand[]): number |
   const band = costBands.find(b => occupancyPct >= b.fromOccPct && occupancyPct <= b.toOccPct);
   return band ? band.costPerRoom : null;
 }
-function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate: number, costBands: CostBand[]): MonthCalc {
+type FbParams = { enabled: boolean; breakfastPct: number; halfboardPct: number; breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number };
+
+function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate: number, costBands: CostBand[], fb?: FbParams): MonthCalc {
   const days = getDaysInMonth(m.month, year);
   const availableNights = totalRooms * days;
   const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
   const roomNights = (m.occupancyPct / 100) * availableNights;
   const effectiveCost = m.monthlyCost > 0 ? m.monthlyCost : (getCostFromBands(m.occupancyPct, costBands) ?? 0);
-  const revenue = m.roomRevenue > 0 ? m.roomRevenue * roomNights : roomNights * m.adr;
+
+  // F&B board supplement — only when no manual roomRevenue override
+  let boardPerRoomNight = 0;
+  if (fb?.enabled && m.roomRevenue === 0) {
+    boardPerRoomNight = fb.avgPaxPerRoom * (
+      (fb.breakfastPct / 100) * fb.breakfastPrice +
+      (fb.halfboardPct / 100) * fb.halfboardPrice
+    );
+  }
+  const revenuePerRoomNight = m.roomRevenue > 0 ? m.roomRevenue : m.adr + boardPerRoomNight;
+  const revenue = revenuePerRoomNight * roomNights;
+
   const cost = effectiveCost * roomNights;
   const tfh = revenue * (tfhRate / 100);
   const profit = revenue - cost - tfh;
   const margin = revenue > 0 ? (profit / revenue) * 100 : null;
   const netRevenue = revenue - tfh;
-  const unitRate = m.roomRevenue > 0 ? m.roomRevenue : m.adr;
+  const unitRate = revenuePerRoomNight;
   const breakeven = netRevenue > 0 && m.occupancyPct > 0
     ? (cost / netRevenue) * m.occupancyPct
     : unitRate > 0 && effectiveCost > 0
@@ -417,9 +434,18 @@ export default function SharePage() {
 
   // ─── Calculations ─────────────────────────────────────────────────────────
 
-  const { plan, hotel, months, settings } = data;
+  const { plan, hotel, months, settings, boardMix } = data;
   const totalRooms = hotel.totalRooms ?? 0;
   const effectiveTfhRate = settings.tfhEnabled ? settings.tfhRate : 0;
+
+  const fb: FbParams = {
+    enabled: settings.fbEnabled,
+    breakfastPct: boardMix.breakfastPct,
+    halfboardPct: boardMix.halfboardPct,
+    breakfastPrice: settings.breakfastPrice,
+    halfboardPrice: settings.halfboardPrice,
+    avgPaxPerRoom: settings.avgPaxPerRoom,
+  };
 
   const monthsWithBands = months.map(m => {
     if (m.monthlyCost > 0) return m;
@@ -428,7 +454,7 @@ export default function SharePage() {
   });
 
   const calcs: MonthCalc[] = monthsWithBands.map(m =>
-    computeMonthCalc(m, totalRooms, plan.year, effectiveTfhRate, settings.costBands)
+    computeMonthCalc(m, totalRooms, plan.year, effectiveTfhRate, settings.costBands, fb)
   );
   const filledCalcs = calcs.filter(c => c.hasData);
 
@@ -449,7 +475,7 @@ export default function SharePage() {
     occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m =>
-    computeMonthCalc(m, totalRooms, plan.year, effectiveTfhRate, settings.costBands)
+    computeMonthCalc(m, totalRooms, plan.year, effectiveTfhRate, settings.costBands, fb)
   );
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
   const simAnnualRevenue = simCalcs.reduce((s, c) => s + c.revenue, 0);
