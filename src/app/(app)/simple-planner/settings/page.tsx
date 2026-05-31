@@ -558,8 +558,9 @@ export default function SimplePlannerSettingsPage() {
         </div>
 
         <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
-          Reggeli és félpanzió felárak kalkulációja. Bekapcsolt állapotban a terven beállított étkezési mix
-          alapján a felár hozzáadódik az ADR-hez — ebből számolódik a szobaárbevétel.
+          Reggeli és félpanzió árak megadása. A terven beállított vendégmix (hány % reggelis / félpanziós)
+          alapján súlyozott átlagot számol a rendszer, és azt adja az ADR-hez — ebből lesz a szobaárbevétel.
+          A reggeli és a félpanzió <strong>egymást kizáró kategóriák</strong> — egy szoba nem lehet egyszerre mindkettő.
         </p>
 
         <div style={{
@@ -617,7 +618,12 @@ export default function SimplePlannerSettingsPage() {
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <span style={{ fontSize: 20 }}>🍽️</span>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#065F46", margin: 0 }}>Félpanzió</p>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#065F46", margin: 0 }}>Félpanzió</p>
+                  <p style={{ fontSize: 10, color: "#047857", margin: "1px 0 0", fontWeight: 500 }}>
+                    reggeli + vacsora — teljes ár (nem adódik a reggelihez)
+                  </p>
+                </div>
               </div>
               <p style={{ fontSize: 11, color: "#047857", margin: "0 0 10px" }}>
                 Felár az ADR-re · Ft/fő/éj
