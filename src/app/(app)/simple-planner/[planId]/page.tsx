@@ -604,6 +604,7 @@ export default function SimplePlanDetailPage() {
   const [otherRevenueEnabled, setOtherRevenueEnabled] = useState(false);
   const [otherRevenuePct, setOtherRevenuePct] = useState(0);
   const [savingRevenues, setSavingRevenues] = useState(false);
+  const [boardMixDirty, setBoardMixDirty] = useState(false);
 
   useEffect(() => {
     fetch("/api/simple-planner-settings")
@@ -888,6 +889,7 @@ export default function SimplePlanDetailPage() {
       await saveMonths(updated);
     } finally {
       setSavingRevenues(false);
+      setBoardMixDirty(false);
     }
   }
 
@@ -1634,22 +1636,20 @@ export default function SimplePlanDetailPage() {
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                 <button
                   onClick={saveComputedRevenues}
-                  disabled={savingRevenues}
+                  disabled={savingRevenues || !boardMixDirty}
                   style={{
                     display: "flex", alignItems: "center", gap: 6,
-                    background: savingRevenues ? "#6EE7B7" : "#10B981", color: "white",
+                    background: savingRevenues ? "#6EE7B7" : boardMixDirty ? "#10B981" : "#D1FAE5", color: boardMixDirty ? "white" : "#6EE7B7",
                     border: "none", borderRadius: 10, padding: "8px 16px",
                     fontSize: 13, fontWeight: 600,
-                    cursor: savingRevenues ? "not-allowed" : "pointer",
-                    opacity: savingRevenues ? 0.8 : 1,
+                    cursor: (savingRevenues || !boardMixDirty) ? "not-allowed" : "pointer",
+                    opacity: (savingRevenues || !boardMixDirty) ? 0.7 : 1,
                     transition: "all 0.15s",
                   }}
                   title="ADR + F&B felár + egyéb bevétel kiszámítva és elmentve roomRevenue-ként minden hónapra"
                 >
-                  {savingRevenues
-                    ? <Loader2 size={13} className="animate-spin" />
-                    : "💾"}
-                  {savingRevenues ? "Rögzítés folyamatban…" : "Bevétel rögzítése a tervbe"}
+                  {savingRevenues && <Loader2 size={13} className="animate-spin" />}
+                  {savingRevenues ? "Rögzítés folyamatban…" : "Rögzítés a tervbe"}
                 </button>
               <button
                 onClick={fillAllMonths}
@@ -1735,7 +1735,7 @@ export default function SimplePlanDetailPage() {
 
                 <input
                   type="range" min={0} max={100} step={1} value={breakfastPct}
-                  onChange={e => setBreakfastPct(Math.min(Number(e.target.value), 100 - halfboardPct))}
+                  onChange={e => { setBreakfastPct(Math.min(Number(e.target.value), 100 - halfboardPct)); setBoardMixDirty(true); }}
                   onMouseUp={e => {
                     const v = Math.min(Number((e.target as HTMLInputElement).value), 100 - halfboardPct);
                     saveBoardMix(v, halfboardPct);
@@ -1749,7 +1749,7 @@ export default function SimplePlanDetailPage() {
 
                 <div style={{ display: "flex", gap: 3, marginBottom: 10 }}>
                   {[0, 10, 25, 50, 75, 100].map(v => (
-                    <button key={v} onClick={() => { const n = Math.min(v, 100 - halfboardPct); setBreakfastPct(n); saveBoardMix(n, halfboardPct); }}
+                    <button key={v} onClick={() => { const n = Math.min(v, 100 - halfboardPct); setBreakfastPct(n); setBoardMixDirty(true); saveBoardMix(n, halfboardPct); }}
                       style={{ flex: 1, fontSize: 9, fontWeight: 700, padding: "3px 0", borderRadius: 5, cursor: "pointer", border: "none",
                         background: Math.round(breakfastPct) === v ? "#D97706" : "#FEF3C7",
                         color: Math.round(breakfastPct) === v ? "white" : "#92400E" }}>{v}%</button>
@@ -1796,7 +1796,7 @@ export default function SimplePlanDetailPage() {
 
                 <input
                   type="range" min={0} max={100} step={1} value={halfboardPct}
-                  onChange={e => setHalfboardPct(Math.min(Number(e.target.value), 100 - breakfastPct))}
+                  onChange={e => { setHalfboardPct(Math.min(Number(e.target.value), 100 - breakfastPct)); setBoardMixDirty(true); }}
                   onMouseUp={e => {
                     const v = Math.min(Number((e.target as HTMLInputElement).value), 100 - breakfastPct);
                     saveBoardMix(breakfastPct, v);
@@ -1810,7 +1810,7 @@ export default function SimplePlanDetailPage() {
 
                 <div style={{ display: "flex", gap: 3, marginBottom: 10 }}>
                   {[0, 10, 25, 50, 75, 100].map(v => (
-                    <button key={v} onClick={() => { const n = Math.min(v, 100 - breakfastPct); setHalfboardPct(n); saveBoardMix(breakfastPct, n); }}
+                    <button key={v} onClick={() => { const n = Math.min(v, 100 - breakfastPct); setHalfboardPct(n); setBoardMixDirty(true); saveBoardMix(breakfastPct, n); }}
                       style={{ flex: 1, fontSize: 9, fontWeight: 700, padding: "3px 0", borderRadius: 5, cursor: "pointer", border: "none",
                         background: Math.round(halfboardPct) === v ? "#059669" : "#DCFCE7",
                         color: Math.round(halfboardPct) === v ? "white" : "#065F46" }}>{v}%</button>
