@@ -1365,6 +1365,9 @@ export default function SimplePlanDetailPage() {
             <tbody>
               {(isSimActive ? simCalcs : calcs).map((c, i) => {
                 const m = (isSimActive ? simMonths : months).find(m => m.month === c.month)!;
+                const mWithBand = monthsWithBands.find(mwb => mwb.month === c.month)!;
+                const effectiveCost = mWithBand?.monthlyCost ?? 0;
+                const costIsFromBand = m.monthlyCost === 0 && effectiveCost > 0;
                 const savedC = calcs[i];
                 const occChanged = isSimActive && m.occupancyPct !== months[i].occupancyPct;
                 return (
@@ -1391,8 +1394,8 @@ export default function SimplePlanDetailPage() {
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: m.roomRevenue > 0 ? "#7C3AED" : "#CBD5E1" }}>
                       {m.roomRevenue > 0 ? `${fmt(m.roomRevenue)} Ft` : "—"}
                     </td>
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
-                      {c.hasData && m.monthlyCost > 0 ? `${fmt(m.monthlyCost)} Ft` : "—"}
+                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: costIsFromBand ? "#0EA5E9" : "#94A3B8" }}>
+                      {c.hasData && effectiveCost > 0 ? `${fmt(effectiveCost)} Ft` : "—"}
                     </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
                       {c.hasData ? fmtM(c.cost) : "—"}
