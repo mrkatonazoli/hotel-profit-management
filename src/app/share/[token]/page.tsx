@@ -16,40 +16,25 @@ const HU_MONTHS = [
   "Január","Február","Március","Április","Május","Június",
   "Július","Augusztus","Szeptember","Október","November","December",
 ];
-
 const HU_MONTHS_SHORT = ["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","Sze","Okt","Nov","Dec"];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type MonthData = {
-  id: string;
-  month: number;
-  adr: number;
-  occupancyPct: number;
-  roomRevenue: number;
-  monthlyCost: number;
+  id: string; month: number; adr: number;
+  occupancyPct: number; roomRevenue: number; monthlyCost: number;
 };
-
 type CostBand = { fromOccPct: number; toOccPct: number; costPerRoom: number };
-
 type ShareData = {
   plan: { id: string; name: string; year: number; shareSummary: string | null; shareExpiresAt: string | null };
   hotel: { name: string; totalRooms: number | null };
   months: MonthData[];
   settings: { tfhEnabled: boolean; tfhRate: number; costBands: CostBand[] };
 };
-
 type MonthCalc = {
-  month: number;
-  daysInMonth: number;
-  roomNights: number;
-  revenue: number;
-  cost: number;
-  tfh: number;
-  profit: number;
-  margin: number | null;
-  breakeven: number | null;
-  hasData: boolean;
+  month: number; daysInMonth: number; roomNights: number;
+  revenue: number; cost: number; tfh: number;
+  profit: number; margin: number | null; breakeven: number | null; hasData: boolean;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -60,17 +45,12 @@ function fmtM(n: number) {
   if (Math.abs(n) >= 1_000) return `${(n / 1_000).toLocaleString("hu-HU", { maximumFractionDigits: 0 })} E`;
   return fmt(n);
 }
-
-function getDaysInMonth(month: number, year: number) {
-  return new Date(year, month, 0).getDate();
-}
-
+function getDaysInMonth(month: number, year: number) { return new Date(year, month, 0).getDate(); }
 function getCostFromBands(occupancyPct: number, costBands: CostBand[]): number | null {
   if (costBands.length === 0) return null;
   const band = costBands.find(b => occupancyPct >= b.fromOccPct && occupancyPct <= b.toOccPct);
   return band ? band.costPerRoom : null;
 }
-
 function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate: number, costBands: CostBand[]): MonthCalc {
   const days = getDaysInMonth(m.month, year);
   const availableNights = totalRooms * days;
@@ -91,42 +71,72 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
     : null;
   return { month: m.month, daysInMonth: days, roomNights, revenue, cost, tfh, profit, margin, breakeven, hasData };
 }
-
 function profitColor(p: number) {
-  if (p > 0) return "#10B981";
+  if (p > 0) return "#059669";
   if (p === 0) return "#94A3B8";
-  return "#EF4444";
+  return "#DC2626";
+}
+function profitBg(p: number) {
+  if (p > 0) return "#ECFDF5";
+  if (p === 0) return "#F1F5F9";
+  return "#FEF2F2";
 }
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 
-function KpiCard({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
+function KpiCard({
+  label, value, sub, accentColor, valueColor, icon,
+}: {
+  label: string; value: string; sub?: string;
+  accentColor: string; valueColor?: string; icon: string;
+}) {
   return (
     <div style={{
-      background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
-      borderRadius: 16, padding: "16px 20px", backdropFilter: "blur(8px)",
+      background: "white",
+      borderRadius: 16,
+      padding: "20px 22px 18px",
+      boxShadow: "0 1px 4px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.04)",
+      border: "1px solid #E2E8F0",
+      borderTop: `3px solid ${accentColor}`,
+      display: "flex", flexDirection: "column", gap: 8,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <div style={{ width: 10, height: 10, borderRadius: "50%", background: color }} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{
+          fontSize: 11, fontWeight: 700, color: "#94A3B8",
+          textTransform: "uppercase", letterSpacing: "0.07em",
+        }}>
           {label}
         </span>
+        <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
       </div>
-      <p style={{ fontSize: 22, fontWeight: 800, color: "white", margin: 0, lineHeight: 1 }}>{value}</p>
-      {sub && <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", margin: "4px 0 0" }}>{sub}</p>}
+      <p style={{
+        fontSize: 26, fontWeight: 800, color: valueColor ?? "#0F172A",
+        margin: 0, lineHeight: 1.1, letterSpacing: "-0.02em",
+        fontVariantNumeric: "tabular-nums",
+      }}>
+        {value}
+      </p>
+      {sub && (
+        <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>{sub}</p>
+      )}
     </div>
   );
 }
 
 // ─── Chart Tooltips ───────────────────────────────────────────────────────────
 
-function ChartTooltipRevenue({ active, payload, label }: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string }) {
+function TooltipRevenue({ active, payload, label }: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", boxShadow: "0 4px 16px #0001" }}>
-      <p style={{ fontWeight: 700, color: "#0F172A", margin: "0 0 6px", fontSize: 13 }}>{label}</p>
+    <div style={{
+      background: "white", border: "1px solid #E2E8F0",
+      borderRadius: 12, padding: "12px 16px",
+      boxShadow: "0 8px 32px rgba(15,23,42,0.12)",
+    }}>
+      <p style={{ fontWeight: 700, color: "#0F172A", margin: "0 0 8px", fontSize: 13 }}>{label}</p>
       {payload.map(p => (
-        <p key={p.dataKey} style={{ margin: "2px 0", fontSize: 12, color: p.color, fontWeight: 600 }}>
+        <p key={p.dataKey} style={{ margin: "3px 0", fontSize: 12, color: p.color, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color, display: "inline-block", flexShrink: 0 }} />
           {p.dataKey === "revenue" ? "Bevétel" : "Profit"}: {fmtM(p.value)} Ft
         </p>
       ))}
@@ -134,16 +144,56 @@ function ChartTooltipRevenue({ active, payload, label }: { active?: boolean; pay
   );
 }
 
-function ChartTooltipOcc({ active, payload, label }: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string }) {
+function TooltipOcc({ active, payload, label }: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", boxShadow: "0 4px 16px #0001" }}>
-      <p style={{ fontWeight: 700, color: "#0F172A", margin: "0 0 6px", fontSize: 13 }}>{label}</p>
+    <div style={{
+      background: "white", border: "1px solid #E2E8F0",
+      borderRadius: 12, padding: "12px 16px",
+      boxShadow: "0 8px 32px rgba(15,23,42,0.12)",
+    }}>
+      <p style={{ fontWeight: 700, color: "#0F172A", margin: "0 0 8px", fontSize: 13 }}>{label}</p>
       {payload.map(p => (
-        <p key={p.dataKey} style={{ margin: "2px 0", fontSize: 12, color: p.color, fontWeight: 600 }}>
+        <p key={p.dataKey} style={{ margin: "3px 0", fontSize: 12, color: p.color, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color, display: "inline-block", flexShrink: 0 }} />
           {p.dataKey === "occ" ? "Kihasználtság" : "Fedezeti pont"}: {Math.round(p.value)}%
         </p>
       ))}
+    </div>
+  );
+}
+
+// ─── Loading / Error screens ─────────────────────────────────────────────────
+
+function FullScreenMessage({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#F8FAFC",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      padding: 32,
+    }}>
+      {/* Branding */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 48 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 18,
+        }}>📈</div>
+        <span style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>Hotel Profit</span>
+      </div>
+
+      <div style={{
+        background: "white", borderRadius: 24,
+        border: "1px solid #E2E8F0",
+        boxShadow: "0 4px 24px rgba(15,23,42,0.08)",
+        padding: "40px 48px", textAlign: "center", maxWidth: 420,
+      }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>{icon}</div>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", margin: "0 0 10px", letterSpacing: "-0.02em" }}>{title}</h1>
+        <p style={{ fontSize: 14, color: "#64748B", margin: 0, lineHeight: 1.7 }}>{desc}</p>
+      </div>
     </div>
   );
 }
@@ -164,95 +214,46 @@ export default function SharePage() {
       .then(async res => {
         if (res.status === 410) { setError("expired"); return; }
         if (!res.ok) { setError("not_found"); return; }
-        const json = await res.json() as ShareData;
-        setData(json);
+        setData(await res.json() as ShareData);
       })
       .catch(() => setError("not_found"))
       .finally(() => setLoading(false));
   }, [token]);
 
-  // ─── Loading ─────────────────────────────────────────────────────────────
-
   if (loading) {
     return (
       <div style={{
-        minHeight: "100vh", background: "linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)",
+        minHeight: "100vh", background: "#F8FAFC",
         display: "flex", alignItems: "center", justifyContent: "center",
+        flexDirection: "column", gap: 16,
       }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{
-            width: 48, height: 48, border: "3px solid rgba(124,58,237,0.3)",
-            borderTopColor: "#7C3AED", borderRadius: "50%",
-            animation: "spin 0.8s linear infinite", margin: "0 auto 16px",
-          }} />
-          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Prezentáció betöltése...</p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+        <div style={{
+          width: 44, height: 44,
+          border: "3px solid #E2E8F0",
+          borderTopColor: "#7C3AED",
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+        }} />
+        <p style={{ fontSize: 14, color: "#64748B", fontWeight: 500 }}>Prezentáció betöltése…</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  // ─── Error states ─────────────────────────────────────────────────────────
-
-  if (error === "expired") {
-    return (
-      <div style={{
-        minHeight: "100vh", background: "linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 24,
-      }}>
-        <div style={{ textAlign: "center", maxWidth: 400 }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 20, background: "rgba(239,68,68,0.2)",
-            border: "1px solid rgba(239,68,68,0.3)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 20px", fontSize: 28,
-          }}>
-            ⏰
-          </div>
-          <h1 style={{ color: "white", fontSize: 24, fontWeight: 800, margin: "0 0 8px" }}>
-            Ez a link lejárt
-          </h1>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, margin: "0 0 24px" }}>
-            A megosztott prezentáció érvényessége lejárt. Kérd a szálloda munkatársait egy új link küldéséért.
-          </p>
-          <p style={{ color: "rgba(124,58,237,0.8)", fontSize: 12, fontWeight: 600, letterSpacing: "0.1em" }}>
-            HOTEL PROFIT
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error === "not_found" || !data) {
-    return (
-      <div style={{
-        minHeight: "100vh", background: "linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 24,
-      }}>
-        <div style={{ textAlign: "center", maxWidth: 400 }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 20, background: "rgba(100,116,139,0.2)",
-            border: "1px solid rgba(100,116,139,0.3)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 20px", fontSize: 28,
-          }}>
-            🔒
-          </div>
-          <h1 style={{ color: "white", fontSize: 24, fontWeight: 800, margin: "0 0 8px" }}>
-            A prezentáció nem elérhető
-          </h1>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, margin: "0 0 24px" }}>
-            Ez a megosztási link nem érvényes vagy már visszavonták.
-          </p>
-          <p style={{ color: "rgba(124,58,237,0.8)", fontSize: 12, fontWeight: 600, letterSpacing: "0.1em" }}>
-            HOTEL PROFIT
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (error === "expired") return (
+    <FullScreenMessage
+      icon="⏰"
+      title="Ez a link lejárt"
+      desc="A megosztott prezentáció érvényessége lejárt. Kérd a szálloda munkatársait egy új link küldéséért."
+    />
+  );
+  if (error === "not_found" || !data) return (
+    <FullScreenMessage
+      icon="🔒"
+      title="A prezentáció nem elérhető"
+      desc="Ez a megosztási link nem érvényes, vagy már visszavonták."
+    />
+  );
 
   // ─── Calculations ─────────────────────────────────────────────────────────
 
@@ -278,11 +279,9 @@ export default function SharePage() {
   const avgOcc = filledCalcs.length > 0
     ? filledCalcs.reduce((s, c) => s + (months.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / filledCalcs.length
     : 0;
-
   const annualNetRevenue = annualRevenue - annualTfh;
-  const annualBreakeven = (annualNetRevenue > 0 && avgOcc > 0)
-    ? (annualCost / annualNetRevenue) * avgOcc
-    : null;
+  const annualBreakeven = annualNetRevenue > 0 && avgOcc > 0
+    ? (annualCost / annualNetRevenue) * avgOcc : null;
 
   const isSimActive = simOffset !== 0;
   const simMonths = months.map(m => ({
@@ -299,7 +298,6 @@ export default function SharePage() {
   const simAvgOcc = simFilledCalcs.length > 0
     ? simFilledCalcs.reduce((s, c) => s + (simMonths.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / simFilledCalcs.length
     : 0;
-
   const deltaRevenue = simAnnualRevenue - annualRevenue;
   const deltaProfit = simAnnualProfit - annualProfit;
 
@@ -312,46 +310,147 @@ export default function SharePage() {
     hasData: c.hasData,
   }));
 
+  const displayCalcs = isSimActive ? simCalcs : calcs;
+  const displayMonths = isSimActive ? simMonths : months;
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)" }}>
+    <div style={{ minHeight: "100vh", background: "#F1F5F9", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
 
-      {/* ── Header bar ── */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "16px 32px", borderBottom: "1px solid rgba(255,255,255,0.08)",
-        backdropFilter: "blur(8px)", position: "sticky", top: 0, zIndex: 10,
-        background: "rgba(15,23,42,0.8)",
+      {/* ── Sticky Header ── */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 20,
+        background: "rgba(255,255,255,0.95)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid #E2E8F0",
+        boxShadow: "0 1px 8px rgba(15,23,42,0.06)",
       }}>
-        <div>
-          <h1 style={{ fontSize: 18, fontWeight: 800, color: "white", margin: 0, lineHeight: 1 }}>
-            {hotel.name}
-          </h1>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "3px 0 0" }}>
-            {plan.name} · {plan.year}
-          </p>
-        </div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(124,58,237,0.8)", letterSpacing: "0.1em" }}>
-          HOTEL PROFIT
-        </div>
-      </div>
+        <div style={{
+          maxWidth: 1180, margin: "0 auto",
+          padding: "14px 32px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          {/* Left: hotel info */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 12,
+              background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0, fontSize: 18, boxShadow: "0 4px 12px rgba(124,58,237,0.3)",
+            }}>🏨</div>
+            <div>
+              <h1 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0, lineHeight: 1.2, letterSpacing: "-0.01em" }}>
+                {hotel.name}
+              </h1>
+              <p style={{ fontSize: 12, color: "#94A3B8", margin: 0, fontWeight: 500 }}>
+                {plan.name} · {plan.year}. évi terv
+              </p>
+            </div>
+          </div>
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 64px" }}>
+          {/* Right: branding + badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              fontSize: 11, fontWeight: 700,
+              color: "#64748B",
+              background: "#F1F5F9",
+              border: "1px solid #E2E8F0",
+              borderRadius: 8,
+              padding: "4px 10px",
+              letterSpacing: "0.05em",
+            }}>
+              CSAK OLVASHATÓ
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 14,
+              }}>📈</div>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>Hotel Profit</span>
+            </div>
+          </div>
+        </div>
+      </header>
 
-        {/* ── Summary card ── */}
+      {/* ── Page body ── */}
+      <main style={{ maxWidth: 1180, margin: "0 auto", padding: "36px 32px 80px" }}>
+
+        {/* ── Hero strip ── */}
+        <div style={{
+          background: "linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)",
+          borderRadius: 20,
+          padding: "32px 40px",
+          marginBottom: 28,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          boxShadow: "0 8px 32px rgba(124,58,237,0.25)",
+          position: "relative",
+          overflow: "hidden",
+        }}>
+          {/* Decorative circles */}
+          <div style={{
+            position: "absolute", right: -40, top: -40,
+            width: 200, height: 200, borderRadius: "50%",
+            background: "rgba(255,255,255,0.06)",
+            pointerEvents: "none",
+          }} />
+          <div style={{
+            position: "absolute", right: 60, bottom: -60,
+            width: 160, height: 160, borderRadius: "50%",
+            background: "rgba(255,255,255,0.04)",
+            pointerEvents: "none",
+          }} />
+
+          <div style={{ position: "relative" }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", margin: "0 0 6px", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Profit előrejelzés
+            </p>
+            <h2 style={{ fontSize: 28, fontWeight: 900, color: "white", margin: "0 0 6px", letterSpacing: "-0.03em" }}>
+              {plan.year}. évi terv
+            </h2>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", margin: 0 }}>
+              {hotel.name}{totalRooms ? ` · ${totalRooms} szoba` : ""}
+            </p>
+          </div>
+          <div style={{ textAlign: "right", position: "relative" }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", margin: "0 0 4px" }}>Tervezett éves profit</p>
+            <p style={{
+              fontSize: 36, fontWeight: 900, color: "white", margin: 0,
+              letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums",
+            }}>
+              {annualProfit >= 0 ? "+" : ""}{fmtM(annualProfit)} Ft
+            </p>
+          </div>
+        </div>
+
+        {/* ── AI Summary ── */}
         {plan.shareSummary && (
           <div style={{
-            background: "white", borderRadius: 20, padding: "24px 28px",
-            marginBottom: 28, borderLeft: "5px solid #7C3AED",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+            background: "white",
+            borderRadius: 18,
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+            marginBottom: 24,
+            overflow: "hidden",
           }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, color: "#7C3AED", margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Terv összefoglalója
-            </h2>
-            <p style={{ fontSize: 14, color: "#334155", lineHeight: 1.7, margin: 0, whiteSpace: "pre-wrap" }}>
-              {plan.shareSummary}
-            </p>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "14px 24px",
+              borderBottom: "1px solid #F1F5F9",
+              background: "#FAFAFA",
+            }}>
+              <span style={{ fontSize: 16 }}>✨</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#7C3AED", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                AI összefoglaló
+              </span>
+            </div>
+            <div style={{ padding: "20px 24px" }}>
+              <p style={{ fontSize: 14, color: "#334155", lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>
+                {plan.shareSummary}
+              </p>
+            </div>
           </div>
         )}
 
@@ -359,243 +458,313 @@ export default function SharePage() {
         <div style={{
           display: "grid",
           gridTemplateColumns: settings.tfhEnabled ? "repeat(4, 1fr)" : "repeat(3, 1fr)",
-          gap: 14, marginBottom: 28,
+          gap: 14, marginBottom: 24,
         }}>
           <KpiCard
             label="Éves bevétel"
             value={`${fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft`}
-            color="#3B82F6"
             sub={totalRooms ? `${totalRooms} szoba alapján` : undefined}
+            accentColor="#3B82F6"
+            icon="💰"
           />
           {settings.tfhEnabled && (
             <KpiCard
               label={`TFH (${settings.tfhRate}%)`}
               value={`−${fmtM(isSimActive ? simAnnualTfh : annualTfh)} Ft`}
-              color="#EF4444"
+              accentColor="#F59E0B"
+              valueColor="#D97706"
+              icon="🏛️"
             />
           )}
           <KpiCard
             label="Éves profit"
             value={`${(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}${fmtM(isSimActive ? simAnnualProfit : annualProfit)} Ft`}
-            color={profitColor(isSimActive ? simAnnualProfit : annualProfit)}
             sub={(isSimActive ? simAnnualRevenue : annualRevenue) > 0
               ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}% margin`
               : undefined}
+            accentColor={(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#059669" : "#DC2626"}
+            valueColor={(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#059669" : "#DC2626"}
+            icon={(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "📈" : "📉"}
           />
           <KpiCard
             label="Átl. kihasználtság"
             value={`${Math.round(isSimActive ? simAvgOcc : avgOcc)}%`}
-            color="#7C3AED"
-            sub={filledCalcs.length > 0 ? `${filledCalcs.length} hónap alapján` : "nincs adat"}
+            sub={annualBreakeven !== null ? `fedezeti pont: ${Math.round(annualBreakeven)}%` : undefined}
+            accentColor="#7C3AED"
+            valueColor="#7C3AED"
+            icon="🏨"
           />
         </div>
 
         {/* ── Simulator ── */}
         <div style={{
-          background: isSimActive ? "rgba(124,58,237,0.15)" : "rgba(255,255,255,0.06)",
-          border: `1px solid ${isSimActive ? "rgba(124,58,237,0.4)" : "rgba(255,255,255,0.1)"}`,
-          borderRadius: 20, padding: "20px 24px", marginBottom: 28,
-          transition: "all 0.2s",
+          background: "white",
+          borderRadius: 18,
+          border: isSimActive ? "1px solid #C4B5FD" : "1px solid #E2E8F0",
+          boxShadow: isSimActive
+            ? "0 4px 24px rgba(124,58,237,0.12)"
+            : "0 1px 4px rgba(15,23,42,0.05)",
+          marginBottom: 24,
+          overflow: "hidden",
+          transition: "all 0.25s",
         }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "white", margin: "0 0 4px" }}>
-            Foglaltsági szimulátor
-          </h2>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "0 0 20px" }}>
-            Húzd a csúszkát az előrejelzés szimulálásához
-          </p>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: isSimActive ? 20 : 0 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap" }}>
-              Kihasználtság módosítás:
-            </span>
-            <div style={{ flex: 1 }}>
-              <input
-                type="range"
-                min={-30}
-                max={30}
-                step={1}
-                value={simOffset}
-                onChange={e => setSimOffset(Number(e.target.value))}
-                style={{ width: "100%", accentColor: "#7C3AED", cursor: "pointer", height: 6 }}
-              />
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>-30%</span>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>0%</span>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>+30%</span>
+          {/* Header */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "16px 24px",
+            borderBottom: `1px solid ${isSimActive ? "#EDE9FE" : "#F1F5F9"}`,
+            background: isSimActive ? "#FAFAFF" : "#FAFAFA",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 16 }}>🎛️</span>
+              <div>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Foglaltsági szimulátor</span>
+                <p style={{ fontSize: 12, color: "#94A3B8", margin: "2px 0 0", fontWeight: 500 }}>
+                  Húzd a csúszkát az előrejelzés valós idejű szimulálásához
+                </p>
               </div>
-            </div>
-            <div style={{
-              minWidth: 64, textAlign: "center",
-              background: isSimActive ? "#7C3AED" : "rgba(255,255,255,0.1)",
-              borderRadius: 10, padding: "6px 12px",
-              fontSize: 16, fontWeight: 800,
-              color: "white",
-              transition: "all 0.2s",
-            }}>
-              {simOffset > 0 ? "+" : ""}{simOffset}%
             </div>
             {isSimActive && (
               <button
                 onClick={() => setSimOffset(0)}
                 style={{
-                  background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)",
-                  borderRadius: 8, padding: "6px 12px", cursor: "pointer",
-                  color: "#FCA5A5", fontSize: 12, fontWeight: 600,
+                  fontSize: 12, fontWeight: 600,
+                  color: "#7C3AED", background: "#EDE9FE",
+                  border: "1px solid #DDD6FE",
+                  borderRadius: 8, padding: "6px 14px",
+                  cursor: "pointer",
                 }}
               >
-                Reset
+                Visszaállítás
               </button>
             )}
           </div>
 
-          {isSimActive && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-              <div style={{
-                background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "14px 18px",
-                border: `1px solid ${deltaRevenue >= 0 ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
-              }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px" }}>
-                  Bevétel változás
-                </p>
-                <p style={{ fontSize: 20, fontWeight: 800, color: deltaRevenue >= 0 ? "#10B981" : "#EF4444", margin: 0 }}>
-                  {deltaRevenue >= 0 ? "+" : ""}{fmtM(deltaRevenue)} Ft
-                </p>
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: "4px 0 0" }}>
-                  {fmtM(annualRevenue)} → {fmtM(simAnnualRevenue)} Ft
-                </p>
+          {/* Slider */}
+          <div style={{ padding: "20px 24px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: isSimActive ? 20 : 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#64748B", whiteSpace: "nowrap", minWidth: 160 }}>
+                Kihasználtság módosítás:
+              </span>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="range"
+                  min={-30} max={30} step={1}
+                  value={simOffset}
+                  onChange={e => setSimOffset(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "#7C3AED", cursor: "pointer", height: 4 }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>−30%</span>
+                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>0%</span>
+                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>+30%</span>
+                </div>
               </div>
               <div style={{
-                background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "14px 18px",
-                border: `1px solid ${deltaProfit >= 0 ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
+                minWidth: 72, textAlign: "center",
+                background: isSimActive ? "#7C3AED" : "#F1F5F9",
+                borderRadius: 10, padding: "8px 14px",
+                fontSize: 18, fontWeight: 900,
+                color: isSimActive ? "white" : "#94A3B8",
+                transition: "all 0.2s",
+                letterSpacing: "-0.02em",
               }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px" }}>
-                  Profit változás
-                </p>
-                <p style={{ fontSize: 20, fontWeight: 800, color: deltaProfit >= 0 ? "#10B981" : "#EF4444", margin: 0 }}>
-                  {deltaProfit >= 0 ? "+" : ""}{fmtM(deltaProfit)} Ft
-                </p>
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: "4px 0 0" }}>
-                  {fmtM(annualProfit)} → {fmtM(simAnnualProfit)} Ft
-                </p>
-              </div>
-              <div style={{
-                background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "14px 18px",
-                border: `1px solid ${simAnnualProfit >= 0 ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
-              }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px" }}>
-                  Kihasználtság (avg)
-                </p>
-                <p style={{ fontSize: 20, fontWeight: 800, color: "#A78BFA", margin: 0 }}>
-                  {Math.round(simAvgOcc)}%
-                </p>
-                {annualBreakeven !== null && (
-                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: "4px 0 0" }}>
-                    fedezeti pont: {Math.round(annualBreakeven)}%
-                    {simAvgOcc >= annualBreakeven
-                      ? ` ✓ +${Math.round(simAvgOcc - annualBreakeven)} pp`
-                      : ` ✗ ${Math.round(annualBreakeven - simAvgOcc)} pp hiányzik`}
-                  </p>
-                )}
+                {simOffset > 0 ? "+" : ""}{simOffset}%
               </div>
             </div>
-          )}
+
+            {/* Delta cards */}
+            {isSimActive && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                {/* Delta Revenue */}
+                <div style={{
+                  borderRadius: 14, padding: "16px 18px",
+                  background: deltaRevenue >= 0 ? "#ECFDF5" : "#FEF2F2",
+                  border: `1px solid ${deltaRevenue >= 0 ? "#A7F3D0" : "#FECACA"}`,
+                }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
+                    Bevétel változás
+                  </p>
+                  <p style={{ fontSize: 22, fontWeight: 800, color: deltaRevenue >= 0 ? "#059669" : "#DC2626", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
+                    {deltaRevenue >= 0 ? "+" : ""}{fmtM(deltaRevenue)} Ft
+                  </p>
+                  <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>
+                    {fmtM(annualRevenue)} → {fmtM(simAnnualRevenue)} Ft
+                  </p>
+                </div>
+                {/* Delta Profit */}
+                <div style={{
+                  borderRadius: 14, padding: "16px 18px",
+                  background: deltaProfit >= 0 ? "#ECFDF5" : "#FEF2F2",
+                  border: `1px solid ${deltaProfit >= 0 ? "#A7F3D0" : "#FECACA"}`,
+                }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
+                    Profit változás
+                  </p>
+                  <p style={{ fontSize: 22, fontWeight: 800, color: deltaProfit >= 0 ? "#059669" : "#DC2626", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
+                    {deltaProfit >= 0 ? "+" : ""}{fmtM(deltaProfit)} Ft
+                  </p>
+                  <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>
+                    {fmtM(annualProfit)} → {fmtM(simAnnualProfit)} Ft
+                  </p>
+                </div>
+                {/* Avg occ */}
+                <div style={{
+                  borderRadius: 14, padding: "16px 18px",
+                  background: "#F5F3FF",
+                  border: "1px solid #DDD6FE",
+                }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
+                    Átl. kihasználtság
+                  </p>
+                  <p style={{ fontSize: 22, fontWeight: 800, color: "#7C3AED", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
+                    {Math.round(simAvgOcc)}%
+                  </p>
+                  {annualBreakeven !== null && (
+                    <p style={{ fontSize: 11, color: "#7C3AED", margin: 0, fontWeight: 600 }}>
+                      {simAvgOcc >= annualBreakeven
+                        ? `✓ +${Math.round(simAvgOcc - annualBreakeven)} pp fedezeti pont felett`
+                        : `✗ ${Math.round(annualBreakeven - simAvgOcc)} pp hiányzik (BE: ${Math.round(annualBreakeven)}%)`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Charts ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 28 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
           {/* Revenue & Profit */}
           <div style={{
-            background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
-            padding: "20px 20px 12px",
+            background: "white", borderRadius: 18,
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+            padding: "22px 20px 16px",
           }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: "0 0 16px" }}>
-              Bevétel &amp; Profit
-              {isSimActive && <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "3px 8px", borderRadius: 6, marginLeft: 10 }}>SZIMULÁCIÓ</span>}
-            </h3>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Bevétel &amp; Profit</h3>
+              {isSimActive && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, color: "#7C3AED",
+                  background: "#EDE9FE", padding: "3px 9px", borderRadius: 6,
+                  letterSpacing: "0.04em",
+                }}>SZIMULÁCIÓ</span>
+              )}
+            </div>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={chartData} barGap={2} barCategoryGap="25%">
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 9, fill: "#94A3B8" }} axisLine={false} tickLine={false} tickFormatter={v => fmtM(v)} width={50} />
-                <ReTooltip content={<ChartTooltipRevenue />} />
-                <ReferenceLine y={0} stroke="#E2E8F0" />
-                <Bar dataKey="revenue" fill="#3B82F6" radius={[4, 4, 0, 0]} opacity={0.9}>
+              <BarChart data={chartData} barGap={3} barCategoryGap="28%">
+                <CartesianGrid strokeDasharray="2 4" stroke="#F1F5F9" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94A3B8", fontWeight: 600 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 9, fill: "#CBD5E1" }} axisLine={false} tickLine={false} tickFormatter={v => fmtM(v)} width={52} />
+                <ReTooltip content={<TooltipRevenue />} cursor={{ fill: "rgba(99,102,241,0.05)" }} />
+                <ReferenceLine y={0} stroke="#E2E8F0" strokeWidth={1.5} />
+                <Bar dataKey="revenue" radius={[5, 5, 0, 0]} opacity={0.9}>
                   {chartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.hasData ? (isSimActive ? "#7C3AED" : "#3B82F6") : "#E2E8F0"} />
+                    <Cell key={i} fill={entry.hasData ? (isSimActive ? "#6366F1" : "#3B82F6") : "#F1F5F9"} />
                   ))}
                 </Bar>
-                <Bar dataKey="profit" fill="#10B981" radius={[4, 4, 0, 0]} opacity={0.85}>
+                <Bar dataKey="profit" radius={[5, 5, 0, 0]} opacity={0.85}>
                   {chartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.hasData ? (entry.profit >= 0 ? "#10B981" : "#EF4444") : "#E2E8F0"} />
+                    <Cell key={i} fill={entry.hasData ? (entry.profit >= 0 ? "#059669" : "#DC2626") : "#F1F5F9"} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 6 }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 3, background: isSimActive ? "#7C3AED" : "#3B82F6" }} />
-                <span style={{ fontSize: 11, color: "#64748B" }}>Bevétel</span>
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: isSimActive ? "#6366F1" : "#3B82F6" }} />
+                <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Bevétel</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 3, background: "#10B981" }} />
-                <span style={{ fontSize: 11, color: "#64748B" }}>Profit</span>
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: "#059669" }} />
+                <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Profit</span>
               </div>
             </div>
           </div>
 
           {/* Occupancy & Breakeven */}
           <div style={{
-            background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
-            padding: "20px 20px 12px",
+            background: "white", borderRadius: 18,
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+            padding: "22px 20px 16px",
           }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: "0 0 16px" }}>
-              Kihasználtság &amp; Fedezeti pont
-              {isSimActive && <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "3px 8px", borderRadius: 6, marginLeft: 10 }}>SZIMULÁCIÓ</span>}
-            </h3>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Kihasználtság &amp; Fedezeti pont</h3>
+              {isSimActive && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, color: "#7C3AED",
+                  background: "#EDE9FE", padding: "3px 9px", borderRadius: 6,
+                  letterSpacing: "0.04em",
+                }}>SZIMULÁCIÓ</span>
+              )}
+            </div>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={chartData} barGap={2} barCategoryGap="25%">
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "#94A3B8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={36} />
-                <ReTooltip content={<ChartTooltipOcc />} />
-                <Bar dataKey="occ" fill="#7C3AED" radius={[4, 4, 0, 0]} opacity={0.85}>
+              <BarChart data={chartData} barGap={3} barCategoryGap="28%">
+                <CartesianGrid strokeDasharray="2 4" stroke="#F1F5F9" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94A3B8", fontWeight: 600 }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "#CBD5E1" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={38} />
+                <ReTooltip content={<TooltipOcc />} cursor={{ fill: "rgba(124,58,237,0.04)" }} />
+                <Bar dataKey="occ" radius={[5, 5, 0, 0]} opacity={0.85}>
                   {chartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.hasData ? "#7C3AED" : "#E2E8F0"} />
+                    <Cell key={i} fill={entry.hasData ? "#7C3AED" : "#F1F5F9"} />
                   ))}
                 </Bar>
                 {annualBreakeven !== null && (
                   <ReferenceLine
                     y={annualBreakeven}
-                    stroke="#EF4444"
+                    stroke="#DC2626"
                     strokeDasharray="5 3"
-                    strokeWidth={1.5}
-                    label={{ value: `BE: ${Math.round(annualBreakeven)}%`, position: "insideTopRight", fill: "#EF4444", fontSize: 10, fontWeight: 700 }}
+                    strokeWidth={2}
+                    label={{
+                      value: `BE: ${Math.round(annualBreakeven)}%`,
+                      position: "insideTopRight",
+                      fill: "#DC2626", fontSize: 10, fontWeight: 700,
+                    }}
                   />
                 )}
               </BarChart>
             </ResponsiveContainer>
-            <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 6 }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 10, height: 10, borderRadius: 3, background: "#7C3AED" }} />
-                <span style={{ fontSize: 11, color: "#64748B" }}>Kihasználtság %</span>
+                <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Kihasználtság %</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 16, height: 2, background: "#EF4444", borderRadius: 1 }} />
-                <span style={{ fontSize: 11, color: "#64748B" }}>Fedezeti pont</span>
+                <div style={{ width: 16, height: 2.5, background: "#DC2626", borderRadius: 2 }} />
+                <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Fedezeti pont</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* ── Monthly table ── */}
-        <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 20, overflow: "hidden", marginBottom: 28 }}>
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid #E2E8F0" }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>Havi eredmények</h2>
+        <div style={{
+          background: "white", borderRadius: 18,
+          border: "1px solid #E2E8F0",
+          boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+          overflow: "hidden", marginBottom: 24,
+        }}>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "16px 24px",
+            borderBottom: "1px solid #F1F5F9",
+            background: "#FAFAFA",
+          }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Havi bontás</h2>
+            {isSimActive && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, color: "#7C3AED",
+                background: "#EDE9FE", padding: "4px 10px", borderRadius: 6,
+                letterSpacing: "0.04em",
+              }}>SZIMULÁLT ADATOK</span>
+            )}
           </div>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700, fontSize: 13 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720, fontSize: 13 }}>
               <thead>
-                <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
                   {[
                     { label: "Hónap", align: "left" },
                     { label: "Kihasználtság", align: "right" },
@@ -604,13 +773,15 @@ export default function SharePage() {
                     { label: "Összes kiadás", align: "right" },
                     ...(settings.tfhEnabled ? [{ label: `TFH (${settings.tfhRate}%)`, align: "right" }] : []),
                     { label: "Profit", align: "right" },
-                    { label: "Margin %", align: "right" },
-                    { label: "Fedezeti pont %", align: "right" },
-                  ].map(h => (
+                    { label: "Margin", align: "right" },
+                    { label: "Fedezeti pont", align: "right" },
+                  ].map((h, i) => (
                     <th key={h.label} style={{
-                      padding: "10px 16px", textAlign: h.align as "left" | "right",
-                      fontSize: 11, fontWeight: 600, color: "#94A3B8",
-                      textTransform: "uppercase", letterSpacing: "0.05em",
+                      padding: i === 0 ? "10px 24px" : "10px 16px",
+                      textAlign: h.align as "left" | "right",
+                      fontSize: 10, fontWeight: 700, color: "#94A3B8",
+                      textTransform: "uppercase", letterSpacing: "0.07em",
+                      whiteSpace: "nowrap",
                     }}>
                       {h.label}
                     </th>
@@ -618,38 +789,53 @@ export default function SharePage() {
                 </tr>
               </thead>
               <tbody>
-                {(isSimActive ? simCalcs : calcs).map((c, _i) => {
-                  const displayMonths = isSimActive ? simMonths : months;
+                {displayCalcs.map((c, rowIdx) => {
                   const m = displayMonths.find(m => m.month === c.month)!;
+                  const isEven = rowIdx % 2 === 0;
                   return (
-                    <tr key={c.month} style={{ borderBottom: "1px solid #F8FAFC", opacity: c.hasData ? 1 : 0.35 }}>
-                      <td style={{ padding: "9px 16px", fontWeight: 600, color: "#0F172A" }}>
+                    <tr key={c.month} style={{
+                      borderBottom: "1px solid #F8FAFC",
+                      background: isEven ? "white" : "#FAFBFC",
+                      opacity: c.hasData ? 1 : 0.3,
+                      transition: "background 0.1s",
+                    }}>
+                      <td style={{ padding: "10px 24px", fontWeight: 700, color: "#0F172A", whiteSpace: "nowrap" }}>
                         {HU_MONTHS[c.month - 1]}
                       </td>
-                      <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155" }}>
+                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155", fontWeight: 500 }}>
                         {c.hasData ? `${m.occupancyPct}%` : "—"}
                       </td>
-                      <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155" }}>
+                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
                         {c.hasData ? fmt(c.roomNights) : "—"}
                       </td>
-                      <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155" }}>
+                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#0F172A", fontWeight: 600 }}>
                         {c.hasData ? `${fmtM(c.revenue)} Ft` : "—"}
                       </td>
-                      <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
-                        {c.hasData ? fmtM(c.cost) : "—"}
+                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
+                        {c.hasData ? `${fmtM(c.cost)} Ft` : "—"}
                       </td>
                       {settings.tfhEnabled && (
-                        <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.hasData && c.tfh > 0 ? "#EF4444" : "#CBD5E1" }}>
-                          {c.hasData && c.tfh > 0 ? `−${fmtM(c.tfh)}` : "—"}
+                        <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.hasData && c.tfh > 0 ? "#D97706" : "#CBD5E1", fontWeight: c.hasData && c.tfh > 0 ? 600 : 400 }}>
+                          {c.hasData && c.tfh > 0 ? `−${fmtM(c.tfh)} Ft` : "—"}
                         </td>
                       )}
-                      <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: c.hasData ? profitColor(c.profit) : "#CBD5E1" }}>
-                        {c.hasData ? `${c.profit >= 0 ? "+" : ""}${fmtM(c.profit)}` : "—"}
+                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                        {c.hasData ? (
+                          <span style={{
+                            display: "inline-block",
+                            padding: "2px 10px", borderRadius: 8,
+                            fontSize: 12, fontWeight: 700,
+                            background: profitBg(c.profit),
+                            color: profitColor(c.profit),
+                          }}>
+                            {c.profit >= 0 ? "+" : ""}{fmtM(c.profit)} Ft
+                          </span>
+                        ) : "—"}
                       </td>
-                      <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.margin !== null ? (c.margin >= 0 ? "#10B981" : "#EF4444") : "#CBD5E1" }}>
+                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: c.margin !== null ? (c.margin >= 0 ? "#059669" : "#DC2626") : "#CBD5E1" }}>
                         {c.margin !== null ? `${Math.round(c.margin)}%` : "—"}
                       </td>
-                      <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.breakeven !== null ? "#64748B" : "#CBD5E1" }}>
+                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.breakeven !== null ? "#64748B" : "#CBD5E1" }}>
                         {c.breakeven !== null ? `${Math.round(c.breakeven)}%` : "—"}
                       </td>
                     </tr>
@@ -658,35 +844,43 @@ export default function SharePage() {
               </tbody>
               <tfoot>
                 <tr style={{ background: "#F8FAFC", borderTop: "2px solid #E2E8F0" }}>
-                  <td style={{ padding: "10px 16px", fontWeight: 700, fontSize: 12, color: "#64748B", textTransform: "uppercase" }}>
+                  <td style={{ padding: "12px 24px", fontWeight: 800, fontSize: 12, color: "#0F172A", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     Éves összesen
                   </td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#7C3AED" }}>
+                  <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#7C3AED" }}>
                     {Math.round(isSimActive ? simAvgOcc : avgOcc)}% avg
                   </td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#0F172A" }}>
-                    {fmt((isSimActive ? simCalcs : calcs).reduce((s, c) => s + c.roomNights, 0))}
+                  <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600, color: "#0F172A", fontVariantNumeric: "tabular-nums" }}>
+                    {fmt(displayCalcs.reduce((s, c) => s + c.roomNights, 0))}
                   </td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#0F172A" }}>
+                  <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800, color: "#0F172A", fontVariantNumeric: "tabular-nums" }}>
                     {fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft
                   </td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
-                    {fmtM(annualCost)}
+                  <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600, color: "#64748B", fontVariantNumeric: "tabular-nums" }}>
+                    {fmtM(annualCost)} Ft
                   </td>
                   {settings.tfhEnabled && (
-                    <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#EF4444" }}>
-                      −{fmtM(isSimActive ? simAnnualTfh : annualTfh)}
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#D97706", fontVariantNumeric: "tabular-nums" }}>
+                      −{fmtM(isSimActive ? simAnnualTfh : annualTfh)} Ft
                     </td>
                   )}
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
-                    {(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}{fmtM(isSimActive ? simAnnualProfit : annualProfit)}
+                  <td style={{ padding: "12px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                    <span style={{
+                      display: "inline-block",
+                      padding: "3px 12px", borderRadius: 8,
+                      fontWeight: 800, fontSize: 13,
+                      background: profitBg(isSimActive ? simAnnualProfit : annualProfit),
+                      color: profitColor(isSimActive ? simAnnualProfit : annualProfit),
+                    }}>
+                      {(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}{fmtM(isSimActive ? simAnnualProfit : annualProfit)} Ft
+                    </span>
                   </td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
+                  <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
                     {(isSimActive ? simAnnualRevenue : annualRevenue) > 0
                       ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}%`
                       : "—"}
                   </td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8" }}>
+                  <td style={{ padding: "12px 16px", textAlign: "right", color: "#94A3B8", fontWeight: 600 }}>
                     {annualBreakeven !== null ? `${Math.round(annualBreakeven)}%` : "—"}
                   </td>
                 </tr>
@@ -696,20 +890,27 @@ export default function SharePage() {
         </div>
 
         {/* ── Footer ── */}
-        <div style={{ textAlign: "center", paddingTop: 12 }}>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", margin: "0 0 4px" }}>
-            Ez egy megosztott előrejelzés — módosítás nem lehetséges
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "16px 4px",
+        }}>
+          <p style={{ fontSize: 12, color: "#CBD5E1", margin: 0 }}>
+            Ez egy megosztott, csak olvasható előrejelzés
+            {plan.shareExpiresAt && ` · Érvényes: ${new Date(plan.shareExpiresAt).toLocaleDateString("hu-HU")}`}
           </p>
-          {plan.shareExpiresAt && (
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "0 0 8px" }}>
-              Érvényes: {new Date(plan.shareExpiresAt).toLocaleDateString("hu-HU")}
-            </p>
-          )}
-          <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(124,58,237,0.6)", letterSpacing: "0.1em", margin: 0 }}>
-            Powered by Hotel Profit
-          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{
+              width: 22, height: 22, borderRadius: 6,
+              background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11,
+            }}>📈</div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", letterSpacing: "-0.01em" }}>
+              Hotel Profit
+            </span>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
