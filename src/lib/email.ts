@@ -14,12 +14,12 @@ export async function sendInviteEmail(opts: {
   to: string;
   hotelName: string;
   hotelCity: string;
-  role: "MANAGER" | "VIEWER";
+  role: "MANAGER" | "PROFESSIONAL";
   inviteUrl: string;
   expiresInDays?: number;
 }) {
   const { to, hotelName, hotelCity, role, inviteUrl, expiresInDays = 7 } = opts;
-  const roleLabel = role === "MANAGER" ? "Manager" : "Viewer";
+  const roleLabel = role === "MANAGER" ? "Manager" : "Professional";
   const from = process.env.EMAIL_FROM ?? "Hotel Profit <hotelprofitmaster@gmail.com>";
 
   await transporter.sendMail({

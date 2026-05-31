@@ -24,7 +24,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
     return NextResponse.json({ error: "Nincs jogosultságod" }, { status: 403 });
 
   const { userId } = await params;
-  const { role, modules } = await req.json() as { role?: "MANAGER" | "VIEWER"; modules?: string[] };
+  const { role, modules } = await req.json() as { role?: "MANAGER" | "PROFESSIONAL"; modules?: string[] };
 
   const updated = await prisma.hotelUser.update({
     where: { hotelId_userId: { hotelId: hotel.id, userId } },

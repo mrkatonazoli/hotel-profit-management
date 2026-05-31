@@ -64,7 +64,7 @@ export async function POST(req: Request) {
   const canInvite = callerUser?.role === "SUPER_ADMIN" || caller?.role === "MANAGER";
   if (!canInvite) return NextResponse.json({ error: "Nincs jogosultságod meghívóhoz" }, { status: 403 });
 
-  const { email, role, modules } = await req.json() as { email: string; role: "MANAGER" | "VIEWER"; modules?: string[] };
+  const { email, role, modules } = await req.json() as { email: string; role: "MANAGER" | "PROFESSIONAL"; modules?: string[] };
   if (!email) return NextResponse.json({ error: "Email kötelező" }, { status: 400 });
 
   const normalizedEmail = email.toLowerCase().trim();

@@ -93,7 +93,7 @@ model Invite {
   id        String    @id @default(cuid())
   hotelId   String
   email     String
-  role      HotelRole @default(VIEWER)
+  role      HotelRole @default(PROFESSIONAL)
   token     String    @unique @default(cuid())
   expiresAt DateTime
   createdAt DateTime  @default(now())
@@ -105,7 +105,7 @@ model Invite {
 
 enum HotelRole {
   MANAGER
-  VIEWER
+  PROFESSIONAL
 }
 
 model RoomType {

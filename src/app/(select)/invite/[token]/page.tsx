@@ -7,7 +7,7 @@ import { Building2, Check, Loader2, ShieldAlert, BarChart3 } from "lucide-react"
 
 type InviteInfo = {
   email: string;
-  role: "MANAGER" | "VIEWER";
+  role: "MANAGER" | "PROFESSIONAL";
   hotel: { id: string; name: string; city: string };
   expiresAt: string;
 };
@@ -51,7 +51,7 @@ export default function InvitePage() {
     }
   }
 
-  const ROLE_LABEL = { MANAGER: "Manager", VIEWER: "Viewer" };
+  const ROLE_LABEL = { MANAGER: "Manager", PROFESSIONAL: "Professional" };
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#0F172A" }}>

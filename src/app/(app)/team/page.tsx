@@ -11,11 +11,11 @@ import {
 
 type Member = {
   userId: string; name: string | null; email: string;
-  image: string | null; role: "MANAGER" | "VIEWER"; isSuperAdmin: boolean;
+  image: string | null; role: "MANAGER" | "PROFESSIONAL"; isSuperAdmin: boolean;
   modules: string[];
 };
 type PendingInvite = {
-  id: string; email: string; role: "MANAGER" | "VIEWER";
+  id: string; email: string; role: "MANAGER" | "PROFESSIONAL";
   token: string; expiresAt: string;
 };
 type TeamData = {
@@ -39,7 +39,7 @@ type ModuleId = typeof ALL_MODULES[number]["id"];
 
 const ROLE_META = {
   MANAGER: { label: "Manager", icon: Crown,      color: "#7C3AED", bg: "#EDE9FE" },
-  VIEWER:  { label: "Viewer",  icon: Eye,         color: "#3B82F6", bg: "#DBEAFE" },
+  PROFESSIONAL:  { label: "Professional",  icon: Eye,         color: "#3B82F6", bg: "#DBEAFE" },
 };
 
 function initials(name: string | null, email: string) {
@@ -130,7 +130,7 @@ export default function TeamPage() {
   const [data, setData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"MANAGER" | "VIEWER">("VIEWER");
+  const [inviteRole, setInviteRole] = useState<"MANAGER" | "PROFESSIONAL">("PROFESSIONAL");
   const [moduleRestrict, setModuleRestrict] = useState(false);
   const [inviteModules, setInviteModules] = useState<string[]>([]);
   const [inviting, setInviting] = useState(false);
@@ -187,7 +187,7 @@ export default function TeamPage() {
     }
   }
 
-  async function handleChangeRole(userId: string, role: "MANAGER" | "VIEWER") {
+  async function handleChangeRole(userId: string, role: "MANAGER" | "PROFESSIONAL") {
     setChangingRoleId(userId);
     try {
       await fetch(`/api/team/${userId}`, {
@@ -274,10 +274,10 @@ export default function TeamPage() {
               />
               <select
                 value={inviteRole}
-                onChange={e => { setInviteRole(e.target.value as "MANAGER" | "VIEWER"); if (e.target.value === "MANAGER") setModuleRestrict(false); }}
+                onChange={e => { setInviteRole(e.target.value as "MANAGER" | "PROFESSIONAL"); if (e.target.value === "MANAGER") setModuleRestrict(false); }}
                 className="rounded-xl px-3 py-2.5 text-sm font-medium"
                 style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#334155", outline: "none" }}>
-                <option value="VIEWER">Viewer</option>
+                <option value="PROFESSIONAL">Professional</option>
                 <option value="MANAGER">Manager</option>
               </select>
               <button type="submit" disabled={inviting}
@@ -288,7 +288,7 @@ export default function TeamPage() {
               </button>
             </div>
 
-            {/* Module restriction toggle — only for Viewer */}
+            {/* Module restriction toggle — only for Professional */}
             {inviteRole !== "MANAGER" && (
               <div>
                 <label style={{
@@ -341,7 +341,7 @@ export default function TeamPage() {
             </div>
             <div className="flex items-center gap-1.5 text-xs" style={{ color: "#64748B" }}>
               <Eye size={12} style={{ color: "#3B82F6" }} />
-              <span><strong>Viewer</strong> — csak olvasás</span>
+              <span><strong>Professional</strong> — csak olvasás</span>
             </div>
           </div>
 
@@ -409,7 +409,7 @@ export default function TeamPage() {
           const isChanging = changingRoleId === m.userId;
           const color = avatarColor(m.email);
           const isEditingModules = editingModulesFor === m.userId;
-          const hasModuleRestriction = m.role === "VIEWER" && m.modules.length > 0;
+          const hasModuleRestriction = m.role === "PROFESSIONAL" && m.modules.length > 0;
 
           return (
             <div key={m.userId}
@@ -444,7 +444,7 @@ export default function TeamPage() {
                   </div>
 
                   {/* Module badges */}
-                  {m.role === "VIEWER" && !m.isSuperAdmin && (
+                  {m.role === "PROFESSIONAL" && !m.isSuperAdmin && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
                       {hasModuleRestriction ? (
                         m.modules.map(mod => (
@@ -474,8 +474,8 @@ export default function TeamPage() {
                   )}
                 </div>
 
-                {/* Edit modules button (Viewer only, manager action) */}
-                {isManager && !isSelf && !m.isSuperAdmin && m.role === "VIEWER" && (
+                {/* Edit modules button (Professional only, manager action) */}
+                {isManager && !isSelf && !m.isSuperAdmin && m.role === "PROFESSIONAL" && (
                   <button
                     onClick={() => {
                       if (isEditingModules) {
@@ -500,12 +500,12 @@ export default function TeamPage() {
                 {isManager && !isSelf && !m.isSuperAdmin ? (
                   <select
                     value={m.role}
-                    onChange={e => handleChangeRole(m.userId, e.target.value as "MANAGER" | "VIEWER")}
+                    onChange={e => handleChangeRole(m.userId, e.target.value as "MANAGER" | "PROFESSIONAL")}
                     disabled={isChanging}
                     className="text-xs font-semibold px-2.5 py-1.5 rounded-lg"
                     style={{ background: rm.bg, color: rm.color, border: "none", outline: "none", cursor: "pointer" }}>
                     <option value="MANAGER">Manager</option>
-                    <option value="VIEWER">Viewer</option>
+                    <option value="PROFESSIONAL">Professional</option>
                   </select>
                 ) : (
                   <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
