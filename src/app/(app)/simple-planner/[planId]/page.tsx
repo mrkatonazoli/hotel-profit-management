@@ -603,6 +603,7 @@ export default function SimplePlanDetailPage() {
   const [spaPct, setSpaPct] = useState(0);
   const [otherRevenueEnabled, setOtherRevenueEnabled] = useState(false);
   const [otherRevenuePct, setOtherRevenuePct] = useState(0);
+  const [savingRevenues, setSavingRevenues] = useState(false);
 
   useEffect(() => {
     fetch("/api/simple-planner-settings")
@@ -860,6 +861,34 @@ export default function SimplePlanDetailPage() {
       body: JSON.stringify({ breakfastPct: bPct, halfboardPct: hPct }),
     });
     showSaved();
+  }
+
+  // Kiszámolja az ADR + F&B board + spa + egyéb bevételt és elmenti roomRevenue-ként
+  // Mindig a JELENLEGI slider-értékeket (breakfastPct/halfboardPct) használja, nem a hónapokban tárolt értékeket
+  async function saveComputedRevenues() {
+    setSavingRevenues(true);
+    try {
+      const updated = months.map(m => {
+        if (m.adr === 0) return m;
+        let board = 0;
+        if (fbEnabled) {
+          board = avgPaxPerRoom * (
+            (breakfastPct / 100) * breakfastPrice +
+            (halfboardPct / 100) * halfboardPrice
+          );
+        }
+        const extraPct =
+          (fbOtherEnabled ? fbOtherPct : 0) +
+          (spaEnabled ? spaPct : 0) +
+          (otherRevenueEnabled ? otherRevenuePct : 0);
+        const extra = m.adr * (extraPct / 100);
+        return { ...m, roomRevenue: Math.round(m.adr + board + extra) };
+      });
+      setMonths(updated);
+      await saveMonths(updated);
+    } finally {
+      setSavingRevenues(false);
+    }
   }
 
   function updateMonthField(monthNum: number, field: keyof Pick<MonthData, "adr" | "occupancyPct" | "roomRevenue" | "monthlyCost" | "breakfastPct" | "halfboardPct">, value: number) {
@@ -1582,33 +1611,6 @@ export default function SimplePlanDetailPage() {
           saveMonths(updated);
         }
 
-        // Kiszámolja és elmenti az ADR + F&B board + spa + egyéb bevételt roomRevenue-ként
-        // Pontosan ugyanaz a formula, mint a computeMonthCalc — minden aktív bevételi kategória
-        function saveComputedRevenues() {
-          const updated = months.map(m => {
-            if (m.adr === 0) return m; // ADR nélkül nincs mit számolni
-            const mWithDef = applyBoardDefaults(m);
-            // F&B board supplement (csak ha fbEnabled)
-            let board = 0;
-            if (fbEnabled) {
-              board = avgPaxPerRoom * (
-                (mWithDef.breakfastPct / 100) * breakfastPrice +
-                (mWithDef.halfboardPct / 100) * halfboardPrice
-              );
-            }
-            // Egyéb bevételek: ADR %-a (F&B egyéb + Spa + Egyéb bevétel)
-            const extraPct =
-              (fbOtherEnabled ? fbOtherPct : 0) +
-              (spaEnabled ? spaPct : 0) +
-              (otherRevenueEnabled ? otherRevenuePct : 0);
-            const extra = m.adr * (extraPct / 100);
-            // Teljes szoba árbevétel/szoba/éj = ADR + board + spa + egyéb
-            return { ...m, roomRevenue: Math.round(m.adr + board + extra) };
-          });
-          setMonths(updated);
-          saveMonths(updated);
-        }
-
         return (
           <div style={{
             background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
@@ -1632,15 +1634,22 @@ export default function SimplePlanDetailPage() {
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                 <button
                   onClick={saveComputedRevenues}
+                  disabled={savingRevenues}
                   style={{
                     display: "flex", alignItems: "center", gap: 6,
-                    background: "#10B981", color: "white",
+                    background: savingRevenues ? "#6EE7B7" : "#10B981", color: "white",
                     border: "none", borderRadius: 10, padding: "8px 16px",
-                    fontSize: 13, fontWeight: 600, cursor: "pointer",
+                    fontSize: 13, fontWeight: 600,
+                    cursor: savingRevenues ? "not-allowed" : "pointer",
+                    opacity: savingRevenues ? 0.8 : 1,
+                    transition: "all 0.15s",
                   }}
                   title="ADR + F&B felár + egyéb bevétel kiszámítva és elmentve roomRevenue-ként minden hónapra"
                 >
-                  💾 Bevétel rögzítése a tervbe
+                  {savingRevenues
+                    ? <Loader2 size={13} className="animate-spin" />
+                    : "💾"}
+                  {savingRevenues ? "Rögzítés folyamatban…" : "Bevétel rögzítése a tervbe"}
                 </button>
               <button
                 onClick={fillAllMonths}
