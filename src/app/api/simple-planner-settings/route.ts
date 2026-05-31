@@ -35,6 +35,7 @@ export async function PUT(req: Request) {
   const {
     optimalOccupancyPct, costBands, tfhEnabled, tfhRate,
     fbEnabled, breakfastPrice, halfboardPrice, avgPaxPerRoom,
+    defaultBreakfastPct, defaultHalfboardPct,
     fbOtherEnabled, fbOtherPct, spaEnabled, spaPct, otherRevenueEnabled, otherRevenuePct,
   } = body as {
     optimalOccupancyPct?: number;
@@ -44,6 +45,8 @@ export async function PUT(req: Request) {
     breakfastPrice?: number;
     halfboardPrice?: number;
     avgPaxPerRoom?: number;
+    defaultBreakfastPct?: number;
+    defaultHalfboardPct?: number;
     fbOtherEnabled?: boolean;
     fbOtherPct?: number;
     spaEnabled?: boolean;
@@ -65,6 +68,8 @@ export async function PUT(req: Request) {
       breakfastPrice: breakfastPrice ?? 0,
       halfboardPrice: halfboardPrice ?? 0,
       avgPaxPerRoom: avgPaxPerRoom ?? 1.8,
+      defaultBreakfastPct: defaultBreakfastPct ?? 0,
+      defaultHalfboardPct: defaultHalfboardPct ?? 0,
       fbOtherEnabled: fbOtherEnabled ?? false,
       fbOtherPct: fbOtherPct ?? 0,
       spaEnabled: spaEnabled ?? false,
@@ -80,6 +85,8 @@ export async function PUT(req: Request) {
       ...(breakfastPrice !== undefined && { breakfastPrice }),
       ...(halfboardPrice !== undefined && { halfboardPrice }),
       ...(avgPaxPerRoom !== undefined && { avgPaxPerRoom }),
+      ...(defaultBreakfastPct !== undefined && { defaultBreakfastPct }),
+      ...(defaultHalfboardPct !== undefined && { defaultHalfboardPct }),
       ...(fbOtherEnabled !== undefined && { fbOtherEnabled }),
       ...(fbOtherPct !== undefined && { fbOtherPct }),
       ...(spaEnabled !== undefined && { spaEnabled }),

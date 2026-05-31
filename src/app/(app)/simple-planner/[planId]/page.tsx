@@ -612,6 +612,7 @@ export default function SimplePlanDetailPage() {
         tfhEnabled?: boolean; tfhRate?: number;
         fbEnabled?: boolean; breakfastPrice?: number;
         halfboardPrice?: number; avgPaxPerRoom?: number;
+        defaultBreakfastPct?: number; defaultHalfboardPct?: number;
         fbOtherEnabled?: boolean; fbOtherPct?: number;
         spaEnabled?: boolean; spaPct?: number;
         otherRevenueEnabled?: boolean; otherRevenuePct?: number;
@@ -623,6 +624,8 @@ export default function SimplePlanDetailPage() {
         if (data?.breakfastPrice !== undefined) setBreakfastPrice(data.breakfastPrice);
         if (data?.halfboardPrice !== undefined) setHalfboardPrice(data.halfboardPrice);
         if (data?.avgPaxPerRoom !== undefined) setAvgPaxPerRoom(data.avgPaxPerRoom);
+        if (data?.defaultBreakfastPct !== undefined) setBreakfastPct(data.defaultBreakfastPct);
+        if (data?.defaultHalfboardPct !== undefined) setHalfboardPct(data.defaultHalfboardPct);
         if (data?.fbOtherEnabled !== undefined) setFbOtherEnabled(data.fbOtherEnabled);
         if (data?.fbOtherPct !== undefined) setFbOtherPct(data.fbOtherPct);
         if (data?.spaEnabled !== undefined) setSpaEnabled(data.spaEnabled);
@@ -799,8 +802,6 @@ export default function SimplePlanDetailPage() {
         setPlan(data);
         setMonths(data.months);
         setYear(data.year);
-        setBreakfastPct(data.breakfastPct ?? 0);
-        setHalfboardPct(data.halfboardPct ?? 0);
       }
     } finally {
       setLoading(false);

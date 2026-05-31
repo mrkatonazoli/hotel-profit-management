@@ -553,6 +553,8 @@ model SimplePlannerSettings {
   breakfastPrice      Float    @default(0)     // reggeli felár Ft/fő/éj
   halfboardPrice      Float    @default(0)     // félpanzió felár Ft/fő/éj
   avgPaxPerRoom       Float    @default(1.8)   // átlagos vendégek/szoba
+  defaultBreakfastPct Float    @default(0)     // alapértelmezett reggelis vendégek aránya %
+  defaultHalfboardPct Float    @default(0)     // alapértelmezett félpanziós vendégek aránya %
   fbOtherEnabled      Boolean  @default(false) // egyéb F&B bevétel bekapcsolva?
   fbOtherPct          Float    @default(0)     // egyéb F&B ADR %-a
   spaEnabled          Boolean  @default(false) // spa bevétel bekapcsolva?

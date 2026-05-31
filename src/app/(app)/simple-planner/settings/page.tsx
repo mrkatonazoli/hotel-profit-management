@@ -26,6 +26,8 @@ type Settings = {
   breakfastPrice: number;
   halfboardPrice: number;
   avgPaxPerRoom: number;
+  defaultBreakfastPct: number;
+  defaultHalfboardPct: number;
   fbOtherEnabled: boolean;
   fbOtherPct: number;
   spaEnabled: boolean;
@@ -118,6 +120,8 @@ export default function SimplePlannerSettingsPage() {
   const [breakfastPrice, setBreakfastPrice] = useState(0);
   const [halfboardPrice, setHalfboardPrice] = useState(0);
   const [avgPaxPerRoom, setAvgPaxPerRoom] = useState(1.8);
+  const [defaultBreakfastPct, setDefaultBreakfastPct] = useState(0);
+  const [defaultHalfboardPct, setDefaultHalfboardPct] = useState(0);
   const [fbOtherEnabled, setFbOtherEnabled] = useState(false);
   const [fbOtherPct, setFbOtherPct] = useState(0);
   const [spaEnabled, setSpaEnabled] = useState(false);
@@ -140,6 +144,8 @@ export default function SimplePlannerSettingsPage() {
           setBreakfastPrice(data.breakfastPrice ?? 0);
           setHalfboardPrice(data.halfboardPrice ?? 0);
           setAvgPaxPerRoom(data.avgPaxPerRoom ?? 1.8);
+          setDefaultBreakfastPct(data.defaultBreakfastPct ?? 0);
+          setDefaultHalfboardPct(data.defaultHalfboardPct ?? 0);
           setFbOtherEnabled(data.fbOtherEnabled ?? false);
           setFbOtherPct(data.fbOtherPct ?? 0);
           setSpaEnabled(data.spaEnabled ?? false);
@@ -168,6 +174,8 @@ export default function SimplePlannerSettingsPage() {
           breakfastPrice,
           halfboardPrice,
           avgPaxPerRoom,
+          defaultBreakfastPct,
+          defaultHalfboardPct,
           fbOtherEnabled,
           fbOtherPct,
           spaEnabled,
@@ -636,6 +644,166 @@ export default function SimplePlannerSettingsPage() {
               )}
             </div>
           </div>
+
+          {/* Alapértelmezett vendégmix */}
+          {(() => {
+            const roomOnlyPct = Math.max(0, 100 - defaultBreakfastPct - defaultHalfboardPct);
+            const brContrib = avgPaxPerRoom * (defaultBreakfastPct / 100) * breakfastPrice;
+            const hbContrib = avgPaxPerRoom * (defaultHalfboardPct / 100) * halfboardPrice;
+            const totalBoardSuppl = brContrib + hbContrib;
+            return (
+              <div style={{
+                background: "#F8FAFC", border: "1px solid #E2E8F0",
+                borderRadius: 14, padding: "16px 20px",
+              }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Alapértelmezett vendégmix
+                </p>
+                <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 14px" }}>
+                  Ezekkel az arányokkal tölt ki a rendszer új terveket. A terveken belül havonta módosítható.
+                </p>
+
+                {/* 3-way split bar */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: "flex", height: 26, borderRadius: 10, overflow: "hidden", border: "1px solid #E2E8F0" }}>
+                    {roomOnlyPct > 0 && (
+                      <div style={{
+                        width: `${roomOnlyPct}%`, background: "#F1F5F9",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 10, fontWeight: 700, color: "#64748B",
+                        transition: "width 0.2s", overflow: "hidden", whiteSpace: "nowrap",
+                      }}>
+                        {roomOnlyPct >= 12 ? `🛏️ ${Math.round(roomOnlyPct)}%` : ""}
+                      </div>
+                    )}
+                    {defaultBreakfastPct > 0 && (
+                      <div style={{
+                        width: `${defaultBreakfastPct}%`, background: "#FDE68A",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 10, fontWeight: 700, color: "#92400E",
+                        transition: "width 0.2s", overflow: "hidden", whiteSpace: "nowrap",
+                      }}>
+                        {defaultBreakfastPct >= 10 ? `🌅 ${Math.round(defaultBreakfastPct)}%` : ""}
+                      </div>
+                    )}
+                    {defaultHalfboardPct > 0 && (
+                      <div style={{
+                        width: `${defaultHalfboardPct}%`, background: "#BBF7D0",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 10, fontWeight: 700, color: "#065F46",
+                        transition: "width 0.2s", overflow: "hidden", whiteSpace: "nowrap",
+                      }}>
+                        {defaultHalfboardPct >= 10 ? `🍽️ ${Math.round(defaultHalfboardPct)}%` : ""}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                    <span style={{ fontSize: 10, color: "#94A3B8" }}>🛏️ Csak szoba: {Math.round(roomOnlyPct)}%</span>
+                    <span style={{ fontSize: 10, color: "#D97706" }}>🌅 Reggeli: {Math.round(defaultBreakfastPct)}%</span>
+                    <span style={{ fontSize: 10, color: "#059669" }}>🍽️ Félpanzió: {Math.round(defaultHalfboardPct)}%</span>
+                  </div>
+                </div>
+
+                {/* Two sliders side by side */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+
+                  {/* Reggeli slider */}
+                  <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "12px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 16 }}>🌅</span>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: 0 }}>Reggeli</p>
+                      </div>
+                      <div style={{
+                        minWidth: 48, textAlign: "center",
+                        background: "#FEF3C7", borderRadius: 8, padding: "3px 8px",
+                        fontSize: 16, fontWeight: 800, color: "#D97706",
+                      }}>
+                        {Math.round(defaultBreakfastPct)}%
+                      </div>
+                    </div>
+                    <input
+                      type="range" min={0} max={100} step={1} value={defaultBreakfastPct}
+                      onChange={e => setDefaultBreakfastPct(Math.min(Number(e.target.value), 100 - defaultHalfboardPct))}
+                      style={{ width: "100%", accentColor: "#D97706", cursor: "pointer", marginBottom: 6 }}
+                    />
+                    <div style={{ display: "flex", gap: 3 }}>
+                      {[0, 10, 25, 50, 75, 100].map(v => (
+                        <button key={v}
+                          onClick={() => setDefaultBreakfastPct(Math.min(v, 100 - defaultHalfboardPct))}
+                          style={{
+                            flex: 1, fontSize: 9, fontWeight: 700, padding: "3px 0", borderRadius: 5,
+                            cursor: "pointer", border: "none",
+                            background: Math.round(defaultBreakfastPct) === v ? "#D97706" : "#FEF3C7",
+                            color: Math.round(defaultBreakfastPct) === v ? "white" : "#92400E",
+                          }}
+                        >{v}%</button>
+                      ))}
+                    </div>
+                    {breakfastPrice > 0 && (
+                      <p style={{ fontSize: 11, color: "#B45309", margin: "8px 0 0", fontWeight: 600 }}>
+                        Hozzájárulás: +{fmt(brContrib)} Ft/szoba/éj
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Félpanzió slider */}
+                  <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "12px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 16 }}>🍽️</span>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "#065F46", margin: 0 }}>Félpanzió</p>
+                      </div>
+                      <div style={{
+                        minWidth: 48, textAlign: "center",
+                        background: "#DCFCE7", borderRadius: 8, padding: "3px 8px",
+                        fontSize: 16, fontWeight: 800, color: "#059669",
+                      }}>
+                        {Math.round(defaultHalfboardPct)}%
+                      </div>
+                    </div>
+                    <input
+                      type="range" min={0} max={100} step={1} value={defaultHalfboardPct}
+                      onChange={e => setDefaultHalfboardPct(Math.min(Number(e.target.value), 100 - defaultBreakfastPct))}
+                      style={{ width: "100%", accentColor: "#059669", cursor: "pointer", marginBottom: 6 }}
+                    />
+                    <div style={{ display: "flex", gap: 3 }}>
+                      {[0, 10, 25, 50, 75, 100].map(v => (
+                        <button key={v}
+                          onClick={() => setDefaultHalfboardPct(Math.min(v, 100 - defaultBreakfastPct))}
+                          style={{
+                            flex: 1, fontSize: 9, fontWeight: 700, padding: "3px 0", borderRadius: 5,
+                            cursor: "pointer", border: "none",
+                            background: Math.round(defaultHalfboardPct) === v ? "#059669" : "#DCFCE7",
+                            color: Math.round(defaultHalfboardPct) === v ? "white" : "#065F46",
+                          }}
+                        >{v}%</button>
+                      ))}
+                    </div>
+                    {halfboardPrice > 0 && (
+                      <p style={{ fontSize: 11, color: "#047857", margin: "8px 0 0", fontWeight: 600 }}>
+                        Hozzájárulás: +{fmt(hbContrib)} Ft/szoba/éj
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Formula summary */}
+                {(defaultBreakfastPct > 0 || defaultHalfboardPct > 0) && (breakfastPrice > 0 || halfboardPrice > 0) && (
+                  <div style={{
+                    background: "#F5F3FF", border: "1px solid #DDD6FE",
+                    borderRadius: 10, padding: "10px 14px", marginTop: 12,
+                    fontSize: 12, color: "#5B21B6", lineHeight: 1.7,
+                  }}>
+                    <strong>Átlagos F&amp;B felár:</strong>{" "}
+                    ({Math.round(defaultBreakfastPct)}% × {fmt(breakfastPrice)}
+                    {defaultHalfboardPct > 0 && ` + ${Math.round(defaultHalfboardPct)}% × ${fmt(halfboardPrice)}`})
+                    {" "}× {avgPaxPerRoom} fő = <strong>+{fmt(totalBoardSuppl)} Ft/szoba/éj</strong>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Példa kalkuláció */}
           {fbEnabled && (breakfastPrice > 0 || halfboardPrice > 0) && (
