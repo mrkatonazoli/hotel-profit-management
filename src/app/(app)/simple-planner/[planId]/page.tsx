@@ -628,6 +628,10 @@ export default function SimplePlanDetailPage() {
         if (data?.avgPaxPerRoom !== undefined) setAvgPaxPerRoom(data.avgPaxPerRoom);
         if (data?.defaultBreakfastPct !== undefined) setBreakfastPct(data.defaultBreakfastPct);
         if (data?.defaultHalfboardPct !== undefined) setHalfboardPct(data.defaultHalfboardPct);
+        // Ha be vannak állítva az alapértékek, a gomb rögtön aktív legyen
+        if ((data?.defaultBreakfastPct ?? 0) > 0 || (data?.defaultHalfboardPct ?? 0) > 0) {
+          setBoardMixDirty(true);
+        }
         if (data?.fbOtherEnabled !== undefined) setFbOtherEnabled(data.fbOtherEnabled);
         if (data?.fbOtherPct !== undefined) setFbOtherPct(data.fbOtherPct);
         if (data?.spaEnabled !== undefined) setSpaEnabled(data.spaEnabled);
