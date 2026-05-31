@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed, Sliders, RotateCcw, Download, X, GitBranch, ChevronRight, Landmark, Share2, Sparkles, Copy, ExternalLink, Trash2, Lock, Eye, EyeOff, ShieldCheck, ShieldOff } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed, Sliders, RotateCcw, Download, X, GitBranch, ChevronRight, Landmark, Share2, Sparkles, Copy, ExternalLink, Trash2, Lock, Eye, EyeOff, ShieldCheck, ShieldOff, DollarSign } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart, Bar,
@@ -959,6 +959,18 @@ export default function SimplePlanDetailPage() {
     ? filledCalcs.filter(c => c.margin !== null).reduce((s, c) => s + (c.margin ?? 0), 0) / filledCalcs.filter(c => c.margin !== null).length
     : 0;
 
+  // Átlag ADR és szobaárbevétel/szoba/éj (szobaeladott éjszakával súlyozva)
+  const totalFilledRoomNights = filledCalcs.reduce((s, c) => s + c.roomNights, 0);
+  const weightedAvgAdr = totalFilledRoomNights > 0
+    ? filledCalcs.reduce((s, c) => {
+        const m = monthsWithBands.find(mm => mm.month === c.month);
+        return s + (m?.adr ?? 0) * c.roomNights;
+      }, 0) / totalFilledRoomNights
+    : 0;
+  const avgRevPerRoomNight = totalFilledRoomNights > 0
+    ? annualRevenue / totalFilledRoomNights
+    : 0;
+
   // Éves fedezeti pont: cost / (revenue − tfh) × avgOcc
   const annualNetRevenue = annualRevenue - annualTfh;
   const annualBreakeven = (annualNetRevenue > 0 && avgOcc > 0)
@@ -1893,7 +1905,7 @@ export default function SimplePlanDetailPage() {
       {/* SECTION B — KPI Cards */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
-      <div style={{ display: "grid", gridTemplateColumns: tfhEnabled ? "repeat(5, 1fr)" : "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: tfhEnabled ? "repeat(7, 1fr)" : "repeat(6, 1fr)", gap: 12, marginBottom: 20 }}>
         <KpiCard
           label="Éves bevétel"
           value={`${fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft`}
@@ -1936,6 +1948,20 @@ export default function SimplePlanDetailPage() {
           icon={<Percent size={16} />}
           delta={isSimActive ? `szimuláció aktív` : undefined}
           sub={filledCalcs.length > 0 ? `${filledCalcs.filter(c => c.margin !== null).length} hónap alapján` : "nincs adat"}
+        />
+        <KpiCard
+          label="Átlag ADR"
+          value={weightedAvgAdr > 0 ? `${fmt(Math.round(weightedAvgAdr))} Ft` : "—"}
+          color="#F59E0B"
+          icon={<DollarSign size={16} />}
+          sub="szobaeladott éjszakára vetítve"
+        />
+        <KpiCard
+          label="Szobaárbev./szoba/éj"
+          value={avgRevPerRoomNight > 0 ? `${fmt(Math.round(avgRevPerRoomNight))} Ft` : "—"}
+          color="#8B5CF6"
+          icon={<TrendingUp size={16} />}
+          sub={fbEnabled ? "ADR + F&B + egyéb" : "ADR alapján"}
         />
       </div>
 

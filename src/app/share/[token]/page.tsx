@@ -514,6 +514,18 @@ export default function SharePage() {
   const annualBreakeven = annualNetRevenue > 0 && avgOcc > 0
     ? (annualCost / annualNetRevenue) * avgOcc : null;
 
+  // Átlag ADR és szobaárbevétel/szoba/éj (szobaeladott éjszakával súlyozva)
+  const totalFilledRoomNights = filledCalcs.reduce((s, c) => s + c.roomNights, 0);
+  const weightedAvgAdr = totalFilledRoomNights > 0
+    ? filledCalcs.reduce((s, c) => {
+        const m = monthsWithBands.find(mm => mm.month === c.month);
+        return s + (m?.adr ?? 0) * c.roomNights;
+      }, 0) / totalFilledRoomNights
+    : 0;
+  const avgRevPerRoomNight = totalFilledRoomNights > 0
+    ? annualRevenue / totalFilledRoomNights
+    : 0;
+
   const isSimActive = simOffset !== 0;
   const simMonths = months.map(m => ({
     ...applyBoardDefaults(m),
@@ -812,7 +824,7 @@ export default function SharePage() {
           {/* ── KPI sor ── */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: settings.tfhEnabled ? "repeat(4, 1fr)" : "repeat(3, 1fr)",
+            gridTemplateColumns: settings.tfhEnabled ? "repeat(6, 1fr)" : "repeat(5, 1fr)",
           }}>
             {/* Bevétel */}
             {(() => {
@@ -968,6 +980,47 @@ export default function SharePage() {
                       {annualBreakeven !== null ? `fedezeti pont: ${Math.round(annualBreakeven)}%` : "éves átlag"}
                     </p>
                   )}
+                </div>
+              );
+            })()}
+
+            {/* Átlag ADR */}
+            {(() => {
+              return (
+                <div style={{
+                  padding: "24px 28px",
+                  borderRight: "1px solid #F1F5F9",
+                  borderTop: isSimActive ? "3px solid #F59E0B" : "3px solid #E2E8F0",
+                  transition: "border-color 0.3s",
+                }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span>💵</span> Átlag ADR
+                  </p>
+                  <p style={{ fontSize: 26, fontWeight: 800, color: "#B45309", margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                    {weightedAvgAdr > 0 ? `${fmt(Math.round(weightedAvgAdr))} Ft` : "—"}
+                  </p>
+                  <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>szobaeladott éjszakára</p>
+                </div>
+              );
+            })()}
+
+            {/* Átlag szobaárbevétel/szoba/éj */}
+            {(() => {
+              return (
+                <div style={{
+                  padding: "24px 28px",
+                  borderTop: isSimActive ? "3px solid #8B5CF6" : "3px solid #E2E8F0",
+                  transition: "border-color 0.3s",
+                }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span>🏷️</span> Szobaárbev./szoba/éj
+                  </p>
+                  <p style={{ fontSize: 26, fontWeight: 800, color: "#6D28D9", margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                    {avgRevPerRoomNight > 0 ? `${fmt(Math.round(avgRevPerRoomNight))} Ft` : "—"}
+                  </p>
+                  <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>
+                    {settings.fbEnabled ? "ADR + F&B + egyéb" : "ADR alapján"}
+                  </p>
                 </div>
               );
             })()}
