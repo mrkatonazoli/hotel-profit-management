@@ -75,18 +75,17 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, outOfO
   const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
   // Foglalt szobaéj = occ% × elérhető kapacitás
   const roomNights = (m.occupancyPct / 100) * availableNights;
-  // RevPAR (Ft/elérhető szoba/éj) → revenue = RevPAR × availableNights
-  // Ha nincs RevPAR: ADR × foglalt szobaéj
-  const revenue = m.roomRevenue > 0 ? m.roomRevenue * availableNights : roomNights * m.adr;
+  // Szobaárbevétel (Ft/szoba/éj) → revenue = roomRevenue × foglalt szobaéj (mint ADR)
+  // Ha nincs roomRevenue: ADR × foglalt szobaéj
+  const revenue = m.roomRevenue > 0 ? m.roomRevenue * roomNights : roomNights * m.adr;
   // monthlyCost = Ft/elérhető szoba/éj → kiadás csak az elérhető kapacitásra számolódik
   const cost = m.monthlyCost * availableNights;
   const profit = revenue - cost;
   const margin = revenue > 0 ? (profit / revenue) * 100 : null;
   // Egységes fedezeti pont képlet: (cost / revenue) × occ%
-  // – Ha roomRevenue (RevPAR) alapú: breakeven = kiadás × occ / roomRevenue
-  //   (pl. 39000 × 56 / 42000 = 52%)
-  // – Ha ADR alapú: breakeven = kiadás / ADR × 100
-  //   (a cost/revenue × occ leegyszerűsödik ugyanerre)
+  // – roomRevenue alapú: breakeven = monthlyCost / roomRevenue × 100
+  // – ADR alapú: breakeven = monthlyCost / ADR × 100
+  //   (mindkét esetben leegyszerűsödik erre)
   const breakeven = revenue > 0 && m.occupancyPct > 0
     ? (cost / revenue) * m.occupancyPct
     : m.adr > 0 && m.monthlyCost > 0
@@ -706,7 +705,6 @@ export default function SimplePlanDetailPage() {
   const simMonths: MonthData[] = months.map(m => ({
     ...m,
     occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
-    // roomRevenue = Ft/szoba/éj → fix érték, nem változik az occ-eltolással
     roomRevenue: m.roomRevenue,
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m =>
