@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calculator, Plus, Loader2, ArrowRight, Calendar, TrendingUp } from "lucide-react";
+import { Calculator, Plus, Loader2, ArrowRight, Calendar, Check, Pencil, X } from "lucide-react";
 
 type SimplePlanMonth = {
   id: string;
@@ -59,7 +59,18 @@ export default function SimplePlannerListPage() {
   const router = useRouter();
   const [plans, setPlans] = useState<SimplePlan[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // New plan form state
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newYear, setNewYear] = useState(new Date().getFullYear());
   const [creating, setCreating] = useState(false);
+  const newNameRef = useRef<HTMLInputElement>(null);
+
+  // Inline rename state: planId → draft name
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const renameRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     setLoading(true);
@@ -71,13 +82,21 @@ export default function SimplePlannerListPage() {
     }
   }
 
+  function openNewForm() {
+    setNewName(`Terv ${new Date().getFullYear()}`);
+    setNewYear(new Date().getFullYear());
+    setShowNewForm(true);
+    setTimeout(() => { newNameRef.current?.focus(); newNameRef.current?.select(); }, 50);
+  }
+
   async function createPlan() {
+    const name = newName.trim() || `Gyors terv ${newYear}`;
     setCreating(true);
     try {
       const res = await fetch("/api/simple-plans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: `Gyors terv ${new Date().getFullYear()}`, year: new Date().getFullYear() }),
+        body: JSON.stringify({ name, year: newYear }),
       });
       if (res.ok) {
         const plan = await res.json();
@@ -86,6 +105,29 @@ export default function SimplePlannerListPage() {
     } finally {
       setCreating(false);
     }
+  }
+
+  function startRename(plan: SimplePlan) {
+    setRenamingId(plan.id);
+    setRenameDraft(plan.name);
+    setTimeout(() => { renameRef.current?.focus(); renameRef.current?.select(); }, 30);
+  }
+
+  async function commitRename(planId: string) {
+    const name = renameDraft.trim();
+    if (!name) { cancelRename(); return; }
+    setPlans(prev => prev.map(p => p.id === planId ? { ...p, name } : p));
+    setRenamingId(null);
+    await fetch(`/api/simple-plans/${planId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  function cancelRename() {
+    setRenamingId(null);
+    setRenameDraft("");
   }
 
   useEffect(() => { load(); }, []);
@@ -110,7 +152,7 @@ export default function SimplePlannerListPage() {
         </div>
 
         <button
-          onClick={createPlan}
+          onClick={openNewForm}
           disabled={creating}
           style={{
             display: "flex", alignItems: "center", gap: 8,
@@ -124,6 +166,74 @@ export default function SimplePlannerListPage() {
           Új terv
         </button>
       </div>
+
+      {/* ── New plan form ── */}
+      {showNewForm && (
+        <div style={{
+          background: "white", border: "1px solid #DDD6FE", borderRadius: 16,
+          padding: "20px 24px", marginBottom: 20,
+          boxShadow: "0 4px 20px rgba(124,58,237,0.10)",
+        }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "#7C3AED", margin: "0 0 14px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Új terv létrehozása
+          </p>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              ref={newNameRef}
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") createPlan(); if (e.key === "Escape") setShowNewForm(false); }}
+              placeholder="Terv neve..."
+              style={{
+                flex: 1, minWidth: 200,
+                border: "1.5px solid #DDD6FE", borderRadius: 10,
+                padding: "9px 14px", fontSize: 14, fontWeight: 600,
+                color: "#0F172A", outline: "none", background: "#FAFAFA",
+              }}
+              onFocus={e => (e.currentTarget.style.borderColor = "#7C3AED")}
+              onBlur={e => (e.currentTarget.style.borderColor = "#DDD6FE")}
+            />
+            <select
+              value={newYear}
+              onChange={e => setNewYear(Number(e.target.value))}
+              style={{
+                border: "1.5px solid #E2E8F0", borderRadius: 10,
+                padding: "9px 12px", fontSize: 14, fontWeight: 600,
+                color: "#0F172A", background: "white", cursor: "pointer", outline: "none",
+              }}
+            >
+              {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+            <button
+              onClick={createPlan}
+              disabled={creating || !newName.trim()}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: creating || !newName.trim() ? "#E2E8F0" : "#7C3AED",
+                color: creating || !newName.trim() ? "#94A3B8" : "white",
+                border: "none", borderRadius: 10, padding: "9px 18px",
+                fontSize: 14, fontWeight: 600, cursor: creating || !newName.trim() ? "not-allowed" : "pointer",
+              }}
+            >
+              {creating ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              Létrehozás
+            </button>
+            <button
+              onClick={() => setShowNewForm(false)}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                background: "white", border: "1px solid #E2E8F0",
+                borderRadius: 10, padding: "9px 14px",
+                fontSize: 13, fontWeight: 600, color: "#64748B", cursor: "pointer",
+              }}
+            >
+              <X size={14} /> Mégse
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (
@@ -171,8 +281,54 @@ export default function SimplePlannerListPage() {
               >
                 {/* Plan header */}
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                  <div>
-                    <p style={{ fontWeight: 700, fontSize: 16, color: "#0F172A", margin: 0 }}>{plan.name}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {renamingId === plan.id ? (
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <input
+                          ref={renameRef}
+                          value={renameDraft}
+                          onChange={e => setRenameDraft(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === "Enter") commitRename(plan.id);
+                            if (e.key === "Escape") cancelRename();
+                          }}
+                          onBlur={() => commitRename(plan.id)}
+                          style={{
+                            flex: 1, minWidth: 0,
+                            fontSize: 15, fontWeight: 700, color: "#0F172A",
+                            border: "none", borderBottom: "2px solid #7C3AED",
+                            outline: "none", background: "transparent",
+                            padding: "0 2px",
+                          }}
+                        />
+                        <button
+                          onMouseDown={e => { e.preventDefault(); commitRename(plan.id); }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#10B981", padding: 2, display: "flex" }}
+                        >
+                          <Check size={14} />
+                        </button>
+                        <button
+                          onMouseDown={e => { e.preventDefault(); cancelRename(); }}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8", padding: 2, display: "flex" }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", group: true } as React.CSSProperties}
+                        onClick={() => startRename(plan)}
+                        title="Kattints az átnevezéshez"
+                      >
+                        <p style={{
+                          fontWeight: 700, fontSize: 16, color: "#0F172A", margin: 0,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {plan.name}
+                        </p>
+                        <Pencil size={12} color="#CBD5E1" style={{ flexShrink: 0 }} />
+                      </div>
+                    )}
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
                       <Calendar size={12} color="#94A3B8" />
                       <span style={{ fontSize: 12, color: "#94A3B8" }}>{plan.year} · létrehozva: {createdDate}</span>
