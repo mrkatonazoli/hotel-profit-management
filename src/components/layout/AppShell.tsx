@@ -12,6 +12,7 @@ interface AppShellProps {
   hotelName: string;
   userName?: string;
   userEmail?: string;
+  allowedModules?: string[] | null;
 }
 
 export default function AppShell({
@@ -21,6 +22,7 @@ export default function AppShell({
   hotelName,
   userName,
   userEmail,
+  allowedModules,
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
@@ -46,6 +48,7 @@ export default function AppShell({
         isSuperAdmin={isSuperAdmin}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        allowedModules={allowedModules}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Topbar

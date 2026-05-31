@@ -43,6 +43,20 @@ export async function POST(_req: Request, { params }: { params: Promise<{ token:
     update: { role: invite.role },
   });
 
+  // Set module access from invite
+  const inviteModules = invite.modules ? invite.modules.split(",").filter(Boolean) : [];
+  if (inviteModules.length > 0) {
+    const hu = await prisma.hotelUser.findUnique({
+      where: { hotelId_userId: { hotelId: invite.hotelId, userId: session.user.id } },
+    });
+    if (hu) {
+      await prisma.hotelUserModule.deleteMany({ where: { hotelUserId: hu.id } });
+      await prisma.hotelUserModule.createMany({
+        data: inviteModules.map(m => ({ hotelUserId: hu.id, module: m as Parameters<typeof prisma.hotelUserModule.create>[0]["data"]["module"] })),
+      });
+    }
+  }
+
   // Delete invite
   await prisma.invite.delete({ where: { token } });
 

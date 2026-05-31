@@ -22,30 +22,37 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard",         icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/revenue-planner",   icon: Calendar,        label: "Bevételtervező" },
-  { href: "/scenarios",         icon: GitBranch,       label: "Szcenáriók" },
-  { href: "/weighting",         icon: Scale,           label: "Súlyozás" },
-  { href: "/costs",             icon: DollarSign,      label: "Kiadások" },
-  { href: "/reporting",         icon: BarChart2,       label: "Riportok" },
-  { href: "/analysis",          icon: Search,          label: "Részletes elemzés" },
-  { href: "/historical-import", icon: Upload,          label: "Pickup import" },
+  { href: "/dashboard",         icon: LayoutDashboard, label: "Dashboard",          module: null },
+  { href: "/revenue-planner",   icon: Calendar,        label: "Bevételtervező",     module: "REVENUE_PLANNER" },
+  { href: "/scenarios",         icon: GitBranch,       label: "Szcenáriók",         module: "SCENARIOS" },
+  { href: "/weighting",         icon: Scale,           label: "Súlyozás",           module: "WEIGHTING" },
+  { href: "/costs",             icon: DollarSign,      label: "Kiadások",           module: "COSTS" },
+  { href: "/reporting",         icon: BarChart2,       label: "Riportok",           module: "REPORTING" },
+  { href: "/analysis",          icon: Search,          label: "Részletes elemzés",  module: "ANALYSIS" },
+  { href: "/historical-import", icon: Upload,          label: "Pickup import",      module: "HISTORICAL_IMPORT" },
 ];
 
 const bottomItems = [
-  { href: "/hotel-config", icon: Building2, label: "Hotel beállítások" },
-  { href: "/team",         icon: Users,     label: "Csapat" },
-  { href: "/settings",     icon: Settings,  label: "Beállítások" },
+  { href: "/hotel-config", icon: Building2, label: "Hotel beállítások", module: "HOTEL_CONFIG" },
+  { href: "/team",         icon: Users,     label: "Csapat",            module: "TEAM" },
+  { href: "/settings",     icon: Settings,  label: "Beállítások",       module: null },
 ];
 
 interface SidebarProps {
   isSuperAdmin?: boolean;
   isOpen?: boolean;
   onClose?: () => void;
+  allowedModules?: string[] | null;
 }
 
-export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose }: SidebarProps) {
+export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose, allowedModules }: SidebarProps) {
   const pathname = usePathname();
+
+  function isModuleAllowed(module: string | null): boolean {
+    if (allowedModules === null || allowedModules === undefined) return true;
+    if (module === null) return true;
+    return allowedModules.includes(module);
+  }
 
   const sidebarContent = (
     <aside
@@ -77,7 +84,7 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose 
 
       {/* Main nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ href, icon: Icon, label }) => {
+        {navItems.filter(item => isModuleAllowed(item.module)).map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
@@ -97,7 +104,7 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose 
         })}
 
         {/* ── Simple Planner — kiemelt menüpont ── */}
-        <div style={{ paddingTop: 10, paddingBottom: 2 }}>
+        {isModuleAllowed("SIMPLE_PLANNER") && <div style={{ paddingTop: 10, paddingBottom: 2 }}>
           <div style={{ height: 1, background: "#1E293B", marginBottom: 10 }} />
           {(() => {
             const active = pathname === "/simple-planner" || pathname.startsWith("/simple-planner/");
@@ -164,12 +171,12 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose 
               </Link>
             );
           })()}
-        </div>
+        </div>}
       </nav>
 
       {/* Bottom nav */}
       <div className="px-3 py-4 space-y-0.5" style={{ borderTop: "1px solid #1E293B" }}>
-        {bottomItems.map(({ href, icon: Icon, label }) => {
+        {bottomItems.filter(item => isModuleAllowed(item.module)).map(({ href, icon: Icon, label }) => {
           const active = pathname === href;
           return (
             <Link

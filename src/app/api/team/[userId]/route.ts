@@ -24,12 +24,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
     return NextResponse.json({ error: "Nincs jogosultságod" }, { status: 403 });
 
   const { userId } = await params;
-  const { role } = await req.json() as { role: "MANAGER" | "VIEWER" };
+  const { role, modules } = await req.json() as { role?: "MANAGER" | "VIEWER"; modules?: string[] };
 
   const updated = await prisma.hotelUser.update({
     where: { hotelId_userId: { hotelId: hotel.id, userId } },
-    data: { role },
+    data: role !== undefined ? { role } : {},
   });
+
+  if (modules !== undefined) {
+    const hu = await prisma.hotelUser.findUnique({
+      where: { hotelId_userId: { hotelId: hotel.id, userId } },
+    });
+    if (hu) {
+      await prisma.hotelUserModule.deleteMany({ where: { hotelUserId: hu.id } });
+      if (modules.length > 0) {
+        await prisma.hotelUserModule.createMany({
+          data: modules.map(m => ({ hotelUserId: hu.id, module: m as Parameters<typeof prisma.hotelUserModule.create>[0]["data"]["module"] })),
+        });
+      }
+    }
+  }
+
   return NextResponse.json(updated);
 }
 

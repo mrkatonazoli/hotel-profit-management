@@ -15,7 +15,10 @@ export async function GET() {
   const [members, invites] = await Promise.all([
     prisma.hotelUser.findMany({
       where: { hotelId: hotel.id },
-      include: { user: { select: { id: true, name: true, email: true, image: true, role: true } } },
+      include: {
+        user: { select: { id: true, name: true, email: true, image: true, role: true } },
+        modules: true,
+      },
       orderBy: { user: { name: "asc" } },
     }),
     prisma.invite.findMany({
@@ -32,6 +35,7 @@ export async function GET() {
       image: m.user.image,
       role: m.role,
       isSuperAdmin: m.user.role === "SUPER_ADMIN",
+      modules: m.modules.map(mod => mod.module),
     })),
     invites: invites.map(i => ({
       id: i.id,
@@ -60,7 +64,7 @@ export async function POST(req: Request) {
   const canInvite = callerUser?.role === "SUPER_ADMIN" || caller?.role === "MANAGER";
   if (!canInvite) return NextResponse.json({ error: "Nincs jogosultságod meghívóhoz" }, { status: 403 });
 
-  const { email, role } = await req.json() as { email: string; role: "MANAGER" | "VIEWER" };
+  const { email, role, modules } = await req.json() as { email: string; role: "MANAGER" | "VIEWER"; modules?: string[] };
   if (!email) return NextResponse.json({ error: "Email kötelező" }, { status: 400 });
 
   const normalizedEmail = email.toLowerCase().trim();
@@ -75,9 +79,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Ez a felhasználó már tagja a csapatnak" }, { status: 409 });
     }
     // Add directly
-    await prisma.hotelUser.create({
+    const hotelUser = await prisma.hotelUser.create({
       data: { hotelId: hotel.id, userId: existingUser.id, role },
     });
+    if (modules && modules.length > 0) {
+      await prisma.hotelUserModule.createMany({
+        data: modules.map(m => ({ hotelUserId: hotelUser.id, module: m as Parameters<typeof prisma.hotelUserModule.create>[0]["data"]["module"] })),
+      });
+    }
     // Clean up any pending invite for this email
     await prisma.invite.deleteMany({ where: { hotelId: hotel.id, email: normalizedEmail } });
     return NextResponse.json({ type: "added", name: existingUser.name ?? normalizedEmail });
@@ -85,10 +94,11 @@ export async function POST(req: Request) {
 
   // User doesn't exist — create/refresh invite link
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const moduleString = (modules ?? []).join(",");
   const invite = await prisma.invite.upsert({
     where: { hotelId_email: { hotelId: hotel.id, email: normalizedEmail } },
-    create: { hotelId: hotel.id, email: normalizedEmail, role, expiresAt },
-    update: { role, expiresAt, token: undefined }, // refresh expiry, keep token
+    create: { hotelId: hotel.id, email: normalizedEmail, role, expiresAt, modules: moduleString },
+    update: { role, expiresAt, modules: moduleString, token: undefined }, // refresh expiry, keep token
   });
 
   const baseUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";

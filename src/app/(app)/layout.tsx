@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import AppShell from "@/components/layout/AppShell";
+import { getUserModuleAccess } from "@/lib/module-access";
 
 export default async function AppLayout({
   children,
@@ -65,6 +66,8 @@ export default async function AppLayout({
   // Guard: if hotel not yet onboarded, send to wizard
   if (!activeHotel.isOnboarded) redirect("/onboarding");
 
+  const allowedModules = isSuperAdmin ? null : await getUserModuleAccess(session.user.id, activeHotel.id);
+
   return (
     <AppShell
       isSuperAdmin={isSuperAdmin}
@@ -72,6 +75,7 @@ export default async function AppLayout({
       hotelName={activeHotel.name}
       userName={session.user?.name ?? undefined}
       userEmail={session.user?.email ?? undefined}
+      allowedModules={allowedModules}
     >
       {children}
     </AppShell>

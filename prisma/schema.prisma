@@ -84,6 +84,7 @@ model HotelUser {
   role      HotelRole @default(MANAGER)
   hotel     Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modules   HotelUserModule[]
 
   @@unique([hotelId, userId])
 }
@@ -96,6 +97,7 @@ model Invite {
   token     String    @unique @default(cuid())
   expiresAt DateTime
   createdAt DateTime  @default(now())
+  modules   String    @default("")
   hotel     Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 
   @@unique([hotelId, email])
@@ -479,6 +481,30 @@ model AiTokenLog {
 
   @@index([date])
   @@index([feature])
+}
+
+// ─── MODULE ACCESS ───────────────────────────────────────────────────────────
+
+enum ModuleType {
+  SIMPLE_PLANNER
+  REVENUE_PLANNER
+  SCENARIOS
+  WEIGHTING
+  COSTS
+  REPORTING
+  ANALYSIS
+  HISTORICAL_IMPORT
+  HOTEL_CONFIG
+  TEAM
+}
+
+model HotelUserModule {
+  id          String     @id @default(cuid())
+  hotelUserId String
+  module      ModuleType
+  hotelUser   HotelUser  @relation(fields: [hotelUserId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelUserId, module])
 }
 
 // ─── SIMPLE PLANNER ──────────────────────────────────────────────────────────
