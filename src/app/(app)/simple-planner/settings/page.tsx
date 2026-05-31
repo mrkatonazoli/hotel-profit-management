@@ -805,20 +805,6 @@ export default function SimplePlannerSettingsPage() {
             );
           })()}
 
-          {/* Példa kalkuláció */}
-          {fbEnabled && (breakfastPrice > 0 || halfboardPrice > 0) && (
-            <div style={{
-              background: "#F5F3FF", border: "1px solid #DDD6FE",
-              borderRadius: 12, padding: "12px 16px",
-              fontSize: 12, color: "#5B21B6", lineHeight: 1.7,
-            }}>
-              <strong>Példa:</strong> ha 60% reggeli és 20% félpanzió mix → felár/szoba/éj =&nbsp;
-              <strong>
-                {Math.round(avgPaxPerRoom * (0.6 * breakfastPrice + 0.2 * halfboardPrice)).toLocaleString("hu-HU")} Ft
-              </strong>
-              &nbsp;(1.8 fő × (60% × {breakfastPrice.toLocaleString("hu-HU")} + 20% × {halfboardPrice.toLocaleString("hu-HU")} Ft))
-            </div>
-          )}
         </div>
       </div>
 
