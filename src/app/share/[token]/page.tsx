@@ -293,8 +293,9 @@ export default function SharePage() {
   );
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
   const simAnnualRevenue = simCalcs.reduce((s, c) => s + c.revenue, 0);
-  const simAnnualTfh = simCalcs.reduce((s, c) => s + c.tfh, 0);
-  const simAnnualProfit = simAnnualRevenue - annualCost - simAnnualTfh;
+  const simAnnualCost   = simCalcs.reduce((s, c) => s + c.cost,    0);
+  const simAnnualTfh    = simCalcs.reduce((s, c) => s + c.tfh,     0);
+  const simAnnualProfit = simAnnualRevenue - simAnnualCost - simAnnualTfh;
   const simAvgOcc = simFilledCalcs.length > 0
     ? simFilledCalcs.reduce((s, c) => s + (simMonths.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / simFilledCalcs.length
     : 0;
@@ -857,7 +858,7 @@ export default function SharePage() {
                     {fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft
                   </td>
                   <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600, color: "#64748B", fontVariantNumeric: "tabular-nums" }}>
-                    {fmtM(annualCost)} Ft
+                    {fmtM(isSimActive ? simAnnualCost : annualCost)} Ft
                   </td>
                   {settings.tfhEnabled && (
                     <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#D97706", fontVariantNumeric: "tabular-nums" }}>

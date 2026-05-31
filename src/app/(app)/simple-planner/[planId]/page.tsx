@@ -828,8 +828,9 @@ export default function SimplePlanDetailPage() {
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
 
   const simAnnualRevenue = simCalcs.reduce((s, c) => s + c.revenue, 0);
-  const simAnnualTfh = simCalcs.reduce((s, c) => s + c.tfh, 0);
-  const simAnnualProfit = simAnnualRevenue - annualCost - simAnnualTfh;
+  const simAnnualCost   = simCalcs.reduce((s, c) => s + c.cost,    0);
+  const simAnnualTfh    = simCalcs.reduce((s, c) => s + c.tfh,     0);
+  const simAnnualProfit = simAnnualRevenue - simAnnualCost - simAnnualTfh;
   const simAvgOcc = simFilledCalcs.length > 0
     ? simFilledCalcs.reduce((s, c) => s + (simMonths.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / simFilledCalcs.length
     : 0;
@@ -1830,7 +1831,7 @@ export default function SimplePlanDetailPage() {
                 </td>
                 <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8", fontSize: 11 }}>—</td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
-                  {fmtM(annualCost)}
+                  {fmtM(isSimActive ? simAnnualCost : annualCost)}
                 </td>
                 {tfhEnabled && (
                   <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#EF4444" }}>
