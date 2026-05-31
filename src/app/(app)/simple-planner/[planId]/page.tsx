@@ -1582,20 +1582,28 @@ export default function SimplePlanDetailPage() {
           saveMonths(updated);
         }
 
-        // Kiszámolja és elmenti az ADR+F&B+egyéb bevételt roomRevenue-ként minden hónapra
+        // Kiszámolja és elmenti az ADR + F&B board + spa + egyéb bevételt roomRevenue-ként
+        // Pontosan ugyanaz a formula, mint a computeMonthCalc — minden aktív bevételi kategória
         function saveComputedRevenues() {
           const updated = months.map(m => {
+            if (m.adr === 0) return m; // ADR nélkül nincs mit számolni
             const mWithDef = applyBoardDefaults(m);
-            const bPct = mWithDef.breakfastPct;
-            const hPct = mWithDef.halfboardPct;
-            const board = avgPaxPerRoom * ((bPct / 100) * breakfastPrice + (hPct / 100) * halfboardPrice);
+            // F&B board supplement (csak ha fbEnabled)
+            let board = 0;
+            if (fbEnabled) {
+              board = avgPaxPerRoom * (
+                (mWithDef.breakfastPct / 100) * breakfastPrice +
+                (mWithDef.halfboardPct / 100) * halfboardPrice
+              );
+            }
+            // Egyéb bevételek: ADR %-a (F&B egyéb + Spa + Egyéb bevétel)
             const extraPct =
               (fbOtherEnabled ? fbOtherPct : 0) +
               (spaEnabled ? spaPct : 0) +
               (otherRevenueEnabled ? otherRevenuePct : 0);
             const extra = m.adr * (extraPct / 100);
-            const computed = m.adr > 0 ? Math.round(m.adr + board + extra) : 0;
-            return { ...m, roomRevenue: computed };
+            // Teljes szoba árbevétel/szoba/éj = ADR + board + spa + egyéb
+            return { ...m, roomRevenue: Math.round(m.adr + board + extra) };
           });
           setMonths(updated);
           saveMonths(updated);
