@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed, Sliders, RotateCcw, Download, X, GitBranch, ChevronRight, Landmark, Share2, Sparkles, Copy, ExternalLink, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed, Sliders, RotateCcw, Download, X, GitBranch, ChevronRight, Landmark, Share2, Sparkles, Copy, ExternalLink, Trash2, Lock, Eye, EyeOff, ShieldCheck, ShieldOff } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart, Bar,
@@ -603,6 +603,7 @@ export default function SimplePlanDetailPage() {
     shareEnabled: boolean;
     shareSummary: string;
     shareExpiresAt: string | null;
+    sharePasswordSet: boolean;
   } | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareSaving, setShareSaving] = useState(false);
@@ -610,6 +611,10 @@ export default function SimplePlanDetailPage() {
   const [shareExpiry, setShareExpiry] = useState<"forever" | "custom">("forever");
   const [shareExpiryDate, setShareExpiryDate] = useState("");
   const [copiedShareLink, setCopiedShareLink] = useState(false);
+  // Password state: null = untouched (don't change), "" = cleared, string = new password
+  const [sharePasswordDraft, setSharePasswordDraft] = useState<string | null>(null);
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [showPasswordValue, setShowPasswordValue] = useState(false);
 
   async function loadShareState() {
     setShareLoading(true);
@@ -630,23 +635,34 @@ export default function SimplePlanDetailPage() {
 
   function openShareModal() {
     setShowShareModal(true);
+    setSharePasswordDraft(null);
+    setShowPasswordInput(false);
+    setShowPasswordValue(false);
     loadShareState();
   }
 
   async function saveShare() {
     setShareSaving(true);
+    const body: Record<string, unknown> = {
+      enabled: shareState?.shareEnabled ?? false,
+      summary: shareState?.shareSummary ?? "",
+      expiresAt: shareExpiry === "forever" ? null : shareExpiryDate || null,
+    };
+    // Only include password if it was explicitly changed
+    if (sharePasswordDraft !== null) {
+      body.password = sharePasswordDraft; // "" = remove, string = set new
+    }
     const res = await fetch(`/api/simple-plans/${planId}/share`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        enabled: shareState?.shareEnabled ?? false,
-        summary: shareState?.shareSummary ?? "",
-        expiresAt: shareExpiry === "forever" ? null : shareExpiryDate || null,
-      }),
+      body: JSON.stringify(body),
     });
     if (res.ok) {
       const data = await res.json();
       setShareState(data);
+      setSharePasswordDraft(null);
+      setShowPasswordInput(false);
+      setShowPasswordValue(false);
     }
     setShareSaving(false);
   }
@@ -1042,7 +1058,123 @@ export default function SimplePlanDetailPage() {
                     )}
                   </div>
 
-                  {/* Section 2: Summary */}
+                  {/* Section 2: Password */}
+                  <div>
+                    <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: "0 0 14px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Jelszóvédelem
+                    </h3>
+
+                    {/* Current status badge */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {(shareState?.sharePasswordSet || sharePasswordDraft) && sharePasswordDraft !== "" ? (
+                          <span style={{
+                            display: "flex", alignItems: "center", gap: 6,
+                            fontSize: 13, fontWeight: 600,
+                            background: "#F0FDF4", color: "#059669",
+                            border: "1px solid #BBF7D0",
+                            borderRadius: 8, padding: "4px 10px",
+                          }}>
+                            <ShieldCheck size={13} /> Jelszóval védett
+                          </span>
+                        ) : (
+                          <span style={{
+                            display: "flex", alignItems: "center", gap: 6,
+                            fontSize: 13, fontWeight: 600,
+                            background: "#F8FAFC", color: "#94A3B8",
+                            border: "1px solid #E2E8F0",
+                            borderRadius: 8, padding: "4px 10px",
+                          }}>
+                            <ShieldOff size={13} /> Nyilvános (nincs jelszó)
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {!showPasswordInput && (
+                          <button
+                            onClick={() => { setShowPasswordInput(true); setSharePasswordDraft(""); setShowPasswordValue(false); }}
+                            style={{
+                              fontSize: 12, fontWeight: 600, cursor: "pointer",
+                              padding: "5px 12px", borderRadius: 8,
+                              background: "#F5F3FF", color: "#7C3AED",
+                              border: "1px solid #DDD6FE",
+                            }}
+                          >
+                            <Lock size={11} style={{ display: "inline", marginRight: 4 }} />
+                            {shareState?.sharePasswordSet ? "Módosítás" : "Jelszó beállítása"}
+                          </button>
+                        )}
+                        {(shareState?.sharePasswordSet || (sharePasswordDraft !== null && sharePasswordDraft !== "")) && !showPasswordInput && (
+                          <button
+                            onClick={() => { setSharePasswordDraft(""); setShowPasswordInput(false); }}
+                            style={{
+                              fontSize: 12, fontWeight: 600, cursor: "pointer",
+                              padding: "5px 12px", borderRadius: 8,
+                              background: "#FEF2F2", color: "#EF4444",
+                              border: "1px solid #FECACA",
+                            }}
+                          >
+                            Eltávolítás
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Password input */}
+                    {showPasswordInput && (
+                      <div style={{
+                        background: "#F8FAFC", border: "1px solid #E2E8F0",
+                        borderRadius: 12, padding: "14px 16px",
+                      }}>
+                        <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 10px", fontWeight: 500 }}>
+                          {shareState?.sharePasswordSet ? "Új jelszó megadása (felülírja a régit):" : "Jelszó megadása:"}
+                        </p>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <div style={{ flex: 1, position: "relative" }}>
+                            <input
+                              type={showPasswordValue ? "text" : "password"}
+                              value={sharePasswordDraft ?? ""}
+                              onChange={e => setSharePasswordDraft(e.target.value)}
+                              placeholder="Min. 4 karakter..."
+                              autoFocus
+                              style={{
+                                width: "100%", boxSizing: "border-box",
+                                border: "1px solid #E2E8F0", borderRadius: 8,
+                                padding: "8px 40px 8px 12px",
+                                fontSize: 13, color: "#0F172A", outline: "none",
+                                background: "white",
+                              }}
+                            />
+                            <button
+                              onClick={() => setShowPasswordValue(v => !v)}
+                              style={{
+                                position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                                background: "none", border: "none", cursor: "pointer", color: "#94A3B8",
+                                display: "flex", alignItems: "center",
+                              }}
+                            >
+                              {showPasswordValue ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => { setShowPasswordInput(false); if (!sharePasswordDraft) setSharePasswordDraft(null); }}
+                            style={{
+                              padding: "8px 12px", borderRadius: 8,
+                              background: "white", border: "1px solid #E2E8F0",
+                              cursor: "pointer", color: "#64748B", fontSize: 12, fontWeight: 600,
+                            }}
+                          >
+                            Mégse
+                          </button>
+                        </div>
+                        <p style={{ fontSize: 11, color: "#94A3B8", margin: "8px 0 0" }}>
+                          A jelszó a Mentés gombra kattintva kerül alkalmazásra.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section 3: Summary */}
                   <div>
                     <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       Összefoglaló szöveg

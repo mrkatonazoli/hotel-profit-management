@@ -208,17 +208,64 @@ export default function SharePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<"not_found" | "expired" | null>(null);
   const [simOffset, setSimOffset] = useState(0);
+  const [passwordRequired, setPasswordRequired] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
+  const [passwordChecking, setPasswordChecking] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
 
-  useEffect(() => {
-    fetch(`/api/public/share/${token}`)
-      .then(async res => {
-        if (res.status === 410) { setError("expired"); return; }
-        if (!res.ok) { setError("not_found"); return; }
-        setData(await res.json() as ShareData);
-      })
-      .catch(() => setError("not_found"))
-      .finally(() => setLoading(false));
-  }, [token]);
+  async function fetchData(pwd?: string) {
+    const headers: Record<string, string> = {};
+    if (pwd) headers["X-Share-Password"] = pwd;
+    try {
+      const res = await fetch(`/api/public/share/${token}`, { headers });
+      if (res.status === 410) { setError("expired"); return; }
+      if (res.status === 401) {
+        const json = await res.json().catch(() => ({}));
+        if (json.error === "password_required") {
+          setPasswordRequired(true);
+          // Try sessionStorage cached password first
+          if (!pwd) {
+            const cached = sessionStorage.getItem(`share_pwd_${token}`);
+            if (cached) { fetchData(cached); return; }
+          }
+          return;
+        }
+        setError("not_found");
+        return;
+      }
+      if (!res.ok) { setError("not_found"); return; }
+      if (pwd) sessionStorage.setItem(`share_pwd_${token}`, pwd);
+      setData(await res.json() as ShareData);
+    } catch {
+      setError("not_found");
+    } finally {
+      setLoading(false);
+      setPasswordChecking(false);
+    }
+  }
+
+  useEffect(() => { fetchData(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function submitPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!passwordInput.trim()) return;
+    setPasswordError(false);
+    setPasswordChecking(true);
+    const headers: Record<string, string> = { "X-Share-Password": passwordInput };
+    const res = await fetch(`/api/public/share/${token}`, { headers });
+    if (res.status === 401) {
+      setPasswordError(true);
+      setPasswordChecking(false);
+      return;
+    }
+    if (!res.ok) { setError("not_found"); setPasswordChecking(false); return; }
+    sessionStorage.setItem(`share_pwd_${token}`, passwordInput);
+    setData(await res.json() as ShareData);
+    setPasswordRequired(false);
+    setPasswordChecking(false);
+    setLoading(false);
+  }
 
   if (loading) {
     return (
@@ -247,13 +294,126 @@ export default function SharePage() {
       desc="A megosztott prezentáció érvényessége lejárt. Kérd a szálloda munkatársait egy új link küldéséért."
     />
   );
-  if (error === "not_found" || !data) return (
+  if (error === "not_found") return (
     <FullScreenMessage
       icon="🔒"
       title="A prezentáció nem elérhető"
       desc="Ez a megosztási link nem érvényes, vagy már visszavonták."
     />
   );
+
+  // ── Password gate ──────────────────────────────────────────────────────────
+  if (passwordRequired && !data) return (
+    <div style={{
+      minHeight: "100vh", background: "#F1F5F9",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      padding: 24,
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    }}>
+      {/* Branding */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 18,
+        }}>📈</div>
+        <span style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>Hotel Profit</span>
+      </div>
+
+      <div style={{
+        background: "white", borderRadius: 24,
+        border: "1px solid #E2E8F0",
+        boxShadow: "0 8px 32px rgba(15,23,42,0.1)",
+        padding: "40px 40px 36px",
+        width: "100%", maxWidth: 400,
+      }}>
+        {/* Lock icon */}
+        <div style={{
+          width: 56, height: 56, borderRadius: 16,
+          background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          margin: "0 auto 20px",
+          boxShadow: "0 8px 24px rgba(124,58,237,0.3)",
+        }}>
+          <span style={{ fontSize: 26 }}>🔐</span>
+        </div>
+
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", margin: "0 0 6px", textAlign: "center", letterSpacing: "-0.02em" }}>
+          Jelszóval védett tartalom
+        </h1>
+        <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 28px", textAlign: "center", lineHeight: 1.6 }}>
+          A prezentáció megtekintéséhez add meg a hozzáférési jelszót.
+        </p>
+
+        <form onSubmit={submitPassword} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPwd ? "text" : "password"}
+              value={passwordInput}
+              onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
+              placeholder="Jelszó..."
+              autoFocus
+              style={{
+                width: "100%", boxSizing: "border-box",
+                border: `1.5px solid ${passwordError ? "#EF4444" : "#E2E8F0"}`,
+                borderRadius: 12, padding: "12px 44px 12px 16px",
+                fontSize: 14, color: "#0F172A", outline: "none",
+                background: passwordError ? "#FEF2F2" : "#F8FAFC",
+                transition: "border-color 0.15s",
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPwd(v => !v)}
+              style={{
+                position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                background: "none", border: "none", cursor: "pointer", color: "#94A3B8",
+                display: "flex", alignItems: "center", padding: 0,
+              }}
+            >
+              {showPwd
+                ? <span style={{ fontSize: 16 }}>🙈</span>
+                : <span style={{ fontSize: 16 }}>👁️</span>}
+            </button>
+          </div>
+
+          {passwordError && (
+            <p style={{ fontSize: 12, color: "#EF4444", margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              ✗ Helytelen jelszó. Próbáld újra.
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={passwordChecking || !passwordInput.trim()}
+            style={{
+              padding: "13px 24px", borderRadius: 12, border: "none",
+              background: passwordChecking || !passwordInput.trim()
+                ? "#E2E8F0" : "linear-gradient(135deg,#7C3AED,#5B21B6)",
+              color: passwordChecking || !passwordInput.trim() ? "#94A3B8" : "white",
+              fontSize: 14, fontWeight: 700, cursor: passwordChecking || !passwordInput.trim() ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              transition: "all 0.2s",
+              boxShadow: passwordChecking || !passwordInput.trim() ? "none" : "0 4px 16px rgba(124,58,237,0.3)",
+            }}
+          >
+            {passwordChecking
+              ? <><span style={{ fontSize: 14 }}>⏳</span> Ellenőrzés…</>
+              : <><span style={{ fontSize: 14 }}>🔓</span> Megtekintés</>}
+          </button>
+        </form>
+      </div>
+
+      <p style={{ fontSize: 11, color: "#CBD5E1", marginTop: 24 }}>
+        Hotel Profit · Biztonságos megosztás
+      </p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  if (!data) return null;
 
   // ─── Calculations ─────────────────────────────────────────────────────────
 

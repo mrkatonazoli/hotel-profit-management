@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createHash } from "crypto";
 
 type Params = { params: Promise<{ token: string }> };
 
-export async function GET(_req: Request, { params }: Params) {
+function hashPassword(plain: string): string {
+  return createHash("sha256").update(plain).digest("hex");
+}
+
+export async function GET(req: Request, { params }: Params) {
   const { token } = await params;
 
   const plan = await prisma.simplePlan.findFirst({
@@ -20,7 +25,15 @@ export async function GET(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "expired" }, { status: 410 });
   }
 
-  // Fetch settings for cost band calculation
+  // ── Password check ─────────────────────────────────────────────────────────
+  if (plan.sharePassword) {
+    const provided = req.headers.get("X-Share-Password");
+    if (!provided || hashPassword(provided) !== plan.sharePassword) {
+      return NextResponse.json({ error: "password_required" }, { status: 401 });
+    }
+  }
+
+  // ── Fetch settings for cost band calculation ───────────────────────────────
   const settings = await prisma.simplePlannerSettings.findUnique({
     where: { hotelId: plan.hotelId },
     include: { costBands: { orderBy: { sortOrder: "asc" } } },

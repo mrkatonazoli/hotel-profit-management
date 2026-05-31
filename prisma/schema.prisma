@@ -519,6 +519,7 @@ model SimplePlan {
   shareEnabled   Boolean   @default(false)
   shareSummary   String?
   shareExpiresAt DateTime?
+  sharePassword  String?   // SHA-256 hash, null = no password
   hotel          Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   months         SimplePlanMonth[]
 }
