@@ -130,7 +130,7 @@ export default function VerifyPage() {
             <TrendingUp size={20} color="white" />
           </div>
           <span className="font-bold text-xl" style={{ color: "#F8FAFC" }}>
-            Hotel Profit
+            HeyMax!
           </span>
         </div>
 

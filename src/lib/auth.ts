@@ -31,12 +31,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         await transport.sendMail({
           to: email,
           from: provider.from,
-          subject: "Bejelentkezési kód – Hotel Profit",
+          subject: "Bejelentkezési kód – HeyMax!",
           text: `A bejelentkezési kódod: ${token}\n\nA kód 10 percig érvényes.\n\nAlternatívaként kattints erre a linkre: ${url}`,
           html: `
             <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #F1F5F9; padding: 40px 24px;">
               <div style="background: #0F172A; border-radius: 16px; padding: 40px; text-align: center;">
-                <div style="color: #7C3AED; font-size: 13px; font-weight: 600; letter-spacing: 2px; margin-bottom: 8px;">HOTEL PROFIT</div>
+                <div style="color: #7C3AED; font-size: 13px; font-weight: 600; letter-spacing: 2px; margin-bottom: 8px;">HEYMAX!</div>
                 <h1 style="color: #F8FAFC; font-size: 22px; font-weight: 700; margin: 0 0 8px;">Bejelentkezési kód</h1>
                 <p style="color: #94A3B8; font-size: 14px; margin: 0 0 32px;">Add meg ezt a kódot a bejelentkezési oldalon</p>
                 <div style="background: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 32px;">

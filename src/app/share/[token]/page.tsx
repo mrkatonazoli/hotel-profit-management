@@ -223,7 +223,7 @@ function FullScreenMessage({ icon, title, desc }: { icon: string; title: string;
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 18,
         }}>📈</div>
-        <span style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>Hotel Profit</span>
+        <span style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>HeyMax!</span>
       </div>
 
       <div style={{
@@ -361,7 +361,7 @@ export default function SharePage() {
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 18,
         }}>📈</div>
-        <span style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>Hotel Profit</span>
+        <span style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>HeyMax!</span>
       </div>
 
       <div style={{
@@ -449,7 +449,7 @@ export default function SharePage() {
       </div>
 
       <p style={{ fontSize: 11, color: "#CBD5E1", marginTop: 24 }}>
-        Hotel Profit · Biztonságos megosztás
+        HeyMax! · Biztonságos megosztás
       </p>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -613,7 +613,7 @@ export default function SharePage() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 14,
               }}>📈</div>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>Hotel Profit</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>HeyMax!</span>
             </div>
           </div>
         </div>
@@ -1730,7 +1730,7 @@ export default function SharePage() {
               fontSize: 11,
             }}>📈</div>
             <span style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", letterSpacing: "-0.01em" }}>
-              Hotel Profit
+              HeyMax!
             </span>
           </div>
         </div>

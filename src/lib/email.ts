@@ -20,7 +20,7 @@ export async function sendInviteEmail(opts: {
 }) {
   const { to, hotelName, hotelCity, role, inviteUrl, expiresInDays = 7 } = opts;
   const roleLabel = role === "MANAGER" ? "Manager" : "Professional";
-  const from = process.env.EMAIL_FROM ?? "Hotel Profit <hotelprofitmaster@gmail.com>";
+  const from = process.env.EMAIL_FROM ?? "HeyMax! <hello@heymax.app>";
 
   await transporter.sendMail({
     from,
@@ -42,7 +42,7 @@ export async function sendInviteEmail(opts: {
             <div style="width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
               <span style="font-size:24px;">📈</span>
             </div>
-            <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Hotel Profit</h1>
+            <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">HeyMax!</h1>
             <p style="margin:6px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Profit tervezés és elemzés</p>
           </td>
         </tr>
@@ -91,7 +91,7 @@ export async function sendInviteEmail(opts: {
         <tr>
           <td style="background:#F8FAFC;padding:20px 40px;border-top:1px solid #E2E8F0;text-align:center;">
             <p style="margin:0;font-size:12px;color:#94A3B8;">
-              Hotel Profit · hotelprofitmaster@gmail.com
+              HeyMax! · hotelprofitmaster@gmail.com
             </p>
           </td>
         </tr>

@@ -73,22 +73,21 @@ export default function LoginPage() {
         <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 42, height: 42, background: "#7C3AED", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🏨</div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>Hotel Profit</div>
-            <div style={{ fontSize: 11, color: "#475569", marginTop: 1 }}>Profit Management Platform</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>HeyMax!</div>
+            <div style={{ fontSize: 11, color: "#475569", marginTop: 1 }}>Plan. Forecast. Maximize.</div>
           </div>
         </div>
 
         {/* Headline */}
         <div style={{ position: "relative", zIndex: 1 }}>
           <h1 style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em", color: "#fff", marginBottom: 24 }}>
-            Ahol a profit<br />
+            Maximize your<br />
             <span style={{ background: "linear-gradient(135deg, #7C3AED, #10B981)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-              tervezhetővé
-            </span><br />
-            válik.
+              hotel&apos;s profit.
+            </span>
           </h1>
           <p style={{ fontSize: 16, fontWeight: 400, color: "#64748B", lineHeight: 1.6, maxWidth: 380 }}>
-            Valós idejű bevételtervezés, pickup forecast és AI alapú stratégiai ajánlások — egy helyen, az Ön szállodájára szabva.
+            Plan. Forecast. Maximize. — Valós idejű bevételtervezés, pickup forecast és AI alapú stratégiai ajánlások, az Ön szállodájára szabva.
           </p>
         </div>
 

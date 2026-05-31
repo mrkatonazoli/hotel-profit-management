@@ -461,7 +461,7 @@ export default function ManualPage() {
 
         {/* Footer */}
         <div style={{ textAlign: "center", marginTop: 12 }}>
-          <p style={{ fontSize: 12, color: "#94A3B8" }}>Hotel Profit · Simple Planner kézikönyv</p>
+          <p style={{ fontSize: 12, color: "#94A3B8" }}>HeyMax! · Simple Planner kézikönyv</p>
           <Link href="/simple-planner" style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             marginTop: 8, fontSize: 13, fontWeight: 600, color: "#7C3AED", textDecoration: "none",

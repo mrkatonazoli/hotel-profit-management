@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hotel Profit",
-  description: "Ahol a profit tervezhetővé válik.",
+  title: "HeyMax!",
+  description: "Maximize your hotel's profit.",
 };
 
 export default function RootLayout({

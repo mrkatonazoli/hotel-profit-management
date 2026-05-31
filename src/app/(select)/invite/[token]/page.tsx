@@ -64,7 +64,7 @@ export default function InvitePage() {
             style={{ background: "linear-gradient(135deg, #7C3AED, #5B21B6)", boxShadow: "0 8px 32px rgba(124,58,237,0.4)" }}>
             <BarChart3 size={24} color="white" />
           </div>
-          <h1 className="text-2xl font-bold" style={{ color: "#F8FAFC" }}>Hotel Profit</h1>
+          <h1 className="text-2xl font-bold" style={{ color: "#F8FAFC" }}>HeyMax!</h1>
         </div>
 
         {/* Card */}

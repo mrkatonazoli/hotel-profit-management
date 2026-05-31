@@ -70,7 +70,7 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
             <TrendingUp size={16} color="white" />
           </div>
           <span className="font-bold text-base" style={{ color: "#F8FAFC" }}>
-            Hotel Profit
+            HeyMax!
           </span>
         </div>
         {/* Close button — only visible on mobile */}
