@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, Trash2, Save, Loader2, Check,
-  Settings2, TrendingDown, TrendingUp, Landmark, Utensils, Users,
+  Settings2, Landmark, Utensils, Users,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -19,7 +19,6 @@ type CostBand = {
 
 type Settings = {
   id: string;
-  optimalOccupancyPct: number;
   tfhEnabled: boolean;
   tfhRate: number;
   fbEnabled: boolean;
@@ -46,7 +45,7 @@ function fmt(n: number) {
 const DEFAULT_BANDS: CostBand[] = [
   { fromOccPct: 0,  toOccPct: 40,  costPerRoom: 0, label: "Nagyon alacsony" },
   { fromOccPct: 40, toOccPct: 60,  costPerRoom: 0, label: "Alacsony" },
-  { fromOccPct: 60, toOccPct: 80,  costPerRoom: 0, label: "Optimális" },
+  { fromOccPct: 60, toOccPct: 80,  costPerRoom: 0, label: "Közepes-magas" },
   { fromOccPct: 80, toOccPct: 100, costPerRoom: 0, label: "Magas" },
 ];
 
@@ -113,7 +112,6 @@ export default function SimplePlannerSettingsPage() {
   const [saved, setSaved] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [optimalOcc, setOptimalOcc] = useState(70);
   const [tfhEnabled, setTfhEnabled] = useState(true);
   const [tfhRate, setTfhRate] = useState(4);
   const [fbEnabled, setFbEnabled] = useState(false);
@@ -137,7 +135,6 @@ export default function SimplePlannerSettingsPage() {
       .then(r => r.json())
       .then((data: Settings | null) => {
         if (data) {
-          setOptimalOcc(data.optimalOccupancyPct);
           setTfhEnabled(data.tfhEnabled ?? true);
           setTfhRate(data.tfhRate ?? 4);
           setFbEnabled(data.fbEnabled ?? false);
@@ -167,7 +164,6 @@ export default function SimplePlannerSettingsPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          optimalOccupancyPct: optimalOcc,
           tfhEnabled,
           tfhRate,
           fbEnabled,
@@ -272,53 +268,7 @@ export default function SimplePlannerSettingsPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* BLOKK 1 — Optimális pont */}
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-
-      <div style={{
-        background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
-        padding: "24px", marginBottom: 20,
-      }}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: "0 0 6px" }}>
-          Referencia pont
-        </h2>
-        <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
-          Melyik kihasználtsági szint az "optimális"? Ehhez igazítod a kiadás sávokat.
-        </p>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12,
-            background: "#F5F3FF", border: "1px solid #DDD6FE",
-            borderRadius: 14, padding: "14px 20px",
-          }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#7C3AED", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <TrendingUp size={16} color="white" />
-            </div>
-            <div>
-              <p style={{ fontSize: 11, color: "#7C3AED", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Optimális kihasználtság
-              </p>
-              <NumInput
-                value={optimalOcc}
-                onChange={setOptimalOcc}
-                min={1} max={100} step={1}
-                suffix="%"
-                width={70}
-              />
-            </div>
-          </div>
-
-          <div style={{ flex: 1, fontSize: 13, color: "#64748B", lineHeight: 1.6 }}>
-            Ez a referenciapont segít vizuálisan azonosítani, melyik sáv az "optimális üzemmód".
-            A kiadás sávokban szabadon meghatározhatod, hogy különböző kihasználtságoknál
-            mennyi legyen a szoba/éj kiadás.
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* BLOKK 2 — Kiadás sávok */}
+      {/* BLOKK 1 — Kiadás sávok */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
       <div style={{
@@ -366,15 +316,14 @@ export default function SimplePlannerSettingsPage() {
             </div>
           ) : (
             bands.map((band, i) => {
-              const isOptimal = band.fromOccPct <= optimalOcc && band.toOccPct >= optimalOcc;
               return (
                 <div
                   key={i}
                   style={{
                     display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 40px",
                     gap: 10, alignItems: "center",
-                    background: isOptimal ? "#F5F3FF" : "#F8FAFC",
-                    border: `1px solid ${isOptimal ? "#DDD6FE" : "#E2E8F0"}`,
+                    background: "#F8FAFC",
+                    border: "1px solid #E2E8F0",
                     borderRadius: 12, padding: "10px 12px",
                   }}
                 >
@@ -416,18 +365,6 @@ export default function SimplePlannerSettingsPage() {
                     <Trash2 size={13} color="#EF4444" />
                   </button>
 
-                  {/* Optimális badge */}
-                  {isOptimal && (
-                    <div style={{ gridColumn: "1 / -1", marginTop: 2 }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, color: "#7C3AED",
-                        background: "#EDE9FE", padding: "2px 8px", borderRadius: 5,
-                        textTransform: "uppercase", letterSpacing: "0.04em",
-                      }}>
-                        ★ Optimális sáv ({optimalOcc}% referencia)
-                      </span>
-                    </div>
-                  )}
                 </div>
               );
             })
@@ -450,11 +387,11 @@ export default function SimplePlannerSettingsPage() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {sortedBands.filter(b => b.costPerRoom > 0).map((band, i) => {
-              const isOptimal = band.fromOccPct <= optimalOcc && band.toOccPct >= optimalOcc;
               const barWidth = maxCost > 0 ? (band.costPerRoom / maxCost) * 100 : 0;
-              const midpoint = (band.fromOccPct + band.toOccPct) / 2;
-              const isBelow = midpoint < optimalOcc;
-              const isAbove = midpoint > optimalOcc;
+              // Minél magasabb a kihasználtság, annál alacsonyabb a fajlagos kiadás (általában)
+              // Szín: alacsony occ = magasabb relatív teher (pirosabb), magas occ = alacsonyabb teher (kékebb)
+              const hue = Math.round(220 + (band.fromOccPct / 100) * 40); // 220–260 (kék–lila)
+              const barColor = `hsl(${hue}, 70%, 55%)`;
 
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -465,33 +402,19 @@ export default function SimplePlannerSettingsPage() {
                     </span>
                   </div>
 
-                  {/* Irány ikon */}
-                  <div style={{ width: 20, display: "flex", justifyContent: "center" }}>
-                    {isBelow && <TrendingDown size={14} color="#EF4444" />}
-                    {isAbove && <TrendingUp size={14} color="#10B981" />}
-                    {isOptimal && <span style={{ fontSize: 14 }}>★</span>}
-                  </div>
-
                   {/* Bar */}
                   <div style={{ flex: 1, background: "#F1F5F9", borderRadius: 6, height: 22, position: "relative", overflow: "hidden" }}>
                     <div style={{
                       height: "100%", borderRadius: 6,
                       width: `${barWidth}%`,
-                      background: isOptimal
-                        ? "linear-gradient(90deg, #6D28D9, #7C3AED)"
-                        : isBelow
-                          ? "linear-gradient(90deg, #EF4444, #F87171)"
-                          : "linear-gradient(90deg, #10B981, #34D399)",
+                      background: barColor,
                       transition: "width 0.3s",
                     }} />
                   </div>
 
                   {/* Érték */}
                   <div style={{ width: 110, flexShrink: 0 }}>
-                    <span style={{
-                      fontSize: 13, fontWeight: 700,
-                      color: isOptimal ? "#7C3AED" : isBelow ? "#EF4444" : "#10B981",
-                    }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>
                       {fmt(band.costPerRoom)} Ft/éj
                     </span>
                   </div>
@@ -505,10 +428,6 @@ export default function SimplePlannerSettingsPage() {
             })}
           </div>
 
-          <p style={{ fontSize: 12, color: "#94A3B8", margin: "16px 0 0" }}>
-            Piros = optimálisnál alacsonyabb kihasználtság (magasabb fix terhek / szoba) ·
-            Lila = optimális sáv · Zöld = optimálisnál magasabb kihasználtság
-          </p>
         </div>
       )}
 
