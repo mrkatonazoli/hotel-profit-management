@@ -10,6 +10,8 @@ type MonthInput = {
   occupancyPct: number;
   roomRevenue: number;
   monthlyCost: number;
+  breakfastPct: number;
+  halfboardPct: number;
 };
 
 export async function PUT(req: Request, { params }: Params) {
@@ -38,6 +40,8 @@ export async function PUT(req: Request, { params }: Params) {
           occupancyPct: m.occupancyPct,
           roomRevenue: m.roomRevenue,
           monthlyCost: m.monthlyCost,
+          breakfastPct: m.breakfastPct ?? 0,
+          halfboardPct: m.halfboardPct ?? 0,
         },
       });
     } else {
@@ -49,6 +53,8 @@ export async function PUT(req: Request, { params }: Params) {
           occupancyPct: m.occupancyPct,
           roomRevenue: m.roomRevenue,
           monthlyCost: m.monthlyCost,
+          breakfastPct: m.breakfastPct ?? 0,
+          halfboardPct: m.halfboardPct ?? 0,
         },
       });
     }

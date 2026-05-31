@@ -71,9 +71,6 @@ export async function GET(req: Request, { params }: Params) {
         costPerRoom: b.costPerRoom,
       })) ?? [],
     },
-    boardMix: {
-      breakfastPct: plan.breakfastPct,
-      halfboardPct: plan.halfboardPct,
-    },
+    // breakfastPct/halfboardPct most a months tömbben van havi szinten
   });
 }

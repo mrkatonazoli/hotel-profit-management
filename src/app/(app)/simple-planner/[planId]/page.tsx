@@ -30,6 +30,8 @@ type MonthData = {
   occupancyPct: number;
   roomRevenue: number;    // közvetlenül bevitt szoba árbevétel (ha > 0, ez az elsődleges)
   monthlyCost: number;
+  breakfastPct: number;   // havi reggelis vendégek aránya %
+  halfboardPct: number;   // havi félpanziós vendégek aránya %
 };
 
 type Hotel = { id: string; name: string; totalRooms: number | null };
@@ -73,7 +75,7 @@ function getDaysInMonth(month: number, year: number) {
 
 type FbParams = {
   enabled: boolean;
-  breakfastPct: number; halfboardPct: number;
+  // breakfastPct és halfboardPct most a MonthData-ban van (havonta)
   breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
   fbOtherEnabled: boolean; fbOtherPct: number;
   spaEnabled: boolean; spaPct: number;
@@ -86,12 +88,12 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
   const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
   const roomNights = (m.occupancyPct / 100) * availableNights;
 
-  // Étkezési felár/szoba/éj — csak ha nincs manuális roomRevenue (az már tartalmazza)
+  // Étkezési felár/szoba/éj — a havi mix %-ok alapján, csak ha nincs manuális roomRevenue
   let boardPerRoomNight = 0;
   if (fb?.enabled && m.roomRevenue === 0) {
     boardPerRoomNight = fb.avgPaxPerRoom * (
-      (fb.breakfastPct / 100) * fb.breakfastPrice +
-      (fb.halfboardPct / 100) * fb.halfboardPrice
+      (m.breakfastPct / 100) * fb.breakfastPrice +
+      (m.halfboardPct / 100) * fb.halfboardPrice
     );
   }
 
@@ -823,6 +825,8 @@ export default function SimplePlanDetailPage() {
         occupancyPct: m.occupancyPct,
         roomRevenue: m.roomRevenue,
         monthlyCost: m.monthlyCost,
+        breakfastPct: m.breakfastPct,
+        halfboardPct: m.halfboardPct,
       })) }),
     });
     showSaved();
@@ -857,7 +861,7 @@ export default function SimplePlanDetailPage() {
     showSaved();
   }
 
-  function updateMonthField(monthNum: number, field: keyof Pick<MonthData, "adr" | "occupancyPct" | "roomRevenue" | "monthlyCost">, value: number) {
+  function updateMonthField(monthNum: number, field: keyof Pick<MonthData, "adr" | "occupancyPct" | "roomRevenue" | "monthlyCost" | "breakfastPct" | "halfboardPct">, value: number) {
     const updated = months.map(m =>
       m.month === monthNum ? { ...m, [field]: value } : m
     );
@@ -870,11 +874,9 @@ export default function SimplePlanDetailPage() {
   const totalRooms = plan?.hotel?.totalRooms ?? 0;
   const effectiveTfhRate = tfhEnabled ? tfhRate : 0;
 
-  // F&B + egyéb bevétel params bundle
+  // F&B + egyéb bevétel params bundle (breakfastPct/halfboardPct most havi szinten tárolva)
   const fb: FbParams = {
     enabled: fbEnabled,
-    breakfastPct,
-    halfboardPct,
     breakfastPrice,
     halfboardPrice,
     avgPaxPerRoom,
@@ -1500,6 +1502,24 @@ export default function SimplePlanDetailPage() {
                 note={m.roomRevenue > 0 ? "↑ egyedi érték" : undefined}
                 onBlur={v => updateMonthField(m.month, "roomRevenue", v)}
               />
+              {fbEnabled && (
+                <>
+                  <MonthInput
+                    label="🌅 Reggeli"
+                    unit="%"
+                    value={m.breakfastPct}
+                    step={1}
+                    onBlur={v => updateMonthField(m.month, "breakfastPct", Math.min(100, Math.max(0, v)))}
+                  />
+                  <MonthInput
+                    label="🍽️ Félpanzió"
+                    unit="%"
+                    value={m.halfboardPct}
+                    step={1}
+                    onBlur={v => updateMonthField(m.month, "halfboardPct", Math.min(100, Math.max(0, v)))}
+                  />
+                </>
+              )}
               {(() => {
                 const bandCost = m.monthlyCost === 0 ? getCostFromBands(m.occupancyPct) : null;
                 const effectiveCost = m.monthlyCost > 0 ? m.monthlyCost : (bandCost ?? 0);
@@ -1540,24 +1560,48 @@ export default function SimplePlanDetailPage() {
         const hbContrib = avgPaxPerRoom * (halfboardPct / 100) * halfboardPrice;
         const totalBoardSuppl = brContrib + hbContrib;
 
+        function fillAllMonths() {
+          const updated = months.map(m => ({
+            ...m,
+            breakfastPct: Math.min(breakfastPct, 100 - halfboardPct),
+            halfboardPct: Math.min(halfboardPct, 100 - breakfastPct),
+          }));
+          setMonths(updated);
+          saveMonths(updated);
+        }
+
         return (
           <div style={{
             background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
             padding: "20px 24px", marginBottom: 24,
           }}>
             {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
-                🍽️
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                  🍽️
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+                    Étkezési vendégmix — gyors kitöltő
+                  </h2>
+                  <p style={{ fontSize: 12, color: "#94A3B8", margin: "2px 0 0" }}>
+                    Állítsd be az arányokat, majd alkalmaz minden hónapra — vagy havonta külön add meg a gridben
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
-                  Étkezési vendégmix — éves szintű megoszlás
-                </h2>
-                <p style={{ fontSize: 12, color: "#94A3B8", margin: "2px 0 0" }}>
-                  A szobaéjszakák hány %-ában reggelis ill. félpanziós a vendég? (egymást kizáró kategóriák)
-                </p>
-              </div>
+              <button
+                onClick={fillAllMonths}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  background: "#7C3AED", color: "white",
+                  border: "none", borderRadius: 10, padding: "8px 16px",
+                  fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                ✓ Alkalmazás mind a 12 hónapra
+              </button>
             </div>
 
             {/* Visual 3-way split bar */}

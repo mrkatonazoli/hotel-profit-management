@@ -534,6 +534,8 @@ model SimplePlanMonth {
   occupancyPct Float      @default(0)
   roomRevenue  Float      @default(0)   // ha kitöltik, ez az elsődleges bevétel (nem ADR×occ képlet)
   monthlyCost  Float      @default(0)
+  breakfastPct Float      @default(0)   // havi reggelis vendégek aránya %
+  halfboardPct Float      @default(0)   // havi félpanziós vendégek aránya %
   plan         SimplePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@unique([planId, month])

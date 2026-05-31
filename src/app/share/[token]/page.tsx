@@ -23,6 +23,7 @@ const HU_MONTHS_SHORT = ["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","S
 type MonthData = {
   id: string; month: number; adr: number;
   occupancyPct: number; roomRevenue: number; monthlyCost: number;
+  breakfastPct: number; halfboardPct: number;
 };
 type CostBand = { fromOccPct: number; toOccPct: number; costPerRoom: number };
 type ShareData = {
@@ -36,7 +37,7 @@ type ShareData = {
     spaEnabled: boolean; spaPct: number;
     otherRevenueEnabled: boolean; otherRevenuePct: number;
   };
-  boardMix: { breakfastPct: number; halfboardPct: number };
+  // boardMix eltávolítva — breakfastPct/halfboardPct havi szinten van a months-ban
 };
 type MonthCalc = {
   month: number; daysInMonth: number; roomNights: number;
@@ -60,7 +61,7 @@ function getCostFromBands(occupancyPct: number, costBands: CostBand[]): number |
 }
 type FbParams = {
   enabled: boolean;
-  breakfastPct: number; halfboardPct: number;
+  // breakfastPct/halfboardPct most havi szinten van (MonthData-ban)
   breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
   fbOtherEnabled: boolean; fbOtherPct: number;
   spaEnabled: boolean; spaPct: number;
@@ -74,12 +75,12 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
   const roomNights = (m.occupancyPct / 100) * availableNights;
   const effectiveCost = m.monthlyCost > 0 ? m.monthlyCost : (getCostFromBands(m.occupancyPct, costBands) ?? 0);
 
-  // F&B board supplement — only when no manual roomRevenue override
+  // F&B board supplement — havi mix %-ok alapján (m.breakfastPct, m.halfboardPct)
   let boardPerRoomNight = 0;
   if (fb?.enabled && m.roomRevenue === 0) {
     boardPerRoomNight = fb.avgPaxPerRoom * (
-      (fb.breakfastPct / 100) * fb.breakfastPrice +
-      (fb.halfboardPct / 100) * fb.halfboardPrice
+      (m.breakfastPct / 100) * fb.breakfastPrice +
+      (m.halfboardPct / 100) * fb.halfboardPrice
     );
   }
 
@@ -457,14 +458,13 @@ export default function SharePage() {
 
   // ─── Calculations ─────────────────────────────────────────────────────────
 
-  const { plan, hotel, months, settings, boardMix } = data;
+  const { plan, hotel, months, settings } = data;
   const totalRooms = hotel.totalRooms ?? 0;
   const effectiveTfhRate = settings.tfhEnabled ? settings.tfhRate : 0;
 
   const fb: FbParams = {
     enabled: settings.fbEnabled,
-    breakfastPct: boardMix.breakfastPct,
-    halfboardPct: boardMix.halfboardPct,
+    // breakfastPct/halfboardPct havi szinten van a month adatokban
     breakfastPrice: settings.breakfastPrice,
     halfboardPrice: settings.halfboardPrice,
     avgPaxPerRoom: settings.avgPaxPerRoom,
