@@ -2288,8 +2288,20 @@ export default function SimplePlanDetailPage() {
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155" }}>
                       {c.hasData ? fmt(c.roomNights) : "—"}
                     </td>
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: m.roomRevenue > 0 ? "#7C3AED" : "#CBD5E1" }}>
-                      {m.roomRevenue > 0 ? `${fmt(m.roomRevenue)} Ft` : "—"}
+                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                      {c.hasData && c.roomNights > 0 ? (
+                        <span>
+                          <span style={{
+                            color: m.roomRevenue > 0 ? "#7C3AED" : "#334155",
+                            fontWeight: m.roomRevenue > 0 ? 700 : 400,
+                          }}>
+                            {fmt(Math.round(c.revenue / c.roomNights))} Ft
+                          </span>
+                          {m.roomRevenue === 0 && fbEnabled && (
+                            <span style={{ fontSize: 9, color: "#10B981", marginLeft: 4, fontWeight: 700 }}>+F&B</span>
+                          )}
+                        </span>
+                      ) : "—"}
                     </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isSimActive && c.revenue !== savedC.revenue ? "#7C3AED" : "#334155", fontWeight: isSimActive && c.revenue !== savedC.revenue ? 600 : 400 }}>
                       {c.hasData ? fmtM(c.revenue) : "—"}
