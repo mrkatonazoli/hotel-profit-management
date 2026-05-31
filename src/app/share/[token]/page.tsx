@@ -730,8 +730,16 @@ export default function SharePage() {
 
         {/* ── Board mix + bevételi struktúra ── */}
         {settings.fbEnabled && (() => {
-          const bPct = settings.defaultBreakfastPct;
-          const hPct = settings.defaultHalfboardPct;
+          // Ha a hónapokban vannak havi mix értékek, azok az igazak (a terv aktuális állapota)
+          // Ha nincs havi érték, visszaesünk a settings alapértelmezettjeire
+          const filledM = months.filter(m => m.adr > 0);
+          const monthsWithMix = filledM.filter(m => m.breakfastPct > 0 || m.halfboardPct > 0);
+          const bPct = monthsWithMix.length > 0
+            ? monthsWithMix.reduce((s, m) => s + m.breakfastPct, 0) / monthsWithMix.length
+            : settings.defaultBreakfastPct;
+          const hPct = monthsWithMix.length > 0
+            ? monthsWithMix.reduce((s, m) => s + m.halfboardPct, 0) / monthsWithMix.length
+            : settings.defaultHalfboardPct;
           const roomOnlyPct = Math.max(0, 100 - bPct - hPct);
           const brContrib = settings.avgPaxPerRoom * (bPct / 100) * settings.breakfastPrice;
           const hbContrib = settings.avgPaxPerRoom * (hPct / 100) * settings.halfboardPrice;
@@ -743,8 +751,7 @@ export default function SharePage() {
           const hasAnyRevenue = bPct > 0 || hPct > 0 || extraPct > 0;
           if (!hasAnyRevenue) return null;
 
-          // Weighted avg ADR across filled months
-          const filledM = months.filter(m => m.adr > 0);
+          // Weighted avg ADR across filled months (already computed above)
           const avgAdr = filledM.length > 0
             ? filledM.reduce((s, m) => s + m.adr, 0) / filledM.length
             : 0;
