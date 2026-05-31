@@ -889,6 +889,222 @@ export default function SharePage() {
           </div>
         </div>
 
+        {/* ── Planning details: monthly prices + cost bands ── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: settings.costBands.length > 0 ? "1fr 340px" : "1fr",
+          gap: 16,
+          marginBottom: 24,
+          alignItems: "start",
+        }}>
+
+          {/* Monthly ADR & room revenue */}
+          <div style={{
+            background: "white", borderRadius: 18,
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "14px 24px",
+              borderBottom: "1px solid #F1F5F9",
+              background: "#FAFAFA",
+            }}>
+              <span style={{ fontSize: 16 }}>💵</span>
+              <div>
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+                  Tervezett árak – havi bontás
+                </h2>
+                <p style={{ fontSize: 11, color: "#94A3B8", margin: "2px 0 0", fontWeight: 500 }}>
+                  Az előrejelzés alapját képező bevételi adatok havonként
+                </p>
+              </div>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
+                    {[
+                      { label: "Hónap", align: "left" },
+                      { label: "Kihasználtság", align: "right" },
+                      { label: "ADR", align: "right" },
+                      { label: "Szobaár/szoba/éj", align: "right" },
+                      { label: "Számítás alapja", align: "center" },
+                    ].map((h, i) => (
+                      <th key={h.label} style={{
+                        padding: i === 0 ? "10px 24px" : "10px 16px",
+                        textAlign: h.align as "left" | "right" | "center",
+                        fontSize: 10, fontWeight: 700, color: "#94A3B8",
+                        textTransform: "uppercase", letterSpacing: "0.07em",
+                        whiteSpace: "nowrap",
+                      }}>
+                        {h.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {months.map((m, rowIdx) => {
+                    const calc = calcs.find(c => c.month === m.month);
+                    const usesRoomRevenue = m.roomRevenue > 0;
+                    const usesAdr = !usesRoomRevenue && m.adr > 0;
+                    const hasData = calc?.hasData ?? false;
+                    return (
+                      <tr key={m.month} style={{
+                        borderBottom: "1px solid #F8FAFC",
+                        background: rowIdx % 2 === 0 ? "white" : "#FAFBFC",
+                        opacity: hasData ? 1 : 0.3,
+                      }}>
+                        <td style={{ padding: "9px 24px", fontWeight: 700, color: "#0F172A" }}>
+                          {HU_MONTHS[m.month - 1]}
+                        </td>
+                        <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155", fontWeight: 500 }}>
+                          {hasData ? `${m.occupancyPct}%` : "—"}
+                        </td>
+                        <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: m.adr > 0 ? "#0F172A" : "#CBD5E1" }}>
+                          {m.adr > 0 ? `${fmt(m.adr)} Ft` : "—"}
+                        </td>
+                        <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: m.roomRevenue > 0 ? "#0F172A" : "#CBD5E1" }}>
+                          {m.roomRevenue > 0 ? `${fmt(m.roomRevenue)} Ft` : "—"}
+                        </td>
+                        <td style={{ padding: "9px 16px", textAlign: "center" }}>
+                          {hasData ? (
+                            <span style={{
+                              fontSize: 11, fontWeight: 700,
+                              padding: "2px 10px", borderRadius: 8,
+                              background: usesRoomRevenue ? "#EDE9FE" : usesAdr ? "#DBEAFE" : "#F1F5F9",
+                              color: usesRoomRevenue ? "#7C3AED" : usesAdr ? "#3B82F6" : "#94A3B8",
+                            }}>
+                              {usesRoomRevenue ? "Szobaár" : usesAdr ? "ADR" : "—"}
+                            </span>
+                          ) : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {/* Legend */}
+            <div style={{
+              padding: "10px 24px",
+              borderTop: "1px solid #F1F5F9",
+              background: "#FAFAFA",
+              display: "flex", gap: 20,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, padding: "1px 8px", borderRadius: 6, background: "#EDE9FE", color: "#7C3AED", fontWeight: 700 }}>Szobaár</span>
+                <span style={{ fontSize: 11, color: "#94A3B8" }}>— fix bevétel/szoba/éj</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, padding: "1px 8px", borderRadius: 6, background: "#DBEAFE", color: "#3B82F6", fontWeight: 700 }}>ADR</span>
+                <span style={{ fontSize: 11, color: "#94A3B8" }}>— átlagos szobai díj</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Cost bands */}
+          {settings.costBands.length > 0 && (
+            <div style={{
+              background: "white", borderRadius: 18,
+              border: "1px solid #E2E8F0",
+              boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "14px 24px",
+                borderBottom: "1px solid #F1F5F9",
+                background: "#FAFAFA",
+              }}>
+                <span style={{ fontSize: 16 }}>📊</span>
+                <div>
+                  <h2 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+                    Kiadási sávok
+                  </h2>
+                  <p style={{ fontSize: 11, color: "#94A3B8", margin: "2px 0 0", fontWeight: 500 }}>
+                    Kiadás/szoba/éj kihasználtság szerint
+                  </p>
+                </div>
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
+                    <th style={{
+                      padding: "10px 24px", textAlign: "left",
+                      fontSize: 10, fontWeight: 700, color: "#94A3B8",
+                      textTransform: "uppercase", letterSpacing: "0.07em",
+                    }}>Kihasználtság sáv</th>
+                    <th style={{
+                      padding: "10px 16px 10px 0", textAlign: "right",
+                      fontSize: 10, fontWeight: 700, color: "#94A3B8",
+                      textTransform: "uppercase", letterSpacing: "0.07em",
+                    }}>Kiadás / szoba / éj</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {settings.costBands.map((band, i) => {
+                    // Check which months fall into this band
+                    const matchingMonths = months.filter(m =>
+                      calcs.find(c => c.month === m.month)?.hasData &&
+                      m.occupancyPct >= band.fromOccPct &&
+                      m.occupancyPct <= band.toOccPct
+                    );
+                    return (
+                      <tr key={i} style={{
+                        borderBottom: "1px solid #F8FAFC",
+                        background: i % 2 === 0 ? "white" : "#FAFBFC",
+                      }}>
+                        <td style={{ padding: "10px 24px" }}>
+                          <div style={{
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            background: "#F5F3FF", borderRadius: 8,
+                            padding: "4px 10px",
+                          }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "#7C3AED", fontVariantNumeric: "tabular-nums" }}>
+                              {band.fromOccPct}% – {band.toOccPct}%
+                            </span>
+                          </div>
+                          {matchingMonths.length > 0 && (
+                            <div style={{ marginTop: 5, display: "flex", flexWrap: "wrap", gap: 3 }}>
+                              {matchingMonths.map(m => (
+                                <span key={m.month} style={{
+                                  fontSize: 10, fontWeight: 600,
+                                  color: "#64748B", background: "#F1F5F9",
+                                  borderRadius: 5, padding: "1px 6px",
+                                }}>
+                                  {HU_MONTHS_SHORT[m.month - 1]}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{
+                          padding: "10px 16px 10px 0", textAlign: "right",
+                          fontVariantNumeric: "tabular-nums",
+                          fontWeight: 700, color: "#0F172A", fontSize: 14,
+                        }}>
+                          {fmt(band.costPerRoom)} Ft
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <div style={{
+                padding: "10px 24px",
+                borderTop: "1px solid #F1F5F9",
+                background: "#FAFAFA",
+              }}>
+                <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, lineHeight: 1.6 }}>
+                  A kiadás az adott hónapban <strong style={{ color: "#64748B" }}>kiadott szobaéjszakák</strong> száma alapján kerül kiszámításra.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* ── Footer ── */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
