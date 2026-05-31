@@ -71,7 +71,14 @@ function getDaysInMonth(month: number, year: number) {
   return new Date(year, month, 0).getDate();
 }
 
-type FbParams = { enabled: boolean; breakfastPct: number; halfboardPct: number; breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number };
+type FbParams = {
+  enabled: boolean;
+  breakfastPct: number; halfboardPct: number;
+  breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
+  fbOtherEnabled: boolean; fbOtherPct: number;
+  spaEnabled: boolean; spaPct: number;
+  otherRevenueEnabled: boolean; otherRevenuePct: number;
+};
 
 function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate = 0, fb?: FbParams): MonthCalc {
   const days = getDaysInMonth(m.month, year);
@@ -88,8 +95,20 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
     );
   }
 
-  // Ha van manuális szobaárbevétel → felülírja; különben ADR + étkezési felár
-  const revenuePerRoomNight = m.roomRevenue > 0 ? m.roomRevenue : m.adr + boardPerRoomNight;
+  // Egyéb bevételek: ADR %-a (F&B, Spa, Egyéb) — csak ha nincs manuális roomRevenue
+  let extraRevPerRoomNight = 0;
+  if (m.roomRevenue === 0 && fb) {
+    const extraPct =
+      (fb.fbOtherEnabled ? fb.fbOtherPct : 0) +
+      (fb.spaEnabled ? fb.spaPct : 0) +
+      (fb.otherRevenueEnabled ? fb.otherRevenuePct : 0);
+    extraRevPerRoomNight = m.adr * (extraPct / 100);
+  }
+
+  // Ha van manuális szobaárbevétel → felülírja; különben ADR + étkezési felár + egyéb
+  const revenuePerRoomNight = m.roomRevenue > 0
+    ? m.roomRevenue
+    : m.adr + boardPerRoomNight + extraRevPerRoomNight;
   const revenue = revenuePerRoomNight * roomNights;
 
   const cost = m.monthlyCost * roomNights;
@@ -568,7 +587,7 @@ export default function SimplePlanDetailPage() {
   const [breakfastPct, setBreakfastPct] = useState(0);
   const [halfboardPct, setHalfboardPct] = useState(0);
 
-  // ─── Cost band + TFH + F&B settings ─────────────────────────────────────
+  // ─── Cost band + TFH + F&B + egyéb bevétel settings ─────────────────────
   const [costBands, setCostBands] = useState<{ fromOccPct: number; toOccPct: number; costPerRoom: number }[]>([]);
   const [tfhEnabled, setTfhEnabled] = useState(false);
   const [tfhRate, setTfhRate] = useState(4);
@@ -576,6 +595,12 @@ export default function SimplePlanDetailPage() {
   const [breakfastPrice, setBreakfastPrice] = useState(0);
   const [halfboardPrice, setHalfboardPrice] = useState(0);
   const [avgPaxPerRoom, setAvgPaxPerRoom] = useState(1.8);
+  const [fbOtherEnabled, setFbOtherEnabled] = useState(false);
+  const [fbOtherPct, setFbOtherPct] = useState(0);
+  const [spaEnabled, setSpaEnabled] = useState(false);
+  const [spaPct, setSpaPct] = useState(0);
+  const [otherRevenueEnabled, setOtherRevenueEnabled] = useState(false);
+  const [otherRevenuePct, setOtherRevenuePct] = useState(0);
 
   useEffect(() => {
     fetch("/api/simple-planner-settings")
@@ -585,6 +610,9 @@ export default function SimplePlanDetailPage() {
         tfhEnabled?: boolean; tfhRate?: number;
         fbEnabled?: boolean; breakfastPrice?: number;
         halfboardPrice?: number; avgPaxPerRoom?: number;
+        fbOtherEnabled?: boolean; fbOtherPct?: number;
+        spaEnabled?: boolean; spaPct?: number;
+        otherRevenueEnabled?: boolean; otherRevenuePct?: number;
       } | null) => {
         if (data?.costBands?.length) setCostBands(data.costBands);
         if (data?.tfhEnabled !== undefined) setTfhEnabled(data.tfhEnabled);
@@ -593,6 +621,12 @@ export default function SimplePlanDetailPage() {
         if (data?.breakfastPrice !== undefined) setBreakfastPrice(data.breakfastPrice);
         if (data?.halfboardPrice !== undefined) setHalfboardPrice(data.halfboardPrice);
         if (data?.avgPaxPerRoom !== undefined) setAvgPaxPerRoom(data.avgPaxPerRoom);
+        if (data?.fbOtherEnabled !== undefined) setFbOtherEnabled(data.fbOtherEnabled);
+        if (data?.fbOtherPct !== undefined) setFbOtherPct(data.fbOtherPct);
+        if (data?.spaEnabled !== undefined) setSpaEnabled(data.spaEnabled);
+        if (data?.spaPct !== undefined) setSpaPct(data.spaPct);
+        if (data?.otherRevenueEnabled !== undefined) setOtherRevenueEnabled(data.otherRevenueEnabled);
+        if (data?.otherRevenuePct !== undefined) setOtherRevenuePct(data.otherRevenuePct);
       });
   }, []);
 
@@ -836,7 +870,7 @@ export default function SimplePlanDetailPage() {
   const totalRooms = plan?.hotel?.totalRooms ?? 0;
   const effectiveTfhRate = tfhEnabled ? tfhRate : 0;
 
-  // F&B params bundle
+  // F&B + egyéb bevétel params bundle
   const fb: FbParams = {
     enabled: fbEnabled,
     breakfastPct,
@@ -844,6 +878,12 @@ export default function SimplePlanDetailPage() {
     breakfastPrice,
     halfboardPrice,
     avgPaxPerRoom,
+    fbOtherEnabled,
+    fbOtherPct,
+    spaEnabled,
+    spaPct,
+    otherRevenueEnabled,
+    otherRevenuePct,
   };
 
   // Ha nincs egyedi kiadás a hónapban, de van cost band → azt töltjük be

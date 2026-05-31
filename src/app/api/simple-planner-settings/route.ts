@@ -32,8 +32,11 @@ export async function PUT(req: Request) {
   if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
 
   const body = await req.json();
-  const { optimalOccupancyPct, costBands, tfhEnabled, tfhRate,
-          fbEnabled, breakfastPrice, halfboardPrice, avgPaxPerRoom } = body as {
+  const {
+    optimalOccupancyPct, costBands, tfhEnabled, tfhRate,
+    fbEnabled, breakfastPrice, halfboardPrice, avgPaxPerRoom,
+    fbOtherEnabled, fbOtherPct, spaEnabled, spaPct, otherRevenueEnabled, otherRevenuePct,
+  } = body as {
     optimalOccupancyPct?: number;
     tfhEnabled?: boolean;
     tfhRate?: number;
@@ -41,6 +44,12 @@ export async function PUT(req: Request) {
     breakfastPrice?: number;
     halfboardPrice?: number;
     avgPaxPerRoom?: number;
+    fbOtherEnabled?: boolean;
+    fbOtherPct?: number;
+    spaEnabled?: boolean;
+    spaPct?: number;
+    otherRevenueEnabled?: boolean;
+    otherRevenuePct?: number;
     costBands?: { fromOccPct: number; toOccPct: number; costPerRoom: number; label?: string; sortOrder?: number }[];
   };
 
@@ -56,6 +65,12 @@ export async function PUT(req: Request) {
       breakfastPrice: breakfastPrice ?? 0,
       halfboardPrice: halfboardPrice ?? 0,
       avgPaxPerRoom: avgPaxPerRoom ?? 1.8,
+      fbOtherEnabled: fbOtherEnabled ?? false,
+      fbOtherPct: fbOtherPct ?? 0,
+      spaEnabled: spaEnabled ?? false,
+      spaPct: spaPct ?? 0,
+      otherRevenueEnabled: otherRevenueEnabled ?? false,
+      otherRevenuePct: otherRevenuePct ?? 0,
     },
     update: {
       ...(optimalOccupancyPct !== undefined && { optimalOccupancyPct }),
@@ -65,6 +80,12 @@ export async function PUT(req: Request) {
       ...(breakfastPrice !== undefined && { breakfastPrice }),
       ...(halfboardPrice !== undefined && { halfboardPrice }),
       ...(avgPaxPerRoom !== undefined && { avgPaxPerRoom }),
+      ...(fbOtherEnabled !== undefined && { fbOtherEnabled }),
+      ...(fbOtherPct !== undefined && { fbOtherPct }),
+      ...(spaEnabled !== undefined && { spaEnabled }),
+      ...(spaPct !== undefined && { spaPct }),
+      ...(otherRevenueEnabled !== undefined && { otherRevenueEnabled }),
+      ...(otherRevenuePct !== undefined && { otherRevenuePct }),
     },
     include,
   });

@@ -59,6 +59,12 @@ export async function GET(req: Request, { params }: Params) {
       breakfastPrice: settings?.breakfastPrice ?? 0,
       halfboardPrice: settings?.halfboardPrice ?? 0,
       avgPaxPerRoom: settings?.avgPaxPerRoom ?? 1.8,
+      fbOtherEnabled: settings?.fbOtherEnabled ?? false,
+      fbOtherPct: settings?.fbOtherPct ?? 0,
+      spaEnabled: settings?.spaEnabled ?? false,
+      spaPct: settings?.spaPct ?? 0,
+      otherRevenueEnabled: settings?.otherRevenueEnabled ?? false,
+      otherRevenuePct: settings?.otherRevenuePct ?? 0,
       costBands: settings?.costBands?.map(b => ({
         fromOccPct: b.fromOccPct,
         toOccPct: b.toOccPct,

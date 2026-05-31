@@ -26,6 +26,12 @@ type Settings = {
   breakfastPrice: number;
   halfboardPrice: number;
   avgPaxPerRoom: number;
+  fbOtherEnabled: boolean;
+  fbOtherPct: number;
+  spaEnabled: boolean;
+  spaPct: number;
+  otherRevenueEnabled: boolean;
+  otherRevenuePct: number;
   costBands: CostBand[];
 };
 
@@ -112,6 +118,12 @@ export default function SimplePlannerSettingsPage() {
   const [breakfastPrice, setBreakfastPrice] = useState(0);
   const [halfboardPrice, setHalfboardPrice] = useState(0);
   const [avgPaxPerRoom, setAvgPaxPerRoom] = useState(1.8);
+  const [fbOtherEnabled, setFbOtherEnabled] = useState(false);
+  const [fbOtherPct, setFbOtherPct] = useState(0);
+  const [spaEnabled, setSpaEnabled] = useState(false);
+  const [spaPct, setSpaPct] = useState(0);
+  const [otherRevenueEnabled, setOtherRevenueEnabled] = useState(false);
+  const [otherRevenuePct, setOtherRevenuePct] = useState(0);
   const [bands, setBands] = useState<CostBand[]>(DEFAULT_BANDS);
 
   // ─── Load ──────────────────────────────────────────────────────────────────
@@ -128,6 +140,12 @@ export default function SimplePlannerSettingsPage() {
           setBreakfastPrice(data.breakfastPrice ?? 0);
           setHalfboardPrice(data.halfboardPrice ?? 0);
           setAvgPaxPerRoom(data.avgPaxPerRoom ?? 1.8);
+          setFbOtherEnabled(data.fbOtherEnabled ?? false);
+          setFbOtherPct(data.fbOtherPct ?? 0);
+          setSpaEnabled(data.spaEnabled ?? false);
+          setSpaPct(data.spaPct ?? 0);
+          setOtherRevenueEnabled(data.otherRevenueEnabled ?? false);
+          setOtherRevenuePct(data.otherRevenuePct ?? 0);
           setBands(data.costBands.length > 0 ? data.costBands : DEFAULT_BANDS);
         }
       })
@@ -150,6 +168,12 @@ export default function SimplePlannerSettingsPage() {
           breakfastPrice,
           halfboardPrice,
           avgPaxPerRoom,
+          fbOtherEnabled,
+          fbOtherPct,
+          spaEnabled,
+          spaPct,
+          otherRevenueEnabled,
+          otherRevenuePct,
           costBands: bands.map((b, i) => ({ ...b, sortOrder: i })),
         }),
       });
@@ -622,6 +646,167 @@ export default function SimplePlannerSettingsPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* BLOKK 4b — Egyéb bevételek (ADR %-a) */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
+      <div style={{
+        background: "white", border: "1px solid #E2E8F0",
+        borderRadius: 20, padding: "24px", marginBottom: 20,
+      }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 9,
+            background: "#F0F9FF",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <span style={{ fontSize: 16 }}>💰</span>
+          </div>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+            Egyéb bevételek
+          </h2>
+        </div>
+
+        <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
+          Az ADR meghatározott százalékát ezek a bevételi kategóriák adják hozzá a szobaárbevételhez.
+          Minden aktív kategória bevétele beépül a kalkulációba.
+        </p>
+
+        {/* 3 sor — Egyéb F&B / Spa / Egyéb bevétel */}
+        {(
+          [
+            {
+              emoji: "🍻", label: "Egyéb F&B bevétel",
+              desc: "Bár, étterem, room service stb.",
+              enabled: fbOtherEnabled, setEnabled: setFbOtherEnabled,
+              pct: fbOtherPct, setPct: setFbOtherPct,
+              color: "#EA580C", bg: "#FFF7ED", border: "#FED7AA",
+              toggleBg: "#FFEDD5", toggleActive: "#EA580C",
+            },
+            {
+              emoji: "🧖", label: "Spa & wellness bevétel",
+              desc: "Masszázs, medence, szépségápolás stb.",
+              enabled: spaEnabled, setEnabled: setSpaEnabled,
+              pct: spaPct, setPct: setSpaPct,
+              color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE",
+              toggleBg: "#EDE9FE", toggleActive: "#7C3AED",
+            },
+            {
+              emoji: "📦", label: "Egyéb bevétel",
+              desc: "Parkoló, áruház, konferencia stb.",
+              enabled: otherRevenueEnabled, setEnabled: setOtherRevenueEnabled,
+              pct: otherRevenuePct, setPct: setOtherRevenuePct,
+              color: "#0EA5E9", bg: "#F0F9FF", border: "#BAE6FD",
+              toggleBg: "#E0F2FE", toggleActive: "#0EA5E9",
+            },
+          ] as const
+        ).map(item => (
+          <div
+            key={item.label}
+            style={{
+              background: item.enabled ? item.bg : "#F8FAFC",
+              border: `1px solid ${item.enabled ? item.border : "#E2E8F0"}`,
+              borderRadius: 14, padding: "16px 20px",
+              marginBottom: 10,
+              transition: "all 0.2s",
+              display: "flex", alignItems: "center", gap: 16,
+            }}
+          >
+            {/* Emoji + szöveg */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+              <span style={{ fontSize: 22, flexShrink: 0 }}>{item.emoji}</span>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+                  {item.label}
+                </p>
+                <p style={{ fontSize: 11, color: "#94A3B8", margin: "2px 0 0" }}>
+                  {item.desc}
+                </p>
+              </div>
+            </div>
+
+            {/* Százalék input */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              opacity: item.enabled ? 1 : 0.4,
+              transition: "opacity 0.2s",
+              pointerEvents: item.enabled ? "auto" : "none",
+            }}>
+              <p style={{ fontSize: 11, color: "#64748B", margin: 0, whiteSpace: "nowrap" }}>ADR %-a:</p>
+              <NumInput
+                value={item.pct}
+                onChange={item.setPct as (v: number) => void}
+                min={0} max={100} step={0.5} suffix="%" width={64}
+              />
+              {item.enabled && item.pct > 0 && (
+                <div style={{
+                  background: item.bg, border: `1px solid ${item.border}`,
+                  borderRadius: 8, padding: "4px 10px",
+                  fontSize: 11, fontWeight: 700, color: item.color,
+                  whiteSpace: "nowrap",
+                }}>
+                  pl. 20.000 Ft ADR esetén: +{Math.round(20000 * item.pct / 100).toLocaleString("hu-HU")} Ft
+                </div>
+              )}
+            </div>
+
+            {/* Toggle */}
+            <button
+              onClick={() => (item.setEnabled as (v: boolean) => void)(!item.enabled)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: item.enabled ? item.toggleBg : "#F8FAFC",
+                border: `1px solid ${item.enabled ? item.border : "#E2E8F0"}`,
+                borderRadius: 10, padding: "6px 12px",
+                cursor: "pointer", transition: "all 0.2s", flexShrink: 0,
+              }}
+            >
+              <div style={{
+                width: 28, height: 16, borderRadius: 8,
+                background: item.enabled ? item.toggleActive : "#CBD5E1",
+                position: "relative", transition: "background 0.2s", flexShrink: 0,
+              }}>
+                <div style={{
+                  position: "absolute", top: 2, left: item.enabled ? 14 : 2,
+                  width: 12, height: 12, borderRadius: "50%", background: "white",
+                  transition: "left 0.15s",
+                }} />
+              </div>
+              <span style={{
+                fontSize: 12, fontWeight: 600,
+                color: item.enabled ? item.color : "#94A3B8",
+              }}>
+                {item.enabled ? "Be" : "Ki"}
+              </span>
+            </button>
+          </div>
+        ))}
+
+        {/* Összesítő */}
+        {(fbOtherEnabled || spaEnabled || otherRevenueEnabled) && (
+          <div style={{
+            background: "#F8FAFC", border: "1px solid #E2E8F0",
+            borderRadius: 12, padding: "12px 16px", marginTop: 4,
+            display: "flex", alignItems: "center", gap: 12,
+          }}>
+            <span style={{ fontSize: 18 }}>📊</span>
+            <div>
+              <p style={{ fontSize: 12, color: "#64748B", margin: 0, fontWeight: 500 }}>
+                Összes egyéb bevételi szorzó:{" "}
+                <strong style={{ color: "#0F172A" }}>
+                  {((fbOtherEnabled ? fbOtherPct : 0) + (spaEnabled ? spaPct : 0) + (otherRevenueEnabled ? otherRevenuePct : 0)).toFixed(1)}%
+                </strong>
+                {" "}az ADR-ből
+              </p>
+              <p style={{ fontSize: 11, color: "#94A3B8", margin: "2px 0 0" }}>
+                Pl. 20.000 Ft ADR esetén ez +{Math.round(20000 * ((fbOtherEnabled ? fbOtherPct : 0) + (spaEnabled ? spaPct : 0) + (otherRevenueEnabled ? otherRevenuePct : 0)) / 100).toLocaleString("hu-HU")} Ft extra bevétel/szoba/éj
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}

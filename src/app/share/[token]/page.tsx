@@ -32,6 +32,9 @@ type ShareData = {
   settings: {
     tfhEnabled: boolean; tfhRate: number; costBands: CostBand[];
     fbEnabled: boolean; breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
+    fbOtherEnabled: boolean; fbOtherPct: number;
+    spaEnabled: boolean; spaPct: number;
+    otherRevenueEnabled: boolean; otherRevenuePct: number;
   };
   boardMix: { breakfastPct: number; halfboardPct: number };
 };
@@ -55,7 +58,14 @@ function getCostFromBands(occupancyPct: number, costBands: CostBand[]): number |
   const band = costBands.find(b => occupancyPct >= b.fromOccPct && occupancyPct <= b.toOccPct);
   return band ? band.costPerRoom : null;
 }
-type FbParams = { enabled: boolean; breakfastPct: number; halfboardPct: number; breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number };
+type FbParams = {
+  enabled: boolean;
+  breakfastPct: number; halfboardPct: number;
+  breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
+  fbOtherEnabled: boolean; fbOtherPct: number;
+  spaEnabled: boolean; spaPct: number;
+  otherRevenueEnabled: boolean; otherRevenuePct: number;
+};
 
 function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate: number, costBands: CostBand[], fb?: FbParams): MonthCalc {
   const days = getDaysInMonth(m.month, year);
@@ -72,7 +82,20 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
       (fb.halfboardPct / 100) * fb.halfboardPrice
     );
   }
-  const revenuePerRoomNight = m.roomRevenue > 0 ? m.roomRevenue : m.adr + boardPerRoomNight;
+
+  // Egyéb bevételek: ADR %-a
+  let extraRevPerRoomNight = 0;
+  if (m.roomRevenue === 0 && fb) {
+    const extraPct =
+      (fb.fbOtherEnabled ? fb.fbOtherPct : 0) +
+      (fb.spaEnabled ? fb.spaPct : 0) +
+      (fb.otherRevenueEnabled ? fb.otherRevenuePct : 0);
+    extraRevPerRoomNight = m.adr * (extraPct / 100);
+  }
+
+  const revenuePerRoomNight = m.roomRevenue > 0
+    ? m.roomRevenue
+    : m.adr + boardPerRoomNight + extraRevPerRoomNight;
   const revenue = revenuePerRoomNight * roomNights;
 
   const cost = effectiveCost * roomNights;
@@ -445,6 +468,12 @@ export default function SharePage() {
     breakfastPrice: settings.breakfastPrice,
     halfboardPrice: settings.halfboardPrice,
     avgPaxPerRoom: settings.avgPaxPerRoom,
+    fbOtherEnabled: settings.fbOtherEnabled,
+    fbOtherPct: settings.fbOtherPct,
+    spaEnabled: settings.spaEnabled,
+    spaPct: settings.spaPct,
+    otherRevenueEnabled: settings.otherRevenueEnabled,
+    otherRevenuePct: settings.otherRevenuePct,
   };
 
   const monthsWithBands = months.map(m => {
