@@ -19,6 +19,7 @@ import {
   X,
   Zap,
   SlidersHorizontal,
+  BookOpen,
 } from "lucide-react";
 
 const navItems = [
@@ -149,26 +150,41 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
             );
           })()}
 
-          {/* Simple Planner — Beállítások almenü */}
+          {/* Simple Planner — almenük */}
           {(() => {
             const inSimplePlanner = pathname === "/simple-planner" || pathname.startsWith("/simple-planner/");
-            const activeSettings = pathname === "/simple-planner/settings";
             if (!inSimplePlanner) return null;
+            const activeSettings = pathname === "/simple-planner/settings";
+            const activeManual   = pathname === "/simple-planner/manual";
             return (
-              <Link
-                href="/simple-planner/settings"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all"
-                style={{
-                  marginTop: 3,
-                  marginLeft: 10,
-                  color: activeSettings ? "#A78BFA" : "#475569",
-                  background: activeSettings ? "#1E1B4B" : "transparent",
-                  fontSize: 12,
-                }}
-              >
-                <SlidersHorizontal size={13} color={activeSettings ? "#A78BFA" : "#475569"} />
-                Beállítások
-              </Link>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 3 }}>
+                <Link
+                  href="/simple-planner/settings"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all"
+                  style={{
+                    marginLeft: 10,
+                    color: activeSettings ? "#A78BFA" : "#475569",
+                    background: activeSettings ? "#1E1B4B" : "transparent",
+                    fontSize: 12,
+                  }}
+                >
+                  <SlidersHorizontal size={13} color={activeSettings ? "#A78BFA" : "#475569"} />
+                  Beállítások
+                </Link>
+                <Link
+                  href="/simple-planner/manual"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all"
+                  style={{
+                    marginLeft: 10,
+                    color: activeManual ? "#A78BFA" : "#475569",
+                    background: activeManual ? "#1E1B4B" : "transparent",
+                    fontSize: 12,
+                  }}
+                >
+                  <BookOpen size={13} color={activeManual ? "#A78BFA" : "#475569"} />
+                  Kézikönyv
+                </Link>
+              </div>
             );
           })()}
         </div>}
