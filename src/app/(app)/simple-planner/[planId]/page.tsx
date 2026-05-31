@@ -79,8 +79,8 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, outOfO
   // Szobaárbevétel (Ft/szoba/éj) → revenue = roomRevenue × foglalt szobaéj (mint ADR)
   // Ha nincs roomRevenue: ADR × foglalt szobaéj
   const revenue = m.roomRevenue > 0 ? m.roomRevenue * roomNights : roomNights * m.adr;
-  // monthlyCost = Ft/elérhető szoba/éj → kiadás csak az elérhető kapacitásra számolódik
-  const cost = m.monthlyCost * availableNights;
+  // monthlyCost = Ft/foglalt szoba/éj → kiadás csak a ténylegesen kiadott szobaéjekre számolódik
+  const cost = m.monthlyCost * roomNights;
   // TFH = nettó szobaárbevétel × tfhRate%
   const tfh = revenue * (tfhRate / 100);
   const profit = revenue - cost - tfh;
