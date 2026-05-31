@@ -182,12 +182,12 @@ export default function ManualPage() {
         </Section>
 
         {/* ─── 2. TFH ────────────────────────────────────────────────────────── */}
-        <Section emoji="🏛️" title="2. TFH — Idegenforgalmi adó" subtitle="Beállítások → TFH szekció">
+        <Section emoji="🏛️" title="2. TFH — Turizmus fejlesztési hozzájárulás" subtitle="Beállítások → TFH szekció">
           <Step n={1} title="Nyisd meg a Beállítások oldalt">
             A bal oldali menüben a <Badge>Simple Planner</Badge> alatt kattints a <Badge>Beállítások</Badge> almenüre.
           </Step>
           <Step n={2} title="Kapcsold be a TFH-t (ha szükséges)">
-            A <strong>TFH (Idegenforgalmi adó)</strong> szekció tetején találsz egy be/ki kapcsolót.
+            A <strong>TFH (Turizmus fejlesztési hozzájárulás)</strong> szekció tetején találsz egy be/ki kapcsolót.
             Ha a szálloda fizet TFH-t, kapcsold be.
           </Step>
           <Step n={3} title="Add meg a TFH kulcsot">
