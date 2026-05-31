@@ -686,46 +686,292 @@ export default function SharePage() {
           </div>
         )}
 
-        {/* ── KPI cards ── */}
+        {/* ── Interaktív szimulátor + KPI egy blokkban ── */}
         <div style={{
-          display: "grid",
-          gridTemplateColumns: settings.tfhEnabled ? "repeat(4, 1fr)" : "repeat(3, 1fr)",
-          gap: 14, marginBottom: 24,
+          background: "white",
+          borderRadius: 24,
+          border: isSimActive ? "2px solid #7C3AED" : "1px solid #E2E8F0",
+          boxShadow: isSimActive
+            ? "0 12px 48px rgba(124,58,237,0.18)"
+            : "0 2px 12px rgba(15,23,42,0.07)",
+          marginBottom: 24,
+          overflow: "hidden",
+          transition: "all 0.3s",
         }}>
-          <KpiCard
-            label="Éves bevétel"
-            value={`${fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft`}
-            sub={totalRooms ? `${totalRooms} szoba alapján` : undefined}
-            accentColor="#3B82F6"
-            icon="💰"
-          />
-          {settings.tfhEnabled && (
-            <KpiCard
-              label={`TFH (${settings.tfhRate}%)`}
-              value={`−${fmtM(isSimActive ? simAnnualTfh : annualTfh)} Ft`}
-              accentColor="#F59E0B"
-              valueColor="#D97706"
-              icon="🏛️"
-            />
-          )}
-          <KpiCard
-            label="Éves profit"
-            value={`${(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}${fmtM(isSimActive ? simAnnualProfit : annualProfit)} Ft`}
-            sub={(isSimActive ? simAnnualRevenue : annualRevenue) > 0
-              ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}% margin`
-              : undefined}
-            accentColor={(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#059669" : "#DC2626"}
-            valueColor={(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#059669" : "#DC2626"}
-            icon={(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "📈" : "📉"}
-          />
-          <KpiCard
-            label="Átl. kihasználtság"
-            value={`${Math.round(isSimActive ? simAvgOcc : avgOcc)}%`}
-            sub={annualBreakeven !== null ? `fedezeti pont: ${Math.round(annualBreakeven)}%` : undefined}
-            accentColor="#7C3AED"
-            valueColor="#7C3AED"
-            icon="🏨"
-          />
+
+          {/* ── Header ── */}
+          <div style={{
+            background: isSimActive
+              ? "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)"
+              : "linear-gradient(135deg, #FAFAFA 0%, #F1F5F9 100%)",
+            borderBottom: `1px solid ${isSimActive ? "#DDD6FE" : "#E2E8F0"}`,
+            padding: "20px 28px",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            transition: "all 0.3s",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 16,
+                background: isSimActive
+                  ? "linear-gradient(135deg, #7C3AED, #5B21B6)"
+                  : "linear-gradient(135deg, #CBD5E1, #94A3B8)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22, flexShrink: 0,
+                boxShadow: isSimActive ? "0 4px 16px rgba(124,58,237,0.35)" : "none",
+                transition: "all 0.3s",
+              }}>🎛️</div>
+              <div>
+                <h2 style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", margin: 0, letterSpacing: "-0.01em" }}>
+                  Foglaltsági forgatókönyv-szimulátor
+                </h2>
+                <p style={{ fontSize: 12, color: isSimActive ? "#7C3AED" : "#94A3B8", margin: "3px 0 0", fontWeight: 600, transition: "color 0.3s" }}>
+                  {isSimActive
+                    ? `${simOffset > 0 ? "+" : ""}${simOffset} pp módosítás aktív — az összes szám valós időben frissül`
+                    : "Állítsd a csúszkát és nézd meg, hogyan változna az éves eredmény"}
+                </p>
+              </div>
+            </div>
+            {isSimActive && (
+              <button
+                onClick={() => setSimOffset(0)}
+                style={{
+                  fontSize: 12, fontWeight: 700,
+                  color: "#7C3AED", background: "white",
+                  border: "1.5px solid #C4B5FD",
+                  borderRadius: 10, padding: "8px 18px",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(124,58,237,0.1)",
+                }}
+              >
+                ↺ Visszaállítás
+              </button>
+            )}
+          </div>
+
+          {/* ── Csúszka ── */}
+          <div style={{
+            padding: "28px 32px 24px",
+            borderBottom: "1px solid #F1F5F9",
+            background: isSimActive ? "#FDFCFF" : "white",
+            transition: "background 0.3s",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase" }}>Pesszimista</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: isSimActive ? "#7C3AED" : "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase", transition: "color 0.3s" }}>
+                    {isSimActive ? `${simOffset > 0 ? "+" : ""}${simOffset} pp a tervhez képest` : "◆ Alapterv"}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase" }}>Optimista</span>
+                </div>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type="range"
+                    min={-30} max={30} step={1}
+                    value={simOffset}
+                    onChange={e => setSimOffset(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: "#7C3AED", cursor: "pointer", height: 6 }}
+                  />
+                  {/* center tick */}
+                  <div style={{
+                    position: "absolute", top: "50%", left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: 2, height: 16,
+                    background: isSimActive ? "#C4B5FD" : "#E2E8F0",
+                    borderRadius: 1, pointerEvents: "none",
+                    transition: "background 0.3s",
+                  }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>−30 pp</span>
+                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>0</span>
+                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>+30 pp</span>
+                </div>
+              </div>
+              {/* Live értékkijelző */}
+              <div style={{
+                minWidth: 90, textAlign: "center",
+                background: isSimActive
+                  ? "linear-gradient(135deg, #7C3AED, #5B21B6)"
+                  : "#F1F5F9",
+                borderRadius: 16, padding: "14px 18px",
+                fontSize: 26, fontWeight: 900,
+                color: isSimActive ? "white" : "#CBD5E1",
+                letterSpacing: "-0.03em",
+                boxShadow: isSimActive ? "0 4px 16px rgba(124,58,237,0.3)" : "none",
+                transition: "all 0.25s",
+                lineHeight: 1,
+                flexShrink: 0,
+              }}>
+                {isSimActive ? (simOffset > 0 ? "+" : "") + simOffset : "0"}
+                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, opacity: 0.75, letterSpacing: "0.05em" }}>pp</div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── KPI sor ── */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: settings.tfhEnabled ? "repeat(4, 1fr)" : "repeat(3, 1fr)",
+          }}>
+            {/* Bevétel */}
+            {(() => {
+              const base = annualRevenue;
+              const sim = simAnnualRevenue;
+              const delta = sim - base;
+              const current = isSimActive ? sim : base;
+              return (
+                <div style={{
+                  padding: "24px 28px",
+                  borderRight: "1px solid #F1F5F9",
+                  borderTop: isSimActive ? "3px solid #3B82F6" : "3px solid #E2E8F0",
+                  transition: "border-color 0.3s",
+                }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span>💰</span> Éves bevétel
+                  </p>
+                  <p style={{ fontSize: 26, fontWeight: 800, color: "#0F172A", margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                    {fmtM(current)} Ft
+                  </p>
+                  {isSimActive && delta !== 0 ? (
+                    <span style={{
+                      display: "inline-block", fontSize: 12, fontWeight: 700,
+                      padding: "2px 8px", borderRadius: 6,
+                      background: delta > 0 ? "#ECFDF5" : "#FEF2F2",
+                      color: delta > 0 ? "#059669" : "#DC2626",
+                    }}>
+                      {delta > 0 ? "+" : ""}{fmtM(delta)} Ft
+                    </span>
+                  ) : (
+                    <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>
+                      {totalRooms ? `${totalRooms} szoba alapján` : "éves összesen"}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* TFH */}
+            {settings.tfhEnabled && (() => {
+              const base = annualTfh;
+              const sim = simAnnualTfh;
+              const delta = sim - base;
+              const current = isSimActive ? sim : base;
+              return (
+                <div style={{
+                  padding: "24px 28px",
+                  borderRight: "1px solid #F1F5F9",
+                  borderTop: isSimActive ? "3px solid #F59E0B" : "3px solid #E2E8F0",
+                  transition: "border-color 0.3s",
+                }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span>🏛️</span> TFH ({settings.tfhRate}%)
+                  </p>
+                  <p style={{ fontSize: 26, fontWeight: 800, color: "#D97706", margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                    −{fmtM(current)} Ft
+                  </p>
+                  {isSimActive && delta !== 0 ? (
+                    <span style={{
+                      display: "inline-block", fontSize: 12, fontWeight: 700,
+                      padding: "2px 8px", borderRadius: 6,
+                      background: "#FEF3C7",
+                      color: "#D97706",
+                    }}>
+                      {delta > 0 ? "+" : ""}{fmtM(delta)} Ft
+                    </span>
+                  ) : (
+                    <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>idegenforgalmi adó</p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Profit */}
+            {(() => {
+              const base = annualProfit;
+              const sim = simAnnualProfit;
+              const delta = sim - base;
+              const current = isSimActive ? sim : base;
+              const color = current >= 0 ? "#059669" : "#DC2626";
+              const accentColor = current >= 0 ? "#059669" : "#DC2626";
+              return (
+                <div style={{
+                  padding: "24px 28px",
+                  borderRight: "1px solid #F1F5F9",
+                  borderTop: isSimActive ? `3px solid ${accentColor}` : "3px solid #E2E8F0",
+                  transition: "border-color 0.3s",
+                }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span>{current >= 0 ? "📈" : "📉"}</span> Éves profit
+                  </p>
+                  <p style={{ fontSize: 26, fontWeight: 800, color, margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                    {current >= 0 ? "+" : ""}{fmtM(current)} Ft
+                  </p>
+                  {isSimActive && delta !== 0 ? (
+                    <span style={{
+                      display: "inline-block", fontSize: 12, fontWeight: 700,
+                      padding: "2px 8px", borderRadius: 6,
+                      background: delta > 0 ? "#ECFDF5" : "#FEF2F2",
+                      color: delta > 0 ? "#059669" : "#DC2626",
+                    }}>
+                      {delta > 0 ? "+" : ""}{fmtM(delta)} Ft
+                    </span>
+                  ) : (
+                    <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>
+                      {(isSimActive ? simAnnualRevenue : annualRevenue) > 0
+                        ? `${Math.round(current / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}% profit margin`
+                        : "éves összesen"}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Kihasználtság */}
+            {(() => {
+              const current = isSimActive ? simAvgOcc : avgOcc;
+              const delta = isSimActive ? (simAvgOcc - avgOcc) : 0;
+              const aboveBreakeven = annualBreakeven !== null ? current >= annualBreakeven : null;
+              return (
+                <div style={{
+                  padding: "24px 28px",
+                  borderTop: isSimActive ? "3px solid #7C3AED" : "3px solid #E2E8F0",
+                  transition: "border-color 0.3s",
+                }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span>🏨</span> Átl. kihasználtság
+                  </p>
+                  <p style={{ fontSize: 26, fontWeight: 800, color: "#7C3AED", margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                    {Math.round(current)}%
+                  </p>
+                  {isSimActive && delta !== 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                      <span style={{
+                        display: "inline-block", fontSize: 12, fontWeight: 700,
+                        padding: "2px 8px", borderRadius: 6,
+                        background: delta > 0 ? "#F5F3FF" : "#FEF2F2",
+                        color: delta > 0 ? "#7C3AED" : "#DC2626",
+                        width: "fit-content",
+                      }}>
+                        {delta > 0 ? "+" : ""}{Math.round(delta)} pp
+                      </span>
+                      {annualBreakeven !== null && (
+                        <span style={{ fontSize: 10, fontWeight: 600, color: aboveBreakeven ? "#059669" : "#EF4444" }}>
+                          {aboveBreakeven
+                            ? `✓ fedezeti pont: ${Math.round(annualBreakeven)}%`
+                            : `⚠ BE: ${Math.round(annualBreakeven)}% — ${Math.round(annualBreakeven - current)} pp hiányzik`}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>
+                      {annualBreakeven !== null ? `fedezeti pont: ${Math.round(annualBreakeven)}%` : "éves átlag"}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
         </div>
 
         {/* ── Board mix + bevételi struktúra ── */}
@@ -941,142 +1187,6 @@ export default function SharePage() {
           );
         })()}
 
-        {/* ── Simulator ── */}
-        <div style={{
-          background: "white",
-          borderRadius: 18,
-          border: isSimActive ? "1px solid #C4B5FD" : "1px solid #E2E8F0",
-          boxShadow: isSimActive
-            ? "0 4px 24px rgba(124,58,237,0.12)"
-            : "0 1px 4px rgba(15,23,42,0.05)",
-          marginBottom: 24,
-          overflow: "hidden",
-          transition: "all 0.25s",
-        }}>
-          {/* Header */}
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "16px 24px",
-            borderBottom: `1px solid ${isSimActive ? "#EDE9FE" : "#F1F5F9"}`,
-            background: isSimActive ? "#FAFAFF" : "#FAFAFA",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 16 }}>🎛️</span>
-              <div>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Foglaltsági szimulátor</span>
-                <p style={{ fontSize: 12, color: "#94A3B8", margin: "2px 0 0", fontWeight: 500 }}>
-                  Húzd a csúszkát az előrejelzés valós idejű szimulálásához
-                </p>
-              </div>
-            </div>
-            {isSimActive && (
-              <button
-                onClick={() => setSimOffset(0)}
-                style={{
-                  fontSize: 12, fontWeight: 600,
-                  color: "#7C3AED", background: "#EDE9FE",
-                  border: "1px solid #DDD6FE",
-                  borderRadius: 8, padding: "6px 14px",
-                  cursor: "pointer",
-                }}
-              >
-                Visszaállítás
-              </button>
-            )}
-          </div>
-
-          {/* Slider */}
-          <div style={{ padding: "20px 24px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: isSimActive ? 20 : 0 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#64748B", whiteSpace: "nowrap", minWidth: 160 }}>
-                Kihasználtság módosítás:
-              </span>
-              <div style={{ flex: 1 }}>
-                <input
-                  type="range"
-                  min={-30} max={30} step={1}
-                  value={simOffset}
-                  onChange={e => setSimOffset(Number(e.target.value))}
-                  style={{ width: "100%", accentColor: "#7C3AED", cursor: "pointer", height: 4 }}
-                />
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>−30%</span>
-                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>0%</span>
-                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>+30%</span>
-                </div>
-              </div>
-              <div style={{
-                minWidth: 72, textAlign: "center",
-                background: isSimActive ? "#7C3AED" : "#F1F5F9",
-                borderRadius: 10, padding: "8px 14px",
-                fontSize: 18, fontWeight: 900,
-                color: isSimActive ? "white" : "#94A3B8",
-                transition: "all 0.2s",
-                letterSpacing: "-0.02em",
-              }}>
-                {simOffset > 0 ? "+" : ""}{simOffset}%
-              </div>
-            </div>
-
-            {/* Delta cards */}
-            {isSimActive && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-                {/* Delta Revenue */}
-                <div style={{
-                  borderRadius: 14, padding: "16px 18px",
-                  background: deltaRevenue >= 0 ? "#ECFDF5" : "#FEF2F2",
-                  border: `1px solid ${deltaRevenue >= 0 ? "#A7F3D0" : "#FECACA"}`,
-                }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
-                    Bevétel változás
-                  </p>
-                  <p style={{ fontSize: 22, fontWeight: 800, color: deltaRevenue >= 0 ? "#059669" : "#DC2626", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
-                    {deltaRevenue >= 0 ? "+" : ""}{fmtM(deltaRevenue)} Ft
-                  </p>
-                  <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>
-                    {fmtM(annualRevenue)} → {fmtM(simAnnualRevenue)} Ft
-                  </p>
-                </div>
-                {/* Delta Profit */}
-                <div style={{
-                  borderRadius: 14, padding: "16px 18px",
-                  background: deltaProfit >= 0 ? "#ECFDF5" : "#FEF2F2",
-                  border: `1px solid ${deltaProfit >= 0 ? "#A7F3D0" : "#FECACA"}`,
-                }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
-                    Profit változás
-                  </p>
-                  <p style={{ fontSize: 22, fontWeight: 800, color: deltaProfit >= 0 ? "#059669" : "#DC2626", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
-                    {deltaProfit >= 0 ? "+" : ""}{fmtM(deltaProfit)} Ft
-                  </p>
-                  <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>
-                    {fmtM(annualProfit)} → {fmtM(simAnnualProfit)} Ft
-                  </p>
-                </div>
-                {/* Avg occ */}
-                <div style={{
-                  borderRadius: 14, padding: "16px 18px",
-                  background: "#F5F3FF",
-                  border: "1px solid #DDD6FE",
-                }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
-                    Átl. kihasználtság
-                  </p>
-                  <p style={{ fontSize: 22, fontWeight: 800, color: "#7C3AED", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
-                    {Math.round(simAvgOcc)}%
-                  </p>
-                  {annualBreakeven !== null && (
-                    <p style={{ fontSize: 11, color: "#7C3AED", margin: 0, fontWeight: 600 }}>
-                      {simAvgOcc >= annualBreakeven
-                        ? `✓ +${Math.round(simAvgOcc - annualBreakeven)} pp fedezeti pont felett`
-                        : `✗ ${Math.round(annualBreakeven - simAvgOcc)} pp hiányzik (BE: ${Math.round(annualBreakeven)}%)`}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* ── Charts ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
