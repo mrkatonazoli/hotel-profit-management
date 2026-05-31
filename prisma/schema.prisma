@@ -512,6 +512,8 @@ model SimplePlannerSettings {
   id                  String   @id @default(cuid())
   hotelId             String   @unique
   optimalOccupancyPct Float    @default(70)   // referencia kihasználtság %
+  tfhEnabled          Boolean  @default(true)  // Turizmusfejlesztési Hozzájárulás bekapcsolva?
+  tfhRate             Float    @default(4)     // TFH mértéke % (alapértelmezett 4%)
   hotel               Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   costBands           SimplePlannerCostBand[]
   folderMonths        SimplePlannerFolderMonth[]

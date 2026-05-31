@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, Trash2, Save, Loader2, Check,
-  Settings2, TrendingDown, TrendingUp, BedDouble,
+  Settings2, TrendingDown, TrendingUp, BedDouble, Landmark,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -25,6 +25,8 @@ type FolderMonth = {
 type Settings = {
   id: string;
   optimalOccupancyPct: number;
+  tfhEnabled: boolean;
+  tfhRate: number;
   costBands: CostBand[];
   folderMonths: FolderMonth[];
 };
@@ -112,6 +114,8 @@ export default function SimplePlannerSettingsPage() {
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [optimalOcc, setOptimalOcc] = useState(70);
+  const [tfhEnabled, setTfhEnabled] = useState(true);
+  const [tfhRate, setTfhRate] = useState(4);
   const [bands, setBands] = useState<CostBand[]>(DEFAULT_BANDS);
   const [folderMonths, setFolderMonths] = useState<FolderMonth[]>(
     Array.from({ length: 12 }, (_, i) => ({ month: i + 1, outOfOrderNights: 0 }))
@@ -125,6 +129,8 @@ export default function SimplePlannerSettingsPage() {
       .then((data: Settings | null) => {
         if (data) {
           setOptimalOcc(data.optimalOccupancyPct);
+          setTfhEnabled(data.tfhEnabled ?? true);
+          setTfhRate(data.tfhRate ?? 4);
           setBands(data.costBands.length > 0 ? data.costBands : DEFAULT_BANDS);
           if (data.folderMonths?.length > 0) {
             setFolderMonths(
@@ -149,6 +155,8 @@ export default function SimplePlannerSettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           optimalOccupancyPct: optimalOcc,
+          tfhEnabled,
+          tfhRate,
           costBands: bands.map((b, i) => ({ ...b, sortOrder: i })),
           folderMonths,
         }),
@@ -565,6 +573,100 @@ export default function SimplePlannerSettingsPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* BLOKK 5 — TFH */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
+      <div style={{
+        background: "white", border: `1px solid ${tfhEnabled ? "#FECACA" : "#E2E8F0"}`,
+        borderRadius: 20, padding: "24px", marginBottom: 20,
+        transition: "border-color 0.2s",
+      }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: tfhEnabled ? "#FEE2E2" : "#F1F5F9",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.2s",
+            }}>
+              <Landmark size={15} color={tfhEnabled ? "#DC2626" : "#94A3B8"} />
+            </div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+              Turizmusfejlesztési Hozzájárulás (TFH)
+            </h2>
+          </div>
+
+          {/* Toggle */}
+          <button
+            onClick={() => setTfhEnabled(v => !v)}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              background: tfhEnabled ? "#FEF2F2" : "#F8FAFC",
+              border: `1px solid ${tfhEnabled ? "#FECACA" : "#E2E8F0"}`,
+              borderRadius: 10, padding: "7px 14px",
+              cursor: "pointer", transition: "all 0.2s",
+            }}
+          >
+            <div style={{
+              width: 32, height: 18, borderRadius: 9,
+              background: tfhEnabled ? "#EF4444" : "#CBD5E1",
+              position: "relative", transition: "background 0.2s", flexShrink: 0,
+            }}>
+              <div style={{
+                position: "absolute", top: 3, left: tfhEnabled ? 17 : 3,
+                width: 12, height: 12, borderRadius: "50%", background: "white",
+                transition: "left 0.15s",
+              }} />
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: tfhEnabled ? "#DC2626" : "#94A3B8" }}>
+              {tfhEnabled ? "Bekapcsolva" : "Kikapcsolva"}
+            </span>
+          </button>
+        </div>
+
+        <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
+          A nettó szobaárbevétel után fizetendő állami hozzájárulás. Bekapcsolt állapotban a Simple Planner
+          levonja a TFH-t a bevételből — a profit és a fedezeti pont is ezzel korrigált értéket mutat.
+        </p>
+
+        {/* Mérték beállítás */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 20,
+          opacity: tfhEnabled ? 1 : 0.4,
+          transition: "opacity 0.2s",
+          pointerEvents: tfhEnabled ? "auto" : "none",
+        }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: "#FEF2F2", border: "1px solid #FECACA",
+            borderRadius: 14, padding: "14px 20px",
+          }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EF4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Landmark size={16} color="white" />
+            </div>
+            <div>
+              <p style={{ fontSize: 11, color: "#DC2626", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                TFH mértéke
+              </p>
+              <NumInput
+                value={tfhRate}
+                onChange={setTfhRate}
+                min={0} max={100} step={0.5}
+                suffix="%"
+                width={70}
+              />
+            </div>
+          </div>
+
+          <div style={{ flex: 1, fontSize: 13, color: "#64748B", lineHeight: 1.6 }}>
+            Alapértelmezés: <strong>4%</strong> — a hatályos magyar jogszabály alapján. Ha eltér a szállodádra
+            vonatkozó mérték, módosítsd itt. A számítás: <em>TFH = szobaárbevétel × {tfhRate}%</em>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* Hogyan működik */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
@@ -579,7 +681,10 @@ export default function SimplePlannerSettingsPage() {
           <strong>Kiadás sávok:</strong> ha nincs egyedi kiadás megadva, a kihasználtság alapján automatikusan a megfelelő sávból veszi az értéket.
           <br />
           <strong>Out of Order:</strong> az OOO szobaéjszakák levonásra kerülnek az elérhető kapacitásból —
-          RevPAR = bevétel / (összes szoba × napok − OOO éjszakák), a kiadás és fedezeti pont szintén korrigált kapacitással számol.
+          a kiadás és fedezeti pont szintén korrigált kapacitással számol.
+          <br />
+          <strong>TFH:</strong> ha be van kapcsolva, a profit = bevétel − kiadás − TFH. A fedezeti pont is
+          a TFH-val korrigált nettó bevételt veszi alapul.
         </p>
       </div>
 

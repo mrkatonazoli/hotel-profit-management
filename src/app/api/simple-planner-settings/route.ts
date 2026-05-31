@@ -33,8 +33,10 @@ export async function PUT(req: Request) {
   if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
 
   const body = await req.json();
-  const { optimalOccupancyPct, costBands, folderMonths } = body as {
+  const { optimalOccupancyPct, costBands, folderMonths, tfhEnabled, tfhRate } = body as {
     optimalOccupancyPct?: number;
+    tfhEnabled?: boolean;
+    tfhRate?: number;
     costBands?: { fromOccPct: number; toOccPct: number; costPerRoom: number; label?: string; sortOrder?: number }[];
     folderMonths?: { month: number; outOfOrderNights: number }[];
   };
@@ -42,8 +44,17 @@ export async function PUT(req: Request) {
   // Upsert alap rekord
   let settings = await prisma.simplePlannerSettings.upsert({
     where: { hotelId: hotel.id },
-    create: { hotelId: hotel.id, optimalOccupancyPct: optimalOccupancyPct ?? 70 },
-    update: { ...(optimalOccupancyPct !== undefined && { optimalOccupancyPct }) },
+    create: {
+      hotelId: hotel.id,
+      optimalOccupancyPct: optimalOccupancyPct ?? 70,
+      tfhEnabled: tfhEnabled ?? true,
+      tfhRate: tfhRate ?? 4,
+    },
+    update: {
+      ...(optimalOccupancyPct !== undefined && { optimalOccupancyPct }),
+      ...(tfhEnabled !== undefined && { tfhEnabled }),
+      ...(tfhRate !== undefined && { tfhRate }),
+    },
     include,
   });
 

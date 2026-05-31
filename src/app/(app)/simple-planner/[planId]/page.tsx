@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed, Sliders, RotateCcw, Download, X, GitBranch, ChevronRight } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed, Sliders, RotateCcw, Download, X, GitBranch, ChevronRight, Landmark } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart, Bar,
@@ -49,6 +49,7 @@ type MonthCalc = {
   roomNights: number;
   revenue: number;
   cost: number;
+  tfh: number;
   profit: number;
   margin: number | null;
   breakeven: number | null;
@@ -68,7 +69,7 @@ function getDaysInMonth(month: number, year: number) {
   return new Date(year, month, 0).getDate();
 }
 
-function computeMonthCalc(m: MonthData, totalRooms: number, year: number, outOfOrderNights = 0): MonthCalc {
+function computeMonthCalc(m: MonthData, totalRooms: number, year: number, outOfOrderNights = 0, tfhRate = 0): MonthCalc {
   const days = getDaysInMonth(m.month, year);
   // Elérhető szobaéjszakák = összes − OOO
   const availableNights = Math.max(0, totalRooms * days - outOfOrderNights);
@@ -80,18 +81,20 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, outOfO
   const revenue = m.roomRevenue > 0 ? m.roomRevenue * roomNights : roomNights * m.adr;
   // monthlyCost = Ft/elérhető szoba/éj → kiadás csak az elérhető kapacitásra számolódik
   const cost = m.monthlyCost * availableNights;
-  const profit = revenue - cost;
+  // TFH = nettó szobaárbevétel × tfhRate%
+  const tfh = revenue * (tfhRate / 100);
+  const profit = revenue - cost - tfh;
   const margin = revenue > 0 ? (profit / revenue) * 100 : null;
-  // Egységes fedezeti pont képlet: (cost / revenue) × occ%
-  // – roomRevenue alapú: breakeven = monthlyCost / roomRevenue × 100
-  // – ADR alapú: breakeven = monthlyCost / ADR × 100
-  //   (mindkét esetben leegyszerűsödik erre)
-  const breakeven = revenue > 0 && m.occupancyPct > 0
-    ? (cost / revenue) * m.occupancyPct
-    : m.adr > 0 && m.monthlyCost > 0
-    ? (m.monthlyCost / m.adr) * 100
+  // Fedezeti pont: occ ahol (revenue − tfh) = cost
+  // = cost / (revenue × (1 − tfhRate/100)) × occ = (cost / netRevenue) × occ
+  const netRevenue = revenue - tfh;
+  const unitRate = m.roomRevenue > 0 ? m.roomRevenue : m.adr;
+  const breakeven = netRevenue > 0 && m.occupancyPct > 0
+    ? (cost / netRevenue) * m.occupancyPct
+    : unitRate > 0 && m.monthlyCost > 0
+    ? (m.monthlyCost / (unitRate * (1 - tfhRate / 100))) * 100
     : null;
-  return { month: m.month, daysInMonth: days, roomNights, revenue, cost, profit, margin, breakeven, hasData };
+  return { month: m.month, daysInMonth: days, roomNights, revenue, cost, tfh, profit, margin, breakeven, hasData };
 }
 
 function profitColor(p: number) {
@@ -555,6 +558,8 @@ export default function SimplePlanDetailPage() {
   // ─── Cost band + folder month settings ───────────────────────────────────
   const [costBands, setCostBands] = useState<{ fromOccPct: number; toOccPct: number; costPerRoom: number }[]>([]);
   const [folderNights, setFolderNights] = useState<Record<number, number>>({}); // month → OOO nights
+  const [tfhEnabled, setTfhEnabled] = useState(false);
+  const [tfhRate, setTfhRate] = useState(4);
 
   useEffect(() => {
     fetch("/api/simple-planner-settings")
@@ -562,6 +567,8 @@ export default function SimplePlanDetailPage() {
       .then((data: {
         costBands?: { fromOccPct: number; toOccPct: number; costPerRoom: number }[];
         folderMonths?: { month: number; outOfOrderNights: number }[];
+        tfhEnabled?: boolean;
+        tfhRate?: number;
       } | null) => {
         if (data?.costBands?.length) setCostBands(data.costBands);
         if (data?.folderMonths?.length) {
@@ -569,6 +576,8 @@ export default function SimplePlanDetailPage() {
           data.folderMonths.forEach(f => { map[f.month] = f.outOfOrderNights; });
           setFolderNights(map);
         }
+        if (data?.tfhEnabled !== undefined) setTfhEnabled(data.tfhEnabled);
+        if (data?.tfhRate !== undefined) setTfhRate(data.tfhRate);
       });
   }, []);
 
@@ -671,6 +680,7 @@ export default function SimplePlanDetailPage() {
   // ─── Calculations ─────────────────────────────────────────────────────────
 
   const totalRooms = plan?.hotel?.totalRooms ?? 0;
+  const effectiveTfhRate = tfhEnabled ? tfhRate : 0;
 
   // Ha nincs egyedi kiadás a hónapban, de van cost band → azt töltjük be
   const monthsWithBands: MonthData[] = months.map(m => {
@@ -679,15 +689,16 @@ export default function SimplePlanDetailPage() {
     return bandCost !== null ? { ...m, monthlyCost: bandCost } : m;
   });
 
-  // Saved calcs (OOO korrigálva)
+  // Saved calcs (OOO + TFH korrigálva)
   const calcs: MonthCalc[] = monthsWithBands.map(m =>
-    computeMonthCalc(m, totalRooms, year, folderNights[m.month] ?? 0)
+    computeMonthCalc(m, totalRooms, year, folderNights[m.month] ?? 0, effectiveTfhRate)
   );
   const filledCalcs = calcs.filter(c => c.hasData);
 
   const annualRevenue = calcs.reduce((s, c) => s + c.revenue, 0);
   const annualCost = calcs.reduce((s, c) => s + c.cost, 0);
-  const annualProfit = annualRevenue - annualCost;
+  const annualTfh = calcs.reduce((s, c) => s + c.tfh, 0);
+  const annualProfit = annualRevenue - annualCost - annualTfh;
   const avgOcc = filledCalcs.length > 0
     ? filledCalcs.reduce((s, c) => s + (months.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / filledCalcs.length
     : 0;
@@ -695,25 +706,26 @@ export default function SimplePlanDetailPage() {
     ? filledCalcs.filter(c => c.margin !== null).reduce((s, c) => s + (c.margin ?? 0), 0) / filledCalcs.filter(c => c.margin !== null).length
     : 0;
 
-  // Éves fedezeti pont: (annualCost / annualRevenue) × avgOcc%
-  // Egységes képlet — működik RevPAR és ADR alapú hónapok keverékénél is
-  const annualBreakeven = (annualRevenue > 0 && avgOcc > 0)
-    ? (annualCost / annualRevenue) * avgOcc
+  // Éves fedezeti pont: cost / (revenue − tfh) × avgOcc
+  const annualNetRevenue = annualRevenue - annualTfh;
+  const annualBreakeven = (annualNetRevenue > 0 && avgOcc > 0)
+    ? (annualCost / annualNetRevenue) * avgOcc
     : null;
 
-  // Simulated calcs (with occupancy offset)
+  // Simulated calcs (with occupancy offset + TFH)
   const simMonths: MonthData[] = months.map(m => ({
     ...m,
     occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
     roomRevenue: m.roomRevenue,
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m =>
-    computeMonthCalc(m, totalRooms, year, folderNights[m.month] ?? 0)
+    computeMonthCalc(m, totalRooms, year, folderNights[m.month] ?? 0, effectiveTfhRate)
   );
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
 
   const simAnnualRevenue = simCalcs.reduce((s, c) => s + c.revenue, 0);
-  const simAnnualProfit = simAnnualRevenue - annualCost; // cost stays same
+  const simAnnualTfh = simCalcs.reduce((s, c) => s + c.tfh, 0);
+  const simAnnualProfit = simAnnualRevenue - annualCost - simAnnualTfh;
   const simAvgOcc = simFilledCalcs.length > 0
     ? simFilledCalcs.reduce((s, c) => s + (simMonths.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / simFilledCalcs.length
     : 0;
@@ -930,7 +942,7 @@ export default function SimplePlanDetailPage() {
       {/* SECTION B — KPI Cards */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: tfhEnabled ? "repeat(5, 1fr)" : "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         <KpiCard
           label="Éves bevétel"
           value={`${fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft`}
@@ -939,6 +951,15 @@ export default function SimplePlanDetailPage() {
           delta={isSimActive && deltaRevenue !== 0 ? `${deltaRevenue > 0 ? "+" : ""}${fmtM(deltaRevenue)} Ft a tervhez képest` : undefined}
           sub={totalRooms ? `${totalRooms} szoba alapján` : "szobaszám hiányzik"}
         />
+        {tfhEnabled && (
+          <KpiCard
+            label={`TFH (${tfhRate}%)`}
+            value={`−${fmtM(isSimActive ? simAnnualTfh : annualTfh)} Ft`}
+            color="#EF4444"
+            icon={<TrendingDown size={16} />}
+            sub={`${fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft × ${tfhRate}%`}
+          />
+        )}
         <KpiCard
           label="Éves profit"
           value={`${(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}${fmtM(isSimActive ? simAnnualProfit : annualProfit)} Ft`}
@@ -946,7 +967,7 @@ export default function SimplePlanDetailPage() {
           icon={(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
           delta={isSimActive && deltaProfit !== 0 ? `${deltaProfit > 0 ? "+" : ""}${fmtM(deltaProfit)} Ft a tervhez képest` : undefined}
           sub={(isSimActive ? simAnnualRevenue : annualRevenue) > 0
-            ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}% margin`
+            ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}% margin${tfhEnabled ? " (TFH után)" : ""}`
             : undefined}
         />
         <KpiCard
@@ -1345,6 +1366,7 @@ export default function SimplePlanDetailPage() {
                   { label: "Szobaárbevétel/szoba/éj", align: "right" },
                   { label: "Kiadás/szoba/éj", align: "right" },
                   { label: "Összes kiadás", align: "right" },
+                  ...(tfhEnabled ? [{ label: `TFH (${tfhRate}%)`, align: "right" }] : []),
                   { label: "Profit", align: "right" },
                   { label: "Margin %", align: "right" },
                   { label: "Fedezeti pont %", align: "right" },
@@ -1398,6 +1420,11 @@ export default function SimplePlanDetailPage() {
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
                       {c.hasData ? fmtM(c.cost) : "—"}
                     </td>
+                    {tfhEnabled && (
+                      <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.hasData && c.tfh > 0 ? "#EF4444" : "#CBD5E1" }}>
+                        {c.hasData && c.tfh > 0 ? `−${fmtM(c.tfh)}` : "—"}
+                      </td>
+                    )}
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: c.hasData ? profitColor(c.profit) : "#CBD5E1" }}>
                       {c.hasData ? `${c.profit >= 0 ? "+" : ""}${fmtM(c.profit)}` : "—"}
                     </td>
@@ -1432,6 +1459,11 @@ export default function SimplePlanDetailPage() {
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
                   {fmtM(annualCost)}
                 </td>
+                {tfhEnabled && (
+                  <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#EF4444" }}>
+                    −{fmtM(isSimActive ? simAnnualTfh : annualTfh)}
+                  </td>
+                )}
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
                   {(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}{fmtM(isSimActive ? simAnnualProfit : annualProfit)}
                 </td>
