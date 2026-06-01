@@ -17,11 +17,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "HeyMax!",
   description: "Maximize your hotel's profit.",
-  themeColor: "#153251",
   icons: {
     icon: "/favicon.svg",
     apple: "/heymax-icon.svg",
   },
+};
+
+export const viewport = {
+  themeColor: "#153251",
 };
 
 export default function RootLayout({
