@@ -39,7 +39,7 @@ const FEATURE_LABELS: Record<string, string> = {
 };
 
 const FEATURE_COLORS: Record<string, string> = {
-  generate_constraints: "#7C3AED",
+  generate_constraints: "#35BD78",
   summary:             "#3B82F6",
   refine_variable:     "#10B981",
 };
@@ -87,7 +87,7 @@ function DailyChart({ days, metric }: {
   const barColor = metric === "costUsd" ? "#F59E0B"
     : metric === "calls" ? "#10B981"
     : metric === "outputTokens" ? "#3B82F6"
-    : "#7C3AED";
+    : "#35BD78";
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
@@ -117,7 +117,7 @@ function DailyChart({ days, metric }: {
         return (
           <g key={d.date}>
             <rect x={x} y={PAD.t} width={barW} height={cH}
-              fill="#F1F5F9" rx={2} />
+              fill="#E4E6EA" rx={2} />
             {barH > 0 && (
               <rect x={x} y={y} width={barW} height={barH}
                 fill={barColor} rx={2}
@@ -157,7 +157,7 @@ function StatCard({
           {icon}
         </div>
       </div>
-      <div className="text-3xl font-bold tracking-tight font-mono" style={{ color: "#1E293B" }}>
+      <div className="text-3xl font-bold tracking-tight font-mono" style={{ color: "#153251" }}>
         {value}
       </div>
       {sub && (
@@ -230,7 +230,7 @@ export default function TokenStatsPage() {
   ];
 
   const chartOptions: { key: typeof chartMetric; label: string; color: string }[] = [
-    { key: "inputTokens",  label: "Input",    color: "#7C3AED" },
+    { key: "inputTokens",  label: "Input",    color: "#35BD78" },
     { key: "outputTokens", label: "Output",   color: "#3B82F6" },
     { key: "calls",        label: "Hívások",  color: "#10B981" },
     { key: "costUsd",      label: "Költség",  color: "#F59E0B" },
@@ -247,7 +247,7 @@ export default function TokenStatsPage() {
           <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#94A3B8" }}>
             Admin · Monitoring
           </p>
-          <h1 className="text-2xl font-bold" style={{ color: "#1E293B" }}>
+          <h1 className="text-2xl font-bold" style={{ color: "#153251" }}>
             AI Token statisztika
           </h1>
           <p className="text-sm mt-1" style={{ color: "#64748B" }}>
@@ -265,7 +265,7 @@ export default function TokenStatsPage() {
                   onClick={() => { setFrom(p.f); setTo(p.t); load(p.f, p.t); }}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                   style={{
-                    background: active ? "#7C3AED" : "transparent",
+                    background: active ? "#35BD78" : "transparent",
                     color: active ? "white" : "#64748B",
                   }}>
                   {p.label}
@@ -287,7 +287,7 @@ export default function TokenStatsPage() {
 
           <button onClick={() => load(from, to)}
             className="px-4 py-2 rounded-xl text-xs font-bold transition-all"
-            style={{ background: "#7C3AED", color: "white" }}>
+            style={{ background: "#35BD78", color: "white" }}>
             Lekérés
           </button>
         </div>
@@ -304,7 +304,7 @@ export default function TokenStatsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-60">
-          <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+          <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
         </div>
       ) : data && (
         <>
@@ -322,7 +322,7 @@ export default function TokenStatsPage() {
               value={fmtTokens(data.totals.inputTokens)}
               sub={`Output: ${fmtTokens(data.totals.outputTokens)}`}
               icon={<Zap size={15} />}
-              accent="#7C3AED"
+              accent="#35BD78"
             />
             <StatCard
               label="Összes token"
@@ -409,7 +409,7 @@ export default function TokenStatsPage() {
                             <td className="px-5 py-3.5 font-mono text-xs font-semibold" style={{ color: "#64748B" }}>
                               {s.calls}×
                             </td>
-                            <td className="px-5 py-3.5 font-mono text-xs" style={{ color: "#7C3AED" }}>
+                            <td className="px-5 py-3.5 font-mono text-xs" style={{ color: "#35BD78" }}>
                               {fmtTokens(s.inputTokens)}
                             </td>
                             <td className="px-5 py-3.5 font-mono text-xs" style={{ color: "#3B82F6" }}>
@@ -454,14 +454,14 @@ export default function TokenStatsPage() {
                             style={{ borderBottom: isLast ? "none" : "1px solid #F8FAFC" }}>
                             <td className="px-5 py-3.5">
                               <span className="text-xs font-mono px-2.5 py-1 rounded-lg"
-                                style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                                style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
                                 {model}
                               </span>
                             </td>
                             <td className="px-5 py-3.5 font-mono text-xs font-semibold" style={{ color: "#64748B" }}>
                               {s.calls}×
                             </td>
-                            <td className="px-5 py-3.5 font-mono text-xs" style={{ color: "#7C3AED" }}>
+                            <td className="px-5 py-3.5 font-mono text-xs" style={{ color: "#35BD78" }}>
                               {fmtTokens(s.inputTokens)}
                             </td>
                             <td className="px-5 py-3.5 font-mono text-xs" style={{ color: "#3B82F6" }}>
@@ -514,13 +514,13 @@ export default function TokenStatsPage() {
                               </span>
                             : <span style={{ color: "#CBD5E1" }}>—</span>}
                         </td>
-                        <td className="px-5 py-3 font-mono text-xs" style={{ color: active ? "#7C3AED" : "#CBD5E1" }}>
+                        <td className="px-5 py-3 font-mono text-xs" style={{ color: active ? "#35BD78" : "#CBD5E1" }}>
                           {active ? fmtTokens(d.inputTokens) : "—"}
                         </td>
                         <td className="px-5 py-3 font-mono text-xs" style={{ color: active ? "#3B82F6" : "#CBD5E1" }}>
                           {active ? fmtTokens(d.outputTokens) : "—"}
                         </td>
-                        <td className="px-5 py-3 font-mono text-xs font-semibold" style={{ color: active ? "#1E293B" : "#CBD5E1" }}>
+                        <td className="px-5 py-3 font-mono text-xs font-semibold" style={{ color: active ? "#153251" : "#CBD5E1" }}>
                           {active ? fmtTokens(total) : "—"}
                         </td>
                         <td className="px-5 py-3 font-mono text-xs" style={{ color: active ? "#D97706" : "#CBD5E1" }}>
@@ -539,13 +539,13 @@ export default function TokenStatsPage() {
                       <td className="px-5 py-3.5 font-mono text-xs font-bold" style={{ color: "#059669" }}>
                         {data.totals.calls}×
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-xs font-bold" style={{ color: "#7C3AED" }}>
+                      <td className="px-5 py-3.5 font-mono text-xs font-bold" style={{ color: "#35BD78" }}>
                         {fmtTokens(data.totals.inputTokens)}
                       </td>
                       <td className="px-5 py-3.5 font-mono text-xs font-bold" style={{ color: "#3B82F6" }}>
                         {fmtTokens(data.totals.outputTokens)}
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-xs font-bold" style={{ color: "#1E293B" }}>
+                      <td className="px-5 py-3.5 font-mono text-xs font-bold" style={{ color: "#153251" }}>
                         {fmtTokens(data.totals.inputTokens + data.totals.outputTokens)}
                       </td>
                       <td className="px-5 py-3.5 font-mono text-xs font-bold" style={{ color: "#D97706" }}>

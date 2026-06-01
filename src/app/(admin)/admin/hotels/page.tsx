@@ -87,12 +87,12 @@ export default function AdminHotelsPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Szállodák</h1>
-          <p className="text-sm text-slate-500 mt-1">SUPER_ADMIN — összes szálloda kezelése</p>
+          <p className="text-sm text-slate-500 mt-1">⚡ God Mode — összes szálloda kezelése</p>
         </div>
         <button
           onClick={() => { setShowForm(true); setError(""); setForm(defaultForm); }}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-          style={{ background: "#7C3AED" }}
+          style={{ background: "#35BD78" }}
         >
           <Plus size={16} /> Új szálloda
         </button>
@@ -119,7 +119,7 @@ export default function AdminHotelsPage() {
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="pl. Grand Hotel Budapest"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-violet-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
@@ -132,7 +132,7 @@ export default function AdminHotelsPage() {
                   value={form.city}
                   onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
                   placeholder="pl. Budapest"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-violet-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
@@ -142,7 +142,7 @@ export default function AdminHotelsPage() {
                 <select
                   value={form.country}
                   onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-violet-500 bg-white"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500 bg-white"
                 >
                   {COUNTRIES.map(c => (
                     <option key={c.code} value={c.code}>{c.label}</option>
@@ -156,7 +156,7 @@ export default function AdminHotelsPage() {
                 <select
                   value={form.baseCurrency}
                   onChange={e => setForm(f => ({ ...f, baseCurrency: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-violet-500 bg-white"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500 bg-white"
                 >
                   {CURRENCIES.map(c => (
                     <option key={c} value={c}>{c}</option>
@@ -173,7 +173,7 @@ export default function AdminHotelsPage() {
                   value={form.totalRooms}
                   onChange={e => setForm(f => ({ ...f, totalRooms: e.target.value }))}
                   placeholder="pl. 42"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-violet-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -185,7 +185,7 @@ export default function AdminHotelsPage() {
                 type="submit"
                 disabled={saving}
                 className="flex items-center gap-2 px-5 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-60"
-                style={{ background: "#7C3AED" }}
+                style={{ background: "#35BD78" }}
               >
                 {saving ? <><Loader2 size={14} className="animate-spin" /> Mentés...</> : "Létrehozás"}
               </button>
@@ -216,8 +216,8 @@ export default function AdminHotelsPage() {
           {hotels.map(hotel => (
             <div key={hotel.id} className="bg-white rounded-xl border border-slate-200 px-5 py-4 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#EDE9FE" }}>
-                  <Building2 size={18} style={{ color: "#7C3AED" }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(53,189,120,0.12)" }}>
+                  <Building2 size={18} style={{ color: "#35BD78" }} />
                 </div>
                 <div>
                   <div className="font-semibold text-slate-800 text-sm">{hotel.name}</div>
