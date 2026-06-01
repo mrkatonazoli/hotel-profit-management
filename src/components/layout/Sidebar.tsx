@@ -87,7 +87,7 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
               style={{
                 color: active ? "#F8FAFC" : "#64748B",
                 background: active ? "#1E293B" : "transparent",
-                borderLeft: active ? "3px solid #7C3AED" : "3px solid transparent",
+                borderLeft: active ? "3px solid #35BD78" : "3px solid transparent",
               }}
             >
               <Icon size={16} />
@@ -107,11 +107,11 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative overflow-hidden"
                 style={{
                   background: active
-                    ? "linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)"
-                    : "linear-gradient(135deg, #1E1B4B 0%, #1E293B 100%)",
-                  color: active ? "#F5F3FF" : "#A78BFA",
-                  border: `1px solid ${active ? "#7C3AED" : "#312E81"}`,
-                  boxShadow: active ? "0 0 16px #7C3AED44" : "none",
+                    ? "linear-gradient(135deg, #03915A 0%, #35BD78 100%)"
+                    : "linear-gradient(135deg, #09203A 0%, #1E293B 100%)",
+                  color: active ? "#FBFBFC" : "#90DBAC",
+                  border: `1px solid ${active ? "#35BD78" : "#153251"}`,
+                  boxShadow: active ? "0 0 16px #35BD7844" : "none",
                 }}
               >
                 {/* Fényes shimmer effekt */}
@@ -122,17 +122,17 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
                 }} />
                 <div style={{
                   width: 22, height: 22, borderRadius: 7,
-                  background: active ? "rgba(255,255,255,0.2)" : "#312E81",
+                  background: active ? "rgba(255,255,255,0.2)" : "#153251",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   flexShrink: 0,
                 }}>
-                  <Zap size={13} color={active ? "white" : "#A78BFA"} fill={active ? "white" : "none"} />
+                  <Zap size={13} color={active ? "white" : "#90DBAC"} fill={active ? "white" : "none"} />
                 </div>
                 <span style={{ flex: 1 }}>Simple Planner</span>
                 <span style={{
                   fontSize: 9, fontWeight: 800, letterSpacing: "0.06em",
-                  background: active ? "rgba(255,255,255,0.25)" : "#312E81",
-                  color: active ? "white" : "#A78BFA",
+                  background: active ? "rgba(255,255,255,0.25)" : "#153251",
+                  color: active ? "white" : "#90DBAC",
                   padding: "2px 6px", borderRadius: 5,
                   textTransform: "uppercase",
                 }}>
@@ -155,12 +155,12 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all"
                   style={{
                     marginLeft: 10,
-                    color: activeSettings ? "#A78BFA" : "#475569",
-                    background: activeSettings ? "#1E1B4B" : "transparent",
+                    color: activeSettings ? "#90DBAC" : "#475569",
+                    background: activeSettings ? "#09203A" : "transparent",
                     fontSize: 12,
                   }}
                 >
-                  <SlidersHorizontal size={13} color={activeSettings ? "#A78BFA" : "#475569"} />
+                  <SlidersHorizontal size={13} color={activeSettings ? "#90DBAC" : "#475569"} />
                   Beállítások
                 </Link>
                 <Link
@@ -168,12 +168,12 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all"
                   style={{
                     marginLeft: 10,
-                    color: activeManual ? "#A78BFA" : "#475569",
-                    background: activeManual ? "#1E1B4B" : "transparent",
+                    color: activeManual ? "#90DBAC" : "#475569",
+                    background: activeManual ? "#09203A" : "transparent",
                     fontSize: 12,
                   }}
                 >
-                  <BookOpen size={13} color={activeManual ? "#A78BFA" : "#475569"} />
+                  <BookOpen size={13} color={activeManual ? "#90DBAC" : "#475569"} />
                   Kézikönyv
                 </Link>
               </div>
@@ -210,9 +210,9 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
               href="/admin/hotels"
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
               style={{
-                color: pathname === "/admin/hotels" ? "#A78BFA" : "#475569",
+                color: pathname === "/admin/hotels" ? "#90DBAC" : "#475569",
                 background: pathname === "/admin/hotels" ? "#1E1030" : "transparent",
-                borderLeft: pathname === "/admin/hotels" ? "3px solid #7C3AED" : "3px solid transparent",
+                borderLeft: pathname === "/admin/hotels" ? "3px solid #35BD78" : "3px solid transparent",
               }}
             >
               <ShieldCheck size={16} />
@@ -222,9 +222,9 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
               href="/admin/token-stats"
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
               style={{
-                color: pathname === "/admin/token-stats" ? "#A78BFA" : "#475569",
+                color: pathname === "/admin/token-stats" ? "#90DBAC" : "#475569",
                 background: pathname === "/admin/token-stats" ? "#1E1030" : "transparent",
-                borderLeft: pathname === "/admin/token-stats" ? "3px solid #7C3AED" : "3px solid transparent",
+                borderLeft: pathname === "/admin/token-stats" ? "3px solid #35BD78" : "3px solid transparent",
               }}
             >
               <ShieldCheck size={16} />

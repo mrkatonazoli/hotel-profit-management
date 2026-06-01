@@ -38,7 +38,7 @@ const ALL_MODULES = [
 type ModuleId = typeof ALL_MODULES[number]["id"];
 
 const ROLE_META = {
-  MANAGER: { label: "Manager", icon: Crown,      color: "#7C3AED", bg: "#EDE9FE" },
+  MANAGER: { label: "Manager", icon: Crown,      color: "#35BD78", bg: "rgba(53,189,120,0.12)" },
   PROFESSIONAL:  { label: "Professional",  icon: Eye,         color: "#3B82F6", bg: "#DBEAFE" },
 };
 
@@ -48,7 +48,7 @@ function initials(name: string | null, email: string) {
 }
 
 function avatarColor(str: string) {
-  const colors = ["#7C3AED","#3B82F6","#10B981","#F59E0B","#EC4899","#14B8A6"];
+  const colors = ["#35BD78","#3B82F6","#10B981","#F59E0B","#EC4899","#14B8A6"];
   let h = 0;
   for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
   return colors[Math.abs(h) % colors.length];
@@ -100,8 +100,8 @@ function ModuleSelector({
               gap: 8,
               padding: "6px 10px",
               borderRadius: 8,
-              background: checked ? "#EDE9FE" : "#F8FAFC",
-              border: `1px solid ${checked ? "#C4B5FD" : "#E2E8F0"}`,
+              background: checked ? "rgba(53,189,120,0.12)" : "#F8FAFC",
+              border: `1px solid ${checked ? "rgba(53,189,120,0.4)" : "#E2E8F0"}`,
               cursor: disabled ? "not-allowed" : "pointer",
               opacity: disabled ? 0.5 : 1,
               userSelect: "none",
@@ -112,9 +112,9 @@ function ModuleSelector({
               checked={checked}
               onChange={() => toggle(m.id)}
               disabled={disabled}
-              style={{ accentColor: "#7C3AED", width: 14, height: 14, cursor: disabled ? "not-allowed" : "pointer" }}
+              style={{ accentColor: "#35BD78", width: 14, height: 14, cursor: disabled ? "not-allowed" : "pointer" }}
             />
-            <span style={{ fontSize: 12, color: checked ? "#5B21B6" : "#334155", fontWeight: checked ? 600 : 400 }}>
+            <span style={{ fontSize: 12, color: checked ? "#03915A" : "#334155", fontWeight: checked ? 600 : 400 }}>
               {m.label}
             </span>
           </label>
@@ -234,7 +234,7 @@ export default function TeamPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
 
@@ -258,7 +258,7 @@ export default function TeamPage() {
       {isManager && (
         <div className="rounded-2xl p-6" style={{ background: "white", border: "1px solid #E2E8F0" }}>
           <div className="flex items-center gap-2 mb-4">
-            <UserPlus size={18} style={{ color: "#7C3AED" }} />
+            <UserPlus size={18} style={{ color: "#35BD78" }} />
             <h2 className="text-base font-semibold" style={{ color: "#0F172A" }}>Új tag meghívása</h2>
           </div>
 
@@ -282,7 +282,7 @@ export default function TeamPage() {
               </select>
               <button type="submit" disabled={inviting}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "#7C3AED", color: "white", border: "none", cursor: "pointer" }}>
+                style={{ background: "#35BD78", color: "white", border: "none", cursor: "pointer" }}>
                 {inviting ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
                 Meghívás
               </button>
@@ -299,7 +299,7 @@ export default function TeamPage() {
                     type="checkbox"
                     checked={moduleRestrict}
                     onChange={e => setModuleRestrict(e.target.checked)}
-                    style={{ accentColor: "#7C3AED", width: 15, height: 15 }}
+                    style={{ accentColor: "#35BD78", width: 15, height: 15 }}
                   />
                   <span style={{ fontSize: 13, color: "#334155", fontWeight: 500 }}>
                     Modul-korlátozás
@@ -336,7 +336,7 @@ export default function TeamPage() {
           {/* Role description */}
           <div className="flex gap-4 mt-3">
             <div className="flex items-center gap-1.5 text-xs" style={{ color: "#64748B" }}>
-              <Crown size={12} style={{ color: "#7C3AED" }} />
+              <Crown size={12} style={{ color: "#35BD78" }} />
               <span><strong>Manager</strong> — teljes hozzáférés, tagok kezelése</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs" style={{ color: "#64748B" }}>
@@ -349,7 +349,7 @@ export default function TeamPage() {
           {inviteResult && (
             <div className="mt-4 rounded-xl p-4"
               style={{
-                background: inviteResult.type === "error" ? "#FEF2F2" : inviteResult.type === "added" ? "#F0FDF4" : "#F5F3FF",
+                background: inviteResult.type === "error" ? "#FEF2F2" : inviteResult.type === "added" ? "#F0FDF4" : "#FBFBFC",
                 border: `1px solid ${inviteResult.type === "error" ? "#FECACA" : inviteResult.type === "added" ? "#BBF7D0" : "#DDD6FE"}`,
               }}>
               {inviteResult.type === "added" && (
@@ -360,21 +360,21 @@ export default function TeamPage() {
               )}
               {inviteResult.type === "invited" && (
                 <div>
-                  <p className="text-sm font-semibold mb-2" style={{ color: "#5B21B6" }}>
+                  <p className="text-sm font-semibold mb-2" style={{ color: "#03915A" }}>
                     ✉️ Meghívó link generálva
                   </p>
-                  <p className="text-xs mb-3" style={{ color: "#6D28D9" }}>
+                  <p className="text-xs mb-3" style={{ color: "#03915A" }}>
                     <strong>{inviteResult.email}</strong> még nem rendelkezik fiókkal. Küldd el ezt a linket:
                   </p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 text-xs px-3 py-2 rounded-lg truncate"
-                      style={{ background: "#EDE9FE", color: "#5B21B6" }}>
+                      style={{ background: "rgba(53,189,120,0.12)", color: "#03915A" }}>
                       {inviteResult.inviteUrl}
                     </code>
                     <button
                       onClick={() => copyLink((inviteResult as { type: "invited"; inviteUrl: string; email: string }).inviteUrl, "result")}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold flex-shrink-0"
-                      style={{ background: "#7C3AED", color: "white", border: "none", cursor: "pointer" }}>
+                      style={{ background: "#35BD78", color: "white", border: "none", cursor: "pointer" }}>
                       {copiedToken === "result" ? <Check size={13} /> : <Copy size={13} />}
                       {copiedToken === "result" ? "Másolva!" : "Másolás"}
                     </button>
@@ -450,8 +450,8 @@ export default function TeamPage() {
                         m.modules.map(mod => (
                           <span key={mod} style={{
                             fontSize: 11,
-                            background: "#EDE9FE",
-                            color: "#5B21B6",
+                            background: "rgba(53,189,120,0.12)",
+                            color: "#03915A",
                             borderRadius: 8,
                             padding: "2px 8px",
                             fontWeight: 500,
@@ -486,13 +486,13 @@ export default function TeamPage() {
                     }}
                     style={{
                       width: 30, height: 30, borderRadius: 8,
-                      background: isEditingModules ? "#EDE9FE" : "#F8FAFC",
-                      border: `1px solid ${isEditingModules ? "#C4B5FD" : "#E2E8F0"}`,
+                      background: isEditingModules ? "rgba(53,189,120,0.12)" : "#F8FAFC",
+                      border: `1px solid ${isEditingModules ? "rgba(53,189,120,0.4)" : "#E2E8F0"}`,
                       cursor: "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}
                     title="Modul-hozzáférés szerkesztése">
-                    <Pencil size={13} style={{ color: isEditingModules ? "#7C3AED" : "#64748B" }} />
+                    <Pencil size={13} style={{ color: isEditingModules ? "#35BD78" : "#64748B" }} />
                   </button>
                 )}
 
@@ -559,7 +559,7 @@ export default function TeamPage() {
                         disabled={savingModules}
                         style={{
                           fontSize: 12, padding: "4px 12px", borderRadius: 8,
-                          background: "#7C3AED", border: "none",
+                          background: "#35BD78", border: "none",
                           color: "white", cursor: "pointer",
                           display: "flex", alignItems: "center", gap: 4,
                         }}>
@@ -628,7 +628,7 @@ export default function TeamPage() {
                 <button
                   onClick={() => copyLink(inviteUrl, inv.token)}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold flex-shrink-0"
-                  style={{ background: isCopied ? "#D1FAE5" : "#EDE9FE", color: isCopied ? "#059669" : "#7C3AED", border: "none", cursor: "pointer" }}>
+                  style={{ background: isCopied ? "#D1FAE5" : "rgba(53,189,120,0.12)", color: isCopied ? "#059669" : "#35BD78", border: "none", cursor: "pointer" }}>
                   {isCopied ? <Check size={13} /> : <Copy size={13} />}
                   {isCopied ? "Másolva!" : "Link"}
                 </button>

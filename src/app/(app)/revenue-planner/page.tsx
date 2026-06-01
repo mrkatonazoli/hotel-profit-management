@@ -41,7 +41,7 @@ export default function RevenuePlannerIndexPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
 
@@ -56,14 +56,14 @@ export default function RevenuePlannerIndexPage() {
 
       {scenarios.length === 0 && (
         <div className="rounded-2xl p-12 text-center" style={{ background: "white", border: "1px solid #E2E8F0" }}>
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "#EDE9FE" }}>
-            <GitBranch size={24} style={{ color: "#7C3AED" }} />
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(53,189,120,0.12)" }}>
+            <GitBranch size={24} style={{ color: "#35BD78" }} />
           </div>
           <p className="font-semibold mb-1" style={{ color: "#0F172A" }}>Nincs forgatókönyv</p>
           <p className="text-sm mb-5" style={{ color: "#94A3B8" }}>Előbb hozz létre forgatókönyvet a Szcenáriók menüben.</p>
           <button onClick={() => router.push("/scenarios")}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "#7C3AED", color: "white" }}>
+            style={{ background: "#35BD78", color: "white" }}>
             Szcenáriók →
           </button>
         </div>
@@ -80,10 +80,10 @@ export default function RevenuePlannerIndexPage() {
             return (
               <button key={s.id} onClick={() => router.push(`/revenue-planner/${s.id}`)}
                 className="w-full text-left rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-md"
-                style={{ background: "white", border: `1px solid ${s.isBase ? "#C4B5FD" : "#E2E8F0"}` }}>
+                style={{ background: "white", border: `1px solid ${s.isBase ? "rgba(53,189,120,0.4)" : "#E2E8F0"}` }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: s.isBase ? "#EDE9FE" : "#F1F5F9" }}>
-                  {s.isBase ? <Star size={18} style={{ color: "#7C3AED" }} />
+                  style={{ background: s.isBase ? "rgba(53,189,120,0.12)" : "#F1F5F9" }}>
+                  {s.isBase ? <Star size={18} style={{ color: "#35BD78" }} />
                     : s.probability >= 70 ? <TrendingUp size={18} style={{ color: "#10B981" }} />
                     : s.probability < 40 ? <AlertTriangle size={18} style={{ color: "#EF4444" }} />
                     : <GitBranch size={18} style={{ color: "#64748B" }} />}
@@ -93,7 +93,7 @@ export default function RevenuePlannerIndexPage() {
                     <span className="font-semibold text-sm" style={{ color: "#0F172A" }}>{s.name}</span>
                     {s.isBase && (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ background: "#EDE9FE", color: "#7C3AED" }}>Alap</span>
+                        style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>Alap</span>
                     )}
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                       style={{ background: pc.bg, color: pc.text }}>

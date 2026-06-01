@@ -94,7 +94,7 @@ function NumInput({
           outline: "none", background: "white", fontVariantNumeric: "tabular-nums",
           boxSizing: "border-box",
         }}
-        onFocusCapture={e => (e.currentTarget.style.borderColor = "#7C3AED")}
+        onFocusCapture={e => (e.currentTarget.style.borderColor = "#35BD78")}
         onBlurCapture={e => (e.currentTarget.style.borderColor = "#E2E8F0")}
       />
       {suffix && <span style={{ fontSize: 12, color: "#94A3B8", fontWeight: 500 }}>{suffix}</span>}
@@ -216,7 +216,7 @@ export default function SimplePlannerSettingsPage() {
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200 }}>
-        <Loader2 size={22} className="animate-spin" style={{ color: "#7C3AED" }} />
+        <Loader2 size={22} className="animate-spin" style={{ color: "#35BD78" }} />
       </div>
     );
   }
@@ -240,7 +240,7 @@ export default function SimplePlannerSettingsPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{
             width: 42, height: 42, borderRadius: 12,
-            background: "linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)",
+            background: "linear-gradient(135deg, #03915A 0%, #35BD78 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <Settings2 size={20} color="white" />
@@ -256,7 +256,7 @@ export default function SimplePlannerSettingsPage() {
           disabled={saving}
           style={{
             display: "flex", alignItems: "center", gap: 7,
-            background: saved ? "#10B981" : "#7C3AED",
+            background: saved ? "#10B981" : "#35BD78",
             border: "none", borderRadius: 12, padding: "10px 20px",
             color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer",
             transition: "background 0.2s",
@@ -283,9 +283,9 @@ export default function SimplePlannerSettingsPage() {
             onClick={addBand}
             style={{
               display: "flex", alignItems: "center", gap: 5,
-              background: "#F5F3FF", border: "1px solid #DDD6FE",
+              background: "#FBFBFC", border: "1px solid #DDD6FE",
               borderRadius: 9, padding: "6px 12px",
-              color: "#7C3AED", fontSize: 12, fontWeight: 700, cursor: "pointer",
+              color: "#35BD78", fontSize: 12, fontWeight: 700, cursor: "pointer",
             }}
           >
             <Plus size={13} /> Sáv hozzáadása
@@ -349,7 +349,7 @@ export default function SimplePlannerSettingsPage() {
                       borderRadius: 8, padding: "7px 10px", outline: "none",
                       background: "white", width: "100%", boxSizing: "border-box",
                     }}
-                    onFocus={e => (e.currentTarget.style.borderColor = "#7C3AED")}
+                    onFocus={e => (e.currentTarget.style.borderColor = "#35BD78")}
                     onBlur={e => (e.currentTarget.style.borderColor = "#E2E8F0")}
                   />
 
@@ -710,9 +710,9 @@ export default function SimplePlannerSettingsPage() {
                 {/* Formula summary */}
                 {(defaultBreakfastPct > 0 || defaultHalfboardPct > 0) && (breakfastPrice > 0 || halfboardPrice > 0) && (
                   <div style={{
-                    background: "#F5F3FF", border: "1px solid #DDD6FE",
+                    background: "#FBFBFC", border: "1px solid #DDD6FE",
                     borderRadius: 10, padding: "10px 14px", marginTop: 12,
-                    fontSize: 12, color: "#5B21B6", lineHeight: 1.7,
+                    fontSize: 12, color: "#03915A", lineHeight: 1.7,
                   }}>
                     <strong>Átlagos F&amp;B felár:</strong>{" "}
                     ({Math.round(defaultBreakfastPct)}% × {fmt(breakfastPrice)}
@@ -770,8 +770,8 @@ export default function SimplePlannerSettingsPage() {
               desc: "Masszázs, medence, szépségápolás stb.",
               enabled: spaEnabled, setEnabled: setSpaEnabled,
               pct: spaPct, setPct: setSpaPct,
-              color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE",
-              toggleBg: "#EDE9FE", toggleActive: "#7C3AED",
+              color: "#35BD78", bg: "#FBFBFC", border: "#DDD6FE",
+              toggleBg: "rgba(53,189,120,0.12)", toggleActive: "#35BD78",
             },
             {
               emoji: "📦", label: "Egyéb bevétel",

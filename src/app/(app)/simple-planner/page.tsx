@@ -140,9 +140,9 @@ export default function SimplePlannerListPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10,
-              background: "#EDE9FE", display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(53,189,120,0.12)", display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <Calculator size={18} color="#7C3AED" />
+              <Calculator size={18} color="#35BD78" />
             </div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", margin: 0 }}>Simple Planner</h1>
           </div>
@@ -156,7 +156,7 @@ export default function SimplePlannerListPage() {
           disabled={creating}
           style={{
             display: "flex", alignItems: "center", gap: 8,
-            background: "#7C3AED", color: "white",
+            background: "#35BD78", color: "white",
             border: "none", borderRadius: 12, padding: "10px 18px",
             fontSize: 14, fontWeight: 600, cursor: creating ? "not-allowed" : "pointer",
             opacity: creating ? 0.7 : 1,
@@ -172,9 +172,9 @@ export default function SimplePlannerListPage() {
         <div style={{
           background: "white", border: "1px solid #DDD6FE", borderRadius: 16,
           padding: "20px 24px", marginBottom: 20,
-          boxShadow: "0 4px 20px rgba(124,58,237,0.10)",
+          boxShadow: "0 4px 20px rgba(53,189,120,0.10)",
         }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "#7C3AED", margin: "0 0 14px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "#35BD78", margin: "0 0 14px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Új terv létrehozása
           </p>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -190,7 +190,7 @@ export default function SimplePlannerListPage() {
                 padding: "9px 14px", fontSize: 14, fontWeight: 600,
                 color: "#0F172A", outline: "none", background: "#FAFAFA",
               }}
-              onFocus={e => (e.currentTarget.style.borderColor = "#7C3AED")}
+              onFocus={e => (e.currentTarget.style.borderColor = "#35BD78")}
               onBlur={e => (e.currentTarget.style.borderColor = "#DDD6FE")}
             />
             <select
@@ -211,7 +211,7 @@ export default function SimplePlannerListPage() {
               disabled={creating || !newName.trim()}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
-                background: creating || !newName.trim() ? "#E2E8F0" : "#7C3AED",
+                background: creating || !newName.trim() ? "#E2E8F0" : "#35BD78",
                 color: creating || !newName.trim() ? "#94A3B8" : "white",
                 border: "none", borderRadius: 10, padding: "9px 18px",
                 fontSize: 14, fontWeight: 600, cursor: creating || !newName.trim() ? "not-allowed" : "pointer",
@@ -238,7 +238,7 @@ export default function SimplePlannerListPage() {
       {/* Content */}
       {loading ? (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200 }}>
-          <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+          <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
         </div>
       ) : plans.length === 0 ? (
         <div style={{
@@ -246,8 +246,8 @@ export default function SimplePlannerListPage() {
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
           padding: "60px 24px", gap: 12,
         }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Calculator size={28} color="#A78BFA" />
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: "#FBFBFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Calculator size={28} color="#90DBAC" />
           </div>
           <p style={{ color: "#0F172A", fontWeight: 600, fontSize: 16, margin: 0 }}>Még nincs tervezett szcenárió</p>
           <p style={{ color: "#94A3B8", fontSize: 14, margin: 0 }}>Hozd létre az első Simple Plant az „Új terv" gombbal</p>
@@ -257,7 +257,7 @@ export default function SimplePlannerListPage() {
             style={{
               marginTop: 8,
               display: "flex", alignItems: "center", gap: 8,
-              background: "#7C3AED", color: "white",
+              background: "#35BD78", color: "white",
               border: "none", borderRadius: 12, padding: "10px 20px",
               fontSize: 14, fontWeight: 600, cursor: "pointer",
             }}
@@ -296,7 +296,7 @@ export default function SimplePlannerListPage() {
                           style={{
                             flex: 1, minWidth: 0,
                             fontSize: 15, fontWeight: 700, color: "#0F172A",
-                            border: "none", borderBottom: "2px solid #7C3AED",
+                            border: "none", borderBottom: "2px solid #35BD78",
                             outline: "none", background: "transparent",
                             padding: "0 2px",
                           }}
@@ -335,8 +335,8 @@ export default function SimplePlannerListPage() {
                     </div>
                   </div>
                   <div style={{
-                    background: "#EDE9FE", borderRadius: 8, padding: "2px 8px",
-                    fontSize: 12, fontWeight: 600, color: "#7C3AED", flexShrink: 0,
+                    background: "rgba(53,189,120,0.12)", borderRadius: 8, padding: "2px 8px",
+                    fontSize: 12, fontWeight: 600, color: "#35BD78", flexShrink: 0,
                   }}>
                     {plan.year}
                   </div>
@@ -347,7 +347,7 @@ export default function SimplePlannerListPage() {
                   <div style={{ display: "flex", gap: 12 }}>
                     <div style={{ flex: 1, background: "#F8FAFC", borderRadius: 10, padding: "8px 12px" }}>
                       <p style={{ fontSize: 11, color: "#94A3B8", margin: "0 0 2px", fontWeight: 500 }}>Átl. kihasználtság</p>
-                      <p style={{ fontSize: 18, fontWeight: 700, color: "#7C3AED", margin: 0 }}>{stats.avgOcc}%</p>
+                      <p style={{ fontSize: 18, fontWeight: 700, color: "#35BD78", margin: 0 }}>{stats.avgOcc}%</p>
                     </div>
                     <div style={{ flex: 1, background: "#F8FAFC", borderRadius: 10, padding: "8px 12px" }}>
                       <p style={{ fontSize: 11, color: "#94A3B8", margin: "0 0 2px", fontWeight: 500 }}>Kitöltött hónap</p>
@@ -365,7 +365,7 @@ export default function SimplePlannerListPage() {
                   onClick={() => router.push(`/simple-planner/${plan.id}`)}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    background: "#F5F3FF", color: "#7C3AED",
+                    background: "#FBFBFC", color: "#35BD78",
                     border: "none", borderRadius: 10, padding: "9px 16px",
                     fontSize: 13, fontWeight: 600, cursor: "pointer",
                     marginTop: 2,

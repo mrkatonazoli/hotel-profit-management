@@ -328,7 +328,7 @@ export default function ScenariosPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
 
@@ -345,7 +345,7 @@ export default function ScenariosPage() {
         {!adding && (
           <button onClick={() => setAdding(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "#7C3AED", color: "white" }}>
+            style={{ background: "#35BD78", color: "white" }}>
             <Plus size={15} /> Új forgatókönyv
           </button>
         )}
@@ -353,13 +353,13 @@ export default function ScenariosPage() {
 
       {/* ── Add form ── */}
       {adding && (
-        <div className="rounded-2xl" style={{ border: "1.5px solid #C4B5FD", overflow: "hidden" }}>
+        <div className="rounded-2xl" style={{ border: "1.5px solid rgba(53,189,120,0.4)", overflow: "hidden" }}>
           <form onSubmit={handleAdd}>
             {/* Meta */}
-            <div className="p-5 space-y-4" style={{ background: "#EDE9FE" }}>
+            <div className="p-5 space-y-4" style={{ background: "rgba(53,189,120,0.12)" }}>
               <div className="flex items-center gap-2 mb-1">
-                <GitBranch size={16} style={{ color: "#7C3AED" }} />
-                <span className="text-sm font-semibold" style={{ color: "#7C3AED" }}>Új forgatókönyv</span>
+                <GitBranch size={16} style={{ color: "#35BD78" }} />
+                <span className="text-sm font-semibold" style={{ color: "#35BD78" }}>Új forgatókönyv</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="sm:col-span-2">
@@ -398,7 +398,7 @@ export default function ScenariosPage() {
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
                 <div onClick={() => setForm(p => ({ ...p, isBase: !p.isBase }))}
                   className="w-5 h-5 rounded-md flex items-center justify-center transition-all"
-                  style={{ background: form.isBase ? "#7C3AED" : "white", border: `1.5px solid ${form.isBase ? "#7C3AED" : "#CBD5E1"}` }}>
+                  style={{ background: form.isBase ? "#35BD78" : "white", border: `1.5px solid ${form.isBase ? "#35BD78" : "#CBD5E1"}` }}>
                   {form.isBase && <Check size={12} color="white" strokeWidth={3} />}
                 </div>
                 <span className="text-sm" style={{ color: "#334155" }}>Alap forgatókönyv</span>
@@ -424,7 +424,7 @@ export default function ScenariosPage() {
             <div className="flex gap-2 p-4" style={{ borderTop: "1px solid #E2E8F0" }}>
               <button type="submit" disabled={saving}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ background: "#7C3AED", color: "white" }}>
+                style={{ background: "#35BD78", color: "white" }}>
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 {saving ? "Mentés..." : "Forgatókönyv mentése"}
               </button>
@@ -441,14 +441,14 @@ export default function ScenariosPage() {
       {/* ── Empty state ── */}
       {scenarios.length === 0 && !adding && (
         <div className="rounded-2xl p-12 text-center" style={{ background: "white", border: "1px solid #E2E8F0" }}>
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "#EDE9FE" }}>
-            <GitBranch size={24} style={{ color: "#7C3AED" }} />
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(53,189,120,0.12)" }}>
+            <GitBranch size={24} style={{ color: "#35BD78" }} />
           </div>
           <p className="font-semibold mb-1" style={{ color: "#0F172A" }}>Még nincs forgatókönyv</p>
           <p className="text-sm mb-5" style={{ color: "#94A3B8" }}>Hozd létre az első forgatókönyvet a bevételterv alapjához.</p>
           <button onClick={() => setAdding(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "#7C3AED", color: "white" }}>
+            style={{ background: "#35BD78", color: "white" }}>
             <Plus size={15} /> Első forgatókönyv
           </button>
         </div>
@@ -475,14 +475,14 @@ export default function ScenariosPage() {
 
             return (
               <div key={s.id} className="rounded-2xl overflow-hidden"
-                style={{ border: `1px solid ${s.isBase ? "#C4B5FD" : "#E2E8F0"}` }}>
+                style={{ border: `1px solid ${s.isBase ? "rgba(53,189,120,0.4)" : "#E2E8F0"}` }}>
 
                 {/* Scenario header row */}
                 <div className="flex items-center gap-4 px-5 py-4"
                   style={{ background: "white" }}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: s.isBase ? "#EDE9FE" : "#F1F5F9" }}>
-                    {s.isBase ? <Star size={18} style={{ color: "#7C3AED" }} />
+                    style={{ background: s.isBase ? "rgba(53,189,120,0.12)" : "#F1F5F9" }}>
+                    {s.isBase ? <Star size={18} style={{ color: "#35BD78" }} />
                       : s.probability >= 70 ? <TrendingUp size={18} style={{ color: "#10B981" }} />
                       : s.probability < 40 ? <AlertTriangle size={18} style={{ color: "#EF4444" }} />
                       : <GitBranch size={18} style={{ color: "#64748B" }} />}
@@ -493,7 +493,7 @@ export default function ScenariosPage() {
                       <span className="font-semibold text-sm" style={{ color: "#0F172A" }}>{s.name}</span>
                       {s.isBase && (
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: "#EDE9FE", color: "#7C3AED" }}>Alap</span>
+                          style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>Alap</span>
                       )}
                       <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
                         style={{ background: pc.bg, color: pc.text }}>
@@ -512,7 +512,7 @@ export default function ScenariosPage() {
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button onClick={() => toggleOpen(s)}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                      style={{ background: isOpen ? "#EDE9FE" : "#F1F5F9", color: isOpen ? "#7C3AED" : "#334155" }}>
+                      style={{ background: isOpen ? "rgba(53,189,120,0.12)" : "#F1F5F9", color: isOpen ? "#35BD78" : "#334155" }}>
                       {isOpen ? <><ChevronUp size={13} /> Bezárás</> : <><ChevronDown size={13} /> Havi terv</>}
                     </button>
                     <button
@@ -520,7 +520,7 @@ export default function ScenariosPage() {
                       disabled={generatingId === s.id || s.months.length === 0}
                       title={s.months.length === 0 ? "Előbb töltsd ki a havi tervet" : "Generálja le a napi tervet a súlyozás alapján"}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                      style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                      style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
                       {generatingId === s.id
                         ? <><Loader2 size={13} className="animate-spin" /> Generálás...</>
                         : <><Sparkles size={13} /> Generálás</>
@@ -538,7 +538,7 @@ export default function ScenariosPage() {
                       onClick={() => router.push(`/weighting/${s.id}`)}
                       title="Súlyozás beállítása"
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                      style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                      style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
                       <Scale size={13} /> Súlyozás
                     </button>
                     <button
@@ -568,8 +568,8 @@ export default function ScenariosPage() {
                           className="px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-all"
                           style={{
                             background: (activeTab[s.id] ?? "plan") === tab ? "white" : "transparent",
-                            color: (activeTab[s.id] ?? "plan") === tab ? "#7C3AED" : "#94A3B8",
-                            borderBottom: (activeTab[s.id] ?? "plan") === tab ? "2px solid #7C3AED" : "2px solid transparent",
+                            color: (activeTab[s.id] ?? "plan") === tab ? "#35BD78" : "#94A3B8",
+                            borderBottom: (activeTab[s.id] ?? "plan") === tab ? "2px solid #35BD78" : "2px solid transparent",
                           }}>
                           {tab === "plan" ? "Havi tervszámok" : "Csatorna & Komisszió"}
                         </button>
@@ -685,7 +685,7 @@ export default function ScenariosPage() {
                 <button
                   onClick={() => { router.push(`/revenue-planner/${summaryModal.scenarioId}`); setSummaryModal(null); }}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
-                  style={{ background: "#7C3AED", color: "white" }}>
+                  style={{ background: "#35BD78", color: "white" }}>
                   <BarChart3 size={15} /> Bevételtervező
                 </button>
                 <button onClick={() => setSummaryModal(null)}
@@ -706,16 +706,16 @@ export default function ScenariosPage() {
           color: #0F172A; background: white; outline: none;
           transition: border-color .15s; box-sizing: border-box;
         }
-        .sc-input:focus { border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124,58,237,0.1); }
-        .sc-range { width: 100%; accent-color: #7C3AED; cursor: pointer; }
+        .sc-input:focus { border-color: #35BD78; box-shadow: 0 0 0 3px rgba(53,189,120,0.1); }
+        .sc-range { width: 100%; accent-color: #35BD78; cursor: pointer; }
         .month-cell {
           width: 100%; text-align: right; font-family: monospace; font-size: 13px;
           padding: 5px 8px; border: 1.5px solid transparent; border-radius: 8px;
           outline: none; background: transparent; color: #0F172A; box-sizing: border-box;
           transition: border-color .1s, background .1s;
         }
-        .month-cell:hover { background: #F5F3FF; border-color: #DDD6FE; }
-        .month-cell:focus { background: white; border-color: #7C3AED; box-shadow: 0 0 0 2px rgba(124,58,237,0.12); }
+        .month-cell:hover { background: #FBFBFC; border-color: #DDD6FE; }
+        .month-cell:focus { background: white; border-color: #35BD78; box-shadow: 0 0 0 2px rgba(53,189,120,0.12); }
       `}</style>
     </div>
   );
@@ -774,7 +774,7 @@ function MonthTable({ months, totalRooms, saving, scenarioId, onChange, onBlur }
                   <td className="px-4 py-1.5">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{HU_MONTHS[i]}</span>
-                      {isSaving && <Loader2 size={10} className="animate-spin" style={{ color: "#7C3AED" }} />}
+                      {isSaving && <Loader2 size={10} className="animate-spin" style={{ color: "#35BD78" }} />}
                     </div>
                   </td>
                   <td className="px-2 py-1">
@@ -800,7 +800,7 @@ function MonthTable({ months, totalRooms, saving, scenarioId, onChange, onBlur }
                   </td>
                   {totalRooms && (
                     <td className="px-4 py-1.5 text-right font-mono text-sm font-semibold"
-                      style={{ color: roomRev > 0 ? "#7C3AED" : "#CBD5E1" }}>
+                      style={{ color: roomRev > 0 ? "#35BD78" : "#CBD5E1" }}>
                       {roomRev > 0 ? fmt(roomRev) : "—"}
                     </td>
                   )}
@@ -823,7 +823,7 @@ function MonthTable({ months, totalRooms, saving, scenarioId, onChange, onBlur }
               )}
               <td className="px-3 py-2.5 text-right font-mono text-sm" style={{ color: "#94A3B8" }}>—</td>
               {totalRooms && (
-                <td className="px-4 py-2.5 text-right font-mono font-bold text-sm" style={{ color: "#7C3AED" }}>
+                <td className="px-4 py-2.5 text-right font-mono font-bold text-sm" style={{ color: "#35BD78" }}>
                   {annRoomRev > 0 ? fmt(annRoomRev) : "—"}
                 </td>
               )}
@@ -856,7 +856,7 @@ function AnnualMini({ months, totalRooms }: { months: ScenarioMonth[]; totalRoom
         </span>
       )}
       {annRoomRev > 0 && (
-        <span className="text-xs font-mono font-semibold" style={{ color: "#7C3AED" }}>
+        <span className="text-xs font-mono font-semibold" style={{ color: "#35BD78" }}>
           {fmt(annRoomRev)} Ft szobabev. / év
         </span>
       )}
@@ -882,7 +882,7 @@ function ChannelRevenueTable({ data, loading, scenarioId, onNavigate }: {
 }) {
   if (loading) return (
     <div className="flex items-center justify-center py-10 gap-2" style={{ color: "#94A3B8" }}>
-      <Loader2 size={16} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={16} className="animate-spin" style={{ color: "#35BD78" }} />
       <span className="text-sm">Betöltés...</span>
     </div>
   );
@@ -924,7 +924,7 @@ function ChannelRevenueTable({ data, loading, scenarioId, onNavigate }: {
         style={{ background: "#FAFAFA", borderBottom: "1px solid #E2E8F0" }}>
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium" style={{ color: "#64748B" }}>Szobabevétel</span>
-          <span className="text-xs font-bold font-mono" style={{ color: "#7C3AED" }}>{fmtM(totalRoomRev)} Ft</span>
+          <span className="text-xs font-bold font-mono" style={{ color: "#35BD78" }}>{fmtM(totalRoomRev)} Ft</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium" style={{ color: "#64748B" }}>Komisszió</span>
@@ -998,7 +998,7 @@ function ChannelRevenueTable({ data, loading, scenarioId, onNavigate }: {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right font-mono text-xs font-semibold"
-                    style={{ color: hasData ? "#7C3AED" : "#CBD5E1" }}>
+                    style={{ color: hasData ? "#35BD78" : "#CBD5E1" }}>
                     {hasData ? fmtM(m.roomRevenue) : "—"}
                   </td>
 
@@ -1053,7 +1053,7 @@ function ChannelRevenueTable({ data, loading, scenarioId, onNavigate }: {
               <tr style={{ background: "#F8FAFC", borderTop: "2px solid #E2E8F0" }}>
                 <td className="px-4 py-2.5 text-xs font-bold uppercase tracking-wide sticky left-0"
                   style={{ color: "#64748B", background: "#F8FAFC" }}>Éves össz.</td>
-                <td className="px-3 py-2.5 text-right font-mono font-bold text-xs" style={{ color: "#7C3AED" }}>
+                <td className="px-3 py-2.5 text-right font-mono font-bold text-xs" style={{ color: "#35BD78" }}>
                   {fmtM(totalRoomRev)}
                 </td>
 

@@ -365,7 +365,7 @@ export default function HotelConfigPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
 
@@ -379,7 +379,7 @@ export default function HotelConfigPage() {
       <form onSubmit={handleSaveHotel} className="space-y-4">
 
         {/* ── ALAPADATOK ── */}
-        <Section icon={<Building2 size={18} style={{ color: "#7C3AED" }} />} iconBg="#EDE9FE" title="Alapadatok">
+        <Section icon={<Building2 size={18} style={{ color: "#35BD78" }} />} iconBg="rgba(53,189,120,0.12)" title="Alapadatok">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Szálloda neve" required>
               <input type="text" required placeholder="pl. Hotel Panoráma" className="hp-input" {...f("name")} />
@@ -443,7 +443,7 @@ export default function HotelConfigPage() {
 
         <div className="flex justify-end">
           <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-            style={{ background: saved ? "#10B981" : "#7C3AED", color: "white" }}>
+            style={{ background: saved ? "#10B981" : "#35BD78", color: "white" }}>
             {saving ? <Loader2 size={15} className="animate-spin" /> : saved ? <Check size={15} /> : <Save size={15} />}
             {saving ? "Mentés..." : saved ? "Mentve!" : "Mentés"}
           </button>
@@ -561,7 +561,7 @@ export default function HotelConfigPage() {
             )}
 
             {addingRt && (
-              <form onSubmit={handleAddRoomType} className="grid grid-cols-12 gap-3 items-start px-3 py-2.5 rounded-xl" style={{ background: "#EDE9FE" }}>
+              <form onSubmit={handleAddRoomType} className="grid grid-cols-12 gap-3 items-start px-3 py-2.5 rounded-xl" style={{ background: "rgba(53,189,120,0.12)" }}>
                 <div className="col-span-5">
                   <input autoFocus required value={newRt.name} onChange={e => setNewRt(r => ({ ...r, name: e.target.value }))}
                     placeholder="pl. Superior kétágyas" className="hp-input py-1.5 text-sm" />
@@ -583,7 +583,7 @@ export default function HotelConfigPage() {
                 <div className="col-span-2 flex gap-1 justify-end pt-0.5">
                   <button type="submit" disabled={!!roomCountError(newRt.count)}
                     className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-40"
-                    style={{ background: "#7C3AED", color: "white" }}>
+                    style={{ background: "#35BD78", color: "white" }}>
                     {rtLoading === "new" ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                   </button>
                   <button type="button" onClick={() => { setAddingRt(false); setNewRt({ name: "", count: "", maxOccupancy: "" }); }}
@@ -767,7 +767,7 @@ export default function HotelConfigPage() {
       {/* ── Ellátástípusok ─────────────────────────────────────────────────── */}
       <div className="rounded-2xl p-6" style={{ background: "white", border: "1px solid #E2E8F0" }}>
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#EDE9FE" }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(53,189,120,0.12)" }}>
             <span style={{ fontSize: 18 }}>🍽️</span>
           </div>
           <div>
@@ -789,7 +789,7 @@ export default function HotelConfigPage() {
               RO: { bg: "#F1F5F9", text: "#64748B" },
               BB: { bg: "#DBEAFE", text: "#1D4ED8" },
               HB: { bg: "#D1FAE5", text: "#065F46" },
-              FB: { bg: "#EDE9FE", text: "#5B21B6" },
+              FB: { bg: "rgba(53,189,120,0.12)", text: "#03915A" },
               AI: { bg: "#FEF3C7", text: "#92400E" },
             };
             const c = COLOR[bt.code];
@@ -842,7 +842,7 @@ export default function HotelConfigPage() {
               }
             }}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-            style={{ background: "#7C3AED", color: "white", opacity: boardTypeSaving ? 0.6 : 1 }}>
+            style={{ background: "#35BD78", color: "white", opacity: boardTypeSaving ? 0.6 : 1 }}>
             {boardTypeSaving
               ? <><Loader2 size={14} className="animate-spin" /> Mentés…</>
               : <><Check size={14} /> Ellátástípusok mentése</>}
@@ -945,7 +945,7 @@ export default function HotelConfigPage() {
                       <div className="flex gap-1 mt-0.5 flex-wrap">
                         {ch.segmentTags.split(",").filter(Boolean).map(tag => (
                           <span key={tag} className="text-xs px-1.5 py-0.5 rounded font-medium"
-                            style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                            style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
                             {tag}
                           </span>
                         ))}
@@ -1053,7 +1053,7 @@ export default function HotelConfigPage() {
           color: #0F172A; background: white; outline: none;
           transition: border-color .15s, box-shadow .15s; box-sizing: border-box;
         }
-        .hp-input:focus { border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124,58,237,0.1); }
+        .hp-input:focus { border-color: #35BD78; box-shadow: 0 0 0 3px rgba(53,189,120,0.1); }
         .hp-input.pl-9 { padding-left: 2.25rem; }
       `}</style>
     </div>

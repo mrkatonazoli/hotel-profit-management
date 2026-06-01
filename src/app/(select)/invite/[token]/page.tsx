@@ -55,13 +55,13 @@ export default function InvitePage() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#0F172A" }}>
-      <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #7C3AED, #3B82F6, #10B981)" }} />
+      <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #35BD78, #3B82F6, #10B981)" }} />
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
         {/* Logo */}
         <div className="mb-10 text-center">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: "linear-gradient(135deg, #7C3AED, #5B21B6)", boxShadow: "0 8px 32px rgba(124,58,237,0.4)" }}>
+            style={{ background: "linear-gradient(135deg, #35BD78, #03915A)", boxShadow: "0 8px 32px rgba(53,189,120,0.4)" }}>
             <BarChart3 size={24} color="white" />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: "#F8FAFC" }}>HeyMax!</h1>
@@ -70,7 +70,7 @@ export default function InvitePage() {
         {/* Card */}
         <div className="w-full max-w-md rounded-2xl overflow-hidden"
           style={{ background: "#1E293B", border: "1px solid #334155" }}>
-          <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #7C3AED, #5B21B6)" }} />
+          <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #35BD78, #03915A)" }} />
 
           <div className="p-8">
             {/* Loading invite */}
@@ -117,14 +117,14 @@ export default function InvitePage() {
                   style={{ background: "#0F172A", border: "1px solid #334155" }}>
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: "#1E293B" }}>
-                    <Building2 size={22} style={{ color: "#7C3AED" }} />
+                    <Building2 size={22} style={{ color: "#35BD78" }} />
                   </div>
                   <div>
                     <p className="font-bold" style={{ color: "#F8FAFC" }}>{invite.hotel.name}</p>
                     <p className="text-sm" style={{ color: "#64748B" }}>{invite.hotel.city}</p>
                   </div>
                   <div className="ml-auto px-3 py-1 rounded-lg text-xs font-bold"
-                    style={{ background: "#2D1F6E", color: "#A78BFA" }}>
+                    style={{ background: "#2D1F6E", color: "#90DBAC" }}>
                     {ROLE_LABEL[invite.role]}
                   </div>
                 </div>
@@ -138,12 +138,12 @@ export default function InvitePage() {
                   <div className="text-center">
                     <p className="text-sm mb-4" style={{ color: "#94A3B8" }}>
                       A meghívó elfogadásához be kell jelentkezned a(z){" "}
-                      <strong style={{ color: "#A78BFA" }}>{invite.email}</strong> fiókkal.
+                      <strong style={{ color: "#90DBAC" }}>{invite.email}</strong> fiókkal.
                     </p>
                     <button
                       onClick={() => signIn(undefined, { callbackUrl: `/invite/${token}` })}
                       className="w-full py-3 rounded-xl font-bold text-sm"
-                      style={{ background: "linear-gradient(135deg, #7C3AED, #5B21B6)", color: "white", border: "none", cursor: "pointer" }}>
+                      style={{ background: "linear-gradient(135deg, #35BD78, #03915A)", color: "white", border: "none", cursor: "pointer" }}>
                       Bejelentkezés / Regisztráció
                     </button>
                   </div>
@@ -158,7 +158,7 @@ export default function InvitePage() {
                     onClick={acceptInvite}
                     disabled={accepting}
                     className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
-                    style={{ background: "linear-gradient(135deg, #7C3AED, #5B21B6)", color: "white", border: "none", cursor: "pointer" }}>
+                    style={{ background: "linear-gradient(135deg, #35BD78, #03915A)", color: "white", border: "none", cursor: "pointer" }}>
                     {accepting
                       ? <><Loader2 size={16} className="animate-spin" /> Csatlakozás…</>
                       : <><Check size={16} /> Meghívó elfogadása</>

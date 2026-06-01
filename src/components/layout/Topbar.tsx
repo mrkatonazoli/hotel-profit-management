@@ -58,7 +58,7 @@ export default function Topbar({
         >
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-            style={{ background: "#7C3AED", color: "white" }}
+            style={{ background: "#35BD78", color: "white" }}
           >
             {(userName ?? userEmail ?? "?")[0].toUpperCase()}
           </div>

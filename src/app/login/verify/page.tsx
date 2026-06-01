@@ -77,11 +77,11 @@ function VerifyForm() {
             className="w-12 h-14 text-center text-xl font-bold rounded-xl outline-none transition-all"
             style={{
               background: "#1E293B",
-              border: `1px solid ${digit ? "#7C3AED" : "#334155"}`,
+              border: `1px solid ${digit ? "#35BD78" : "#334155"}`,
               color: "#F8FAFC",
-              caretColor: "#7C3AED",
+              caretColor: "#35BD78",
               fontVariantNumeric: "tabular-nums",
-              boxShadow: digit ? "0 0 0 3px rgba(124,58,237,0.15)" : "none",
+              boxShadow: digit ? "0 0 0 3px rgba(53,189,120,0.15)" : "none",
             }}
           />
         ))}
@@ -97,7 +97,7 @@ function VerifyForm() {
         type="submit"
         disabled={!full || loading}
         className="w-full py-3 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ background: "#7C3AED", color: "white" }}
+        style={{ background: "#35BD78", color: "white" }}
       >
         {loading ? (
           <>
@@ -125,7 +125,7 @@ export default function VerifyPage() {
         <div className="flex items-center gap-3 mb-10 justify-center">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: "#7C3AED" }}
+            style={{ background: "#35BD78" }}
           >
             <TrendingUp size={20} color="white" />
           </div>

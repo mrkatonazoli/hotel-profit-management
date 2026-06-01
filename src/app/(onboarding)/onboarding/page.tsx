@@ -54,7 +54,7 @@ const S = {
     outline: "none",
   },
   btnPrimary: {
-    background: "linear-gradient(135deg, #7C3AED, #5B21B6)",
+    background: "linear-gradient(135deg, #35BD78, #03915A)",
     color: "white", border: "none", borderRadius: 12, padding: "12px 28px",
     fontWeight: 700, fontSize: 15, cursor: "pointer", display: "flex",
     alignItems: "center", gap: 8,
@@ -269,21 +269,21 @@ export default function OnboardingPage() {
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#0F172A" }}>
-      <Loader2 size={32} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={32} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#0F172A" }}>
       {/* Top gradient bar */}
-      <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #7C3AED, #3B82F6, #10B981)" }} />
+      <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #35BD78, #3B82F6, #10B981)" }} />
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
 
         {/* Logo */}
         <div className="mb-10 text-center">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: "linear-gradient(135deg, #7C3AED, #5B21B6)", boxShadow: "0 8px 32px rgba(124,58,237,0.4)" }}>
+            style={{ background: "linear-gradient(135deg, #35BD78, #03915A)", boxShadow: "0 8px 32px rgba(53,189,120,0.4)" }}>
             <BarChart3 size={24} color="white" />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: "#F8FAFC" }}>Szálloda beállítása</h1>
@@ -301,15 +301,15 @@ export default function OnboardingPage() {
                 <div className="flex flex-col items-center gap-1">
                   <div className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
                     style={{
-                      background: done ? "#10B981" : active ? "#7C3AED" : "#1E293B",
-                      border: active ? "2px solid #7C3AED" : done ? "2px solid #10B981" : "2px solid #334155",
+                      background: done ? "#10B981" : active ? "#35BD78" : "#1E293B",
+                      border: active ? "2px solid #35BD78" : done ? "2px solid #10B981" : "2px solid #334155",
                     }}>
                     {done
                       ? <Check size={16} color="white" />
                       : <Icon size={16} color={active ? "white" : "#64748B"} />
                     }
                   </div>
-                  <span className="text-xs hidden sm:block" style={{ color: active ? "#A78BFA" : done ? "#10B981" : "#475569" }}>
+                  <span className="text-xs hidden sm:block" style={{ color: active ? "#90DBAC" : done ? "#10B981" : "#475569" }}>
                     {s.label}
                   </span>
                 </div>
@@ -324,7 +324,7 @@ export default function OnboardingPage() {
         {/* Card */}
         <div className="w-full max-w-lg rounded-2xl overflow-hidden"
           style={{ background: "#1E293B", border: "1px solid #334155" }}>
-          <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #7C3AED, #5B21B6)" }} />
+          <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #35BD78, #03915A)" }} />
 
           <div className="p-8">
             {error && (
@@ -404,7 +404,7 @@ export default function OnboardingPage() {
                   ))}
                   <button onClick={() => setRoomTypes(prev => [...prev, { name: "", count: "" }])}
                     className="flex items-center gap-2 text-sm mt-1"
-                    style={{ color: "#7C3AED", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+                    style={{ color: "#35BD78", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
                     <Plus size={16} /> Szobatípus hozzáadása
                   </button>
                 </div>
@@ -432,15 +432,15 @@ export default function OnboardingPage() {
                         className="flex items-center gap-4 text-left rounded-xl px-4 py-3 transition-all"
                         style={{
                           background: active ? "#2D1F6E" : "#0F172A",
-                          border: `1px solid ${active ? "#7C3AED" : "#334155"}`,
+                          border: `1px solid ${active ? "#35BD78" : "#334155"}`,
                           cursor: "pointer",
                         }}>
                         <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-                          style={{ background: active ? "#7C3AED" : "#1E293B", border: `1px solid ${active ? "#7C3AED" : "#334155"}` }}>
+                          style={{ background: active ? "#35BD78" : "#1E293B", border: `1px solid ${active ? "#35BD78" : "#334155"}` }}>
                           {active && <Check size={14} color="white" />}
                         </div>
                         <div>
-                          <div className="font-bold text-sm" style={{ color: active ? "#A78BFA" : "#F8FAFC" }}>
+                          <div className="font-bold text-sm" style={{ color: active ? "#90DBAC" : "#F8FAFC" }}>
                             {bt.code} — {bt.label}
                           </div>
                           <div className="text-xs" style={{ color: "#64748B" }}>{bt.desc}</div>
@@ -484,7 +484,7 @@ export default function OnboardingPage() {
                     ))}
                     <button onClick={() => setChildGroups(prev => [...prev, { name: "", minAge: "", maxAge: "" }])}
                       className="flex items-center gap-2 text-sm mt-1"
-                      style={{ color: "#7C3AED", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+                      style={{ color: "#35BD78", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
                       <Plus size={16} /> Korcsoport hozzáadása
                     </button>
                   </div>
@@ -492,7 +492,7 @@ export default function OnboardingPage() {
 
                 <button onClick={() => setSkipChildren(s => !s)}
                   className="text-sm mt-2"
-                  style={{ color: skipChildren ? "#7C3AED" : "#64748B", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                  style={{ color: skipChildren ? "#35BD78" : "#64748B", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
                   {skipChildren ? "✓ Átugrom ezt a lépést" : "Átugrom ezt a lépést"}
                 </button>
               </div>

@@ -73,7 +73,7 @@ const BOARD_COLORS: Record<string, { bg: string; text: string }> = {
   RO: { bg: "#F1F5F9", text: "#64748B" },
   BB: { bg: "#DBEAFE", text: "#1D4ED8" },
   HB: { bg: "#D1FAE5", text: "#065F46" },
-  FB: { bg: "#EDE9FE", text: "#5B21B6" },
+  FB: { bg: "rgba(53,189,120,0.12)", text: "#03915A" },
   AI: { bg: "#FEF3C7", text: "#92400E" },
 };
 
@@ -107,7 +107,7 @@ function fmtM(n: number) {
 
 function occColor(occ: number) {
   if (occ >= 85) return "#10B981";
-  if (occ >= 65) return "#7C3AED";
+  if (occ >= 65) return "#35BD78";
   if (occ >= 45) return "#F59E0B";
   return "#EF4444";
 }
@@ -142,9 +142,9 @@ function ScenarioSelector({
           <button key={s.id} onClick={() => onSelect(s.id)}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all"
             style={{
-              background: active ? "#7C3AED" : "white",
+              background: active ? "#35BD78" : "white",
               color: active ? "white" : "#1E293B",
-              border: `1px solid ${active ? "#7C3AED" : "#E2E8F0"}`,
+              border: `1px solid ${active ? "#35BD78" : "#E2E8F0"}`,
             }}>
             {s.name}
             <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
@@ -229,7 +229,7 @@ function MonthlyView() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-60">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
   if (!data) return null;
@@ -244,7 +244,7 @@ function MonthlyView() {
       {/* KPI chips */}
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
         <KpiChip label="Éves bevétel" value={fmtM(data.annual.totalRevenue)}
-          sub={`${data.hotel.currency}`} color="#7C3AED" />
+          sub={`${data.hotel.currency}`} color="#35BD78" />
         <KpiChip label="Éves kiadás" value={fmtM(data.annual.totalCosts)}
           sub="Fix + változó + bér + LAB" color="#64748B" />
         <KpiChip label="Éves profit" value={fmtM(data.annual.profit)}
@@ -339,7 +339,7 @@ function MonthlyView() {
                           <span className="text-sm font-mono" style={{ color: "#CBD5E1" }}>—</span>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3.5 text-sm font-semibold font-mono" style={{ color: "#7C3AED" }}>
+                      <td className="px-4 py-3.5 text-sm font-semibold font-mono" style={{ color: "#35BD78" }}>
                         {m.hasData ? fmtM(m.totalRevenue) : "—"}
                       </td>
                       <td className="px-4 py-3.5 text-sm font-mono" style={{ color: "#64748B" }}>
@@ -371,13 +371,13 @@ function MonthlyView() {
                         <td colSpan={10} className="px-6 py-4">
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                             {[
-                              { label: "Szobabev.", value: m.roomRevenue, color: "#7C3AED" },
+                              { label: "Szobabev.", value: m.roomRevenue, color: "#35BD78" },
                               { label: "F&B bev.", value: m.fbRevenue, color: "#3B82F6" },
                               { label: "Spa bev.", value: m.spaRevenue, color: "#06B6D4" },
                               { label: "Fix ktg.", value: -m.fixedCosts, color: "#64748B" },
                               { label: "Változó ktg.", value: -m.variableCosts, color: "#F59E0B" },
                               { label: "Bérköltség", value: -m.staffCosts, color: "#EF4444" },
-                              { label: "LAB ktg.", value: -m.labCosts, color: "#8B5CF6" },
+                              { label: "LAB ktg.", value: -m.labCosts, color: "#35BD78" },
                               { label: "Közvetítő", value: -m.distributorCosts, color: "#EC4899" },
                               { label: "Szobaéjszakák", value: m.roomNights, color: "#1E293B", isRaw: true },
                               { label: "Felnőtt", value: m.adultCount, color: "#0EA5E9", isRaw: true },
@@ -410,7 +410,7 @@ function MonthlyView() {
                 <td className="px-4 py-4" />
                 <td className="px-4 py-4" />
                 <td className="px-4 py-4" />
-                <td className="px-4 py-4 text-sm font-bold font-mono" style={{ color: "#7C3AED" }}>
+                <td className="px-4 py-4 text-sm font-bold font-mono" style={{ color: "#35BD78" }}>
                   {fmtM(data.annual.totalRevenue)}
                 </td>
                 <td className="px-4 py-4 text-sm font-bold font-mono" style={{ color: "#64748B" }}>
@@ -495,7 +495,7 @@ function DailyView() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-60">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
   if (!data) return null;
@@ -529,7 +529,7 @@ function DailyView() {
         <KpiChip label="RevPAR" value={fmt(data.totals.revpar)}
           sub={data.hotel.currency} color="#3B82F6" />
         <KpiChip label="Havi bevétel" value={fmtM(data.totals.totalRevenue)}
-          sub={data.hotel.currency} color="#7C3AED" />
+          sub={data.hotel.currency} color="#35BD78" />
         <KpiChip label="Havi profit" value={fmtM(data.totals.profit)}
           sub={`${data.totals.profitPct}% marzs`} color={profitColor(data.totals.profit)} />
         <KpiChip
@@ -579,8 +579,8 @@ function DailyView() {
                       <td className="px-4 py-2.5">
                         <span className="text-xs font-medium px-2 py-0.5 rounded-lg"
                           style={{
-                            background: isWeekend ? "#EDE9FE" : "#F1F5F9",
-                            color: isWeekend ? "#7C3AED" : "#64748B",
+                            background: isWeekend ? "rgba(53,189,120,0.12)" : "#F1F5F9",
+                            color: isWeekend ? "#35BD78" : "#64748B",
                           }}>
                           {d.dayName}
                         </span>
@@ -624,10 +624,10 @@ function DailyView() {
                         ) : null}
                       </td>
 
-                      <td className="px-4 py-2.5 text-xs font-mono" style={{ color: "#7C3AED" }}>
+                      <td className="px-4 py-2.5 text-xs font-mono" style={{ color: "#35BD78" }}>
                         {d.hasData ? fmtM(d.roomRevenue) : "—"}
                       </td>
-                      <td className="px-4 py-2.5 text-xs font-semibold font-mono" style={{ color: "#7C3AED" }}>
+                      <td className="px-4 py-2.5 text-xs font-semibold font-mono" style={{ color: "#35BD78" }}>
                         {d.hasData ? fmtM(d.totalRevenue) : "—"}
                       </td>
                       <td className="px-4 py-2.5 text-xs font-mono" style={{ color: "#64748B" }}>
@@ -769,8 +769,8 @@ function DailyView() {
                         : <span style={{ color: "#CBD5E1" }}>—</span>;
                     })()}
                   </td>
-                  <td className="px-4 py-3.5 text-xs font-bold font-mono" style={{ color: "#7C3AED" }} />
-                  <td className="px-4 py-3.5 text-xs font-bold font-mono" style={{ color: "#7C3AED" }}>
+                  <td className="px-4 py-3.5 text-xs font-bold font-mono" style={{ color: "#35BD78" }} />
+                  <td className="px-4 py-3.5 text-xs font-bold font-mono" style={{ color: "#35BD78" }}>
                     {fmtM(data.totals.totalRevenue)}
                   </td>
                   <td className="px-4 py-3.5 text-xs font-bold font-mono" style={{ color: "#64748B" }}>
@@ -830,7 +830,7 @@ export default function ReportingPage() {
           <button key={t.key} onClick={() => setTab(t.key)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
             style={{
-              background: tab === t.key ? "#7C3AED" : "transparent",
+              background: tab === t.key ? "#35BD78" : "transparent",
               color: tab === t.key ? "white" : "#64748B",
             }}>
             {t.icon}

@@ -38,7 +38,7 @@ export default function WeightingIndexPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
 
@@ -72,8 +72,8 @@ export default function WeightingIndexPage() {
                     onClick={() => router.push(`/weighting/${s.id}`)}
                     className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-slate-50"
                   >
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#EDE9FE" }}>
-                      <Scale size={16} style={{ color: "#7C3AED" }} />
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(53,189,120,0.12)" }}>
+                      <Scale size={16} style={{ color: "#35BD78" }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

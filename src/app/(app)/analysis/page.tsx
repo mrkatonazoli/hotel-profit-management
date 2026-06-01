@@ -56,11 +56,11 @@ function fmtM(n: number) {
   return fmt(n);
 }
 const BT_LABELS: Record<string, string> = { RO: "Csak szoba", BB: "Reggeli", HB: "Félpanzió", FB: "Teljes panzió", AI: "All inclusive" };
-const BT_COLORS: Record<string, string> = { RO: "#64748B", BB: "#7C3AED", HB: "#3B82F6", FB: "#10B981", AI: "#F59E0B" };
+const BT_COLORS: Record<string, string> = { RO: "#64748B", BB: "#35BD78", HB: "#3B82F6", FB: "#10B981", AI: "#F59E0B" };
 
 function occColor(o: number) {
   if (o >= 85) return "#10B981";
-  if (o >= 65) return "#7C3AED";
+  if (o >= 65) return "#35BD78";
   if (o >= 45) return "#F59E0B";
   return "#EF4444";
 }
@@ -137,7 +137,7 @@ function BreakEvenChart({ detail, totalRooms, currency }: { detail: DayDetail; t
 
       {/* Revenue line */}
       <line x1={PAD.l} y1={PAD.t + cH} x2={PAD.l + cW} y2={yOf(maxRev)}
-        stroke="#7C3AED" strokeWidth={2.5} strokeLinecap="round" />
+        stroke="#35BD78" strokeWidth={2.5} strokeLinecap="round" />
 
       {/* Break-even */}
       {breakEvenOccupancy > 0 && breakEvenOccupancy <= 100 && (
@@ -156,10 +156,10 @@ function BreakEvenChart({ detail, totalRooms, currency }: { detail: DayDetail; t
       {(occupancyPct ?? 0) > 0 && (
         <>
           <line x1={currX} y1={PAD.t} x2={currX} y2={PAD.t + cH}
-            stroke="#7C3AED" strokeWidth={1} strokeDasharray="3,3" opacity={0.5} />
+            stroke="#35BD78" strokeWidth={1} strokeDasharray="3,3" opacity={0.5} />
           <rect x={currX - 22} y={PAD.t - 2} width={44} height={14} rx={4}
-            fill="#7C3AED" opacity={0.15} />
-          <text x={currX} y={PAD.t + 8} textAnchor="middle" fontSize={8} fontWeight={700} fill="#7C3AED">
+            fill="#35BD78" opacity={0.15} />
+          <text x={currX} y={PAD.t + 8} textAnchor="middle" fontSize={8} fontWeight={700} fill="#35BD78">
             Terv: {occupancyPct}%
           </text>
         </>
@@ -247,7 +247,7 @@ function SidePanel({
         {/* KPIs */}
         <div className="grid grid-cols-3 gap-px" style={{ borderBottom: "1px solid #E2E8F0", background: "#E2E8F0" }}>
           {[
-            { label: "Bevétel", value: `${fmtM(totalRev)} Ft`, color: "#7C3AED" },
+            { label: "Bevétel", value: `${fmtM(totalRev)} Ft`, color: "#35BD78" },
             { label: "Kihasználtság", value: `${occ}%`, color: occColor(occ) },
             { label: "Profit", value: `${isProfit ? "+" : ""}${fmtM(profit)} Ft`, color: isProfit ? "#059669" : "#DC2626" },
           ].map(k => (
@@ -272,7 +272,7 @@ function SidePanel({
           <BreakEvenChart detail={detail} totalRooms={totalRooms} currency={currency} />
           <div className="flex flex-wrap gap-3 mt-3">
             {[
-              { color: "#7C3AED", label: "Bevétel", dash: false },
+              { color: "#35BD78", label: "Bevétel", dash: false },
               { color: "#F97316", label: "Összes ktg.", dash: true },
               { color: "#F59E0B", label: "Fix ktg.", dash: true },
               { color: "#10B981", label: "Break-even", dash: false },
@@ -324,13 +324,13 @@ function SidePanel({
               </div>
               <div className="h-3.5 rounded-full overflow-hidden flex" style={{ background: "#F1F5F9" }}>
                 <div style={{ width: `${be}%`, background: "#F59E0B" }} title="Fix ktg. fedezi" />
-                <div style={{ width: `${Math.max(occ - be, 0)}%`, background: "#7C3AED" }} title="Profit zóna" />
+                <div style={{ width: `${Math.max(occ - be, 0)}%`, background: "#35BD78" }} title="Profit zóna" />
                 <div style={{ flex: 1, background: "#E2E8F0" }} />
               </div>
               <div className="flex gap-4 mt-2">
                 {[
                   { color: "#F59E0B", label: "Fix ktg. fedez" },
-                  { color: "#7C3AED", label: "Profit zóna" },
+                  { color: "#35BD78", label: "Profit zóna" },
                   { color: "#E2E8F0", label: `${freeRooms} szabad szoba` },
                 ].map(l => (
                   <div key={l.label} className="flex items-center gap-1.5">
@@ -352,16 +352,16 @@ function SidePanel({
                   <button key={s.key} onClick={() => setStrategy(s.key)}
                     className="p-3 rounded-xl text-center transition-all"
                     style={{
-                      background: active ? (s.key === "adr" ? "#EDE9FE" : "#EFF6FF") : "#F8FAFC",
-                      border: `2px solid ${active ? (s.key === "adr" ? "#7C3AED" : "#3B82F6") : "#E2E8F0"}`,
+                      background: active ? (s.key === "adr" ? "rgba(53,189,120,0.12)" : "#EFF6FF") : "#F8FAFC",
+                      border: `2px solid ${active ? (s.key === "adr" ? "#35BD78" : "#3B82F6") : "#E2E8F0"}`,
                     }}>
                     <div className="text-base mb-1">{s.emoji}</div>
                     <div className="text-xs font-bold uppercase tracking-wide"
-                      style={{ color: active ? (s.key === "adr" ? "#7C3AED" : "#1E40AF") : "#94A3B8" }}>
+                      style={{ color: active ? (s.key === "adr" ? "#35BD78" : "#1E40AF") : "#94A3B8" }}>
                       {s.title}
                     </div>
                     <div className="text-xs mt-0.5"
-                      style={{ color: active ? (s.key === "adr" ? "#7C3AED" : "#1E40AF") : "#94A3B8" }}>
+                      style={{ color: active ? (s.key === "adr" ? "#35BD78" : "#1E40AF") : "#94A3B8" }}>
                       {s.sub}
                     </div>
                   </button>
@@ -370,23 +370,23 @@ function SidePanel({
             </div>
 
             {strategy === "adr" ? (
-              <div className="rounded-xl p-4" style={{ background: "#EDE9FE", border: "1px solid #C4B5FD" }}>
-                <div className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: "#7C3AED" }}>
+              <div className="rounded-xl p-4" style={{ background: "rgba(53,189,120,0.12)", border: "1px solid rgba(53,189,120,0.4)" }}>
+                <div className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: "#35BD78" }}>
                   📈 ADR stratégia — Tartja az árat
                 </div>
                 {[
                   { label: "Fennmaradó szobák", value: `${freeRooms} szoba` },
                   { label: "Értékesítési ár", value: `${fmt(adr)} Ft / szoba` },
-                  { label: "Extra bevétel", value: `+${fmt(extraRevAdr)} Ft`, color: "#7C3AED" },
-                  { label: `Változó ktg. (${freeRooms} × ${fmt(varCost)} Ft)`, value: `−${fmt(extraVarAdr)} Ft`, color: "#7C3AED" },
+                  { label: "Extra bevétel", value: `+${fmt(extraRevAdr)} Ft`, color: "#35BD78" },
+                  { label: `Változó ktg. (${freeRooms} × ${fmt(varCost)} Ft)`, value: `−${fmt(extraVarAdr)} Ft`, color: "#35BD78" },
                 ].map(r => (
                   <div key={r.label} className="flex justify-between text-xs py-1">
-                    <span style={{ color: "#5B21B6" }}>{r.label}</span>
-                    <strong style={{ color: r.color ?? "#5B21B6" }}>{r.value}</strong>
+                    <span style={{ color: "#03915A" }}>{r.label}</span>
+                    <strong style={{ color: r.color ?? "#03915A" }}>{r.value}</strong>
                   </div>
                 ))}
-                <div className="flex justify-between pt-2 mt-1" style={{ borderTop: "1px solid #C4B5FD" }}>
-                  <strong className="text-xs" style={{ color: "#5B21B6" }}>Extra profit</strong>
+                <div className="flex justify-between pt-2 mt-1" style={{ borderTop: "1px solid rgba(53,189,120,0.4)" }}>
+                  <strong className="text-xs" style={{ color: "#03915A" }}>Extra profit</strong>
                   <strong className="text-base" style={{ color: "#059669" }}>+{fmt(extraProfitAdr)} Ft</strong>
                 </div>
               </div>
@@ -445,7 +445,7 @@ function SidePanel({
           <h3 className="text-sm font-bold mb-4" style={{ color: "#1E293B" }}>📊 Bevétel megoszlás</h3>
           <div className="space-y-3">
             {[
-              { label: "Szobabevétel", value: detail.roomRevenue ?? 0, color: "#7C3AED" },
+              { label: "Szobabevétel", value: detail.roomRevenue ?? 0, color: "#35BD78" },
               { label: "Vendéglátás (F&B)", value: detail.fbRevenue ?? 0, color: "#3B82F6" },
               { label: "Spa", value: detail.spaRevenue ?? 0, color: "#10B981" },
               { label: "Egyéb", value: detail.otherRevenue ?? 0, color: "#F59E0B" },
@@ -466,7 +466,7 @@ function SidePanel({
           <div className="px-6 py-5" style={{ borderBottom: "1px solid #F1F5F9" }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold" style={{ color: "#1E293B" }}>🛏️ Szobatípus bontás</h3>
-              <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+              <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
                 {detail.roomTypeBreakdown.reduce((s, r) => s + r.roomsOccupied, 0)} / {detail.roomTypeBreakdown.reduce((s, r) => s + r.totalCapacity, 0)} szoba
               </span>
             </div>
@@ -502,7 +502,7 @@ function SidePanel({
                       </div>
                       <div className="flex-1 rounded-lg px-3 py-2 text-center" style={{ background: "white", border: "1px solid #E2E8F0" }}>
                         <div className="text-xs mb-0.5" style={{ color: "#94A3B8" }}>Összesen</div>
-                        <div className="text-base font-bold" style={{ color: "#7C3AED" }}>{rt.adultCount + rt.childCount}</div>
+                        <div className="text-base font-bold" style={{ color: "#35BD78" }}>{rt.adultCount + rt.childCount}</div>
                       </div>
                     </div>
                     {/* Board type chips for this RT */}
@@ -578,7 +578,7 @@ function SidePanel({
               {/* Total row */}
               <div className="flex justify-between items-center px-4 py-3 rounded-xl" style={{ background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
                 <span className="text-sm font-bold" style={{ color: "#1E293B" }}>Összes vendég</span>
-                <span className="text-sm font-bold font-mono" style={{ color: "#7C3AED" }}>
+                <span className="text-sm font-bold font-mono" style={{ color: "#35BD78" }}>
                   {detail.boardTypeBreakdown.reduce((s, b) => s + b.totalGuests, 0)} fő
                 </span>
               </div>
@@ -594,7 +594,7 @@ function SidePanel({
               { label: "Fix kiadás", value: detail.costs?.fixed ?? 0, color: "#64748B" },
               { label: "Változó kiadás", value: detail.costs?.variable ?? 0, color: "#F59E0B" },
               { label: "Bérköltség", value: detail.costs?.staff ?? 0, color: "#EF4444" },
-              { label: "LAB", value: detail.costs?.lab ?? 0, color: "#8B5CF6" },
+              { label: "LAB", value: detail.costs?.lab ?? 0, color: "#35BD78" },
               { label: "Közvetítő", value: detail.costs?.distributor ?? 0, color: "#EC4899" },
             ].map(r => (
               <RevBar key={r.label} {...r} total={detail.costs?.total ?? 1} />
@@ -628,20 +628,20 @@ function CalCell({ day, selected, onClick }: { day: DayData; selected: boolean; 
         padding: "8px 8px 24px 8px",
         borderColor: "#E2E8F0",
         background: selected
-          ? "#EDE9FE"
+          ? "rgba(53,189,120,0.12)"
           : isWeekend ? "#F5F7FF" : "white",
         cursor: day.hasData ? "pointer" : "default",
-        outline: selected ? "2px solid #7C3AED" : "none",
+        outline: selected ? "2px solid #35BD78" : "none",
         outlineOffset: -2,
       }}>
       <div className="font-bold mb-1.5"
-        style={{ fontSize: 12, color: selected ? "#7C3AED" : day.hasData ? "#334155" : "#CBD5E1" }}>
+        style={{ fontSize: 12, color: selected ? "#35BD78" : day.hasData ? "#334155" : "#CBD5E1" }}>
         {parseInt(day.date.slice(8))}
       </div>
       {day.hasData && (
         <>
           <div className="font-bold font-mono leading-snug"
-            style={{ fontSize: 11, color: selected ? "#7C3AED" : "#0F172A" }}>
+            style={{ fontSize: 11, color: selected ? "#35BD78" : "#0F172A" }}>
             {fmtM(day.totalRevenue ?? 0)} Ft
           </div>
           <div className="font-semibold mt-0.5"
@@ -717,7 +717,7 @@ export default function AnalysisPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-60">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
   if (!data) return null;
@@ -749,9 +749,9 @@ export default function AnalysisPage() {
               <button key={s.id} onClick={() => { setSelectedScenario(s.id); setSelectedDate(null); load({ sid: s.id }); }}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all"
                 style={{
-                  background: active ? "#7C3AED" : "white",
+                  background: active ? "#35BD78" : "white",
                   color: active ? "white" : "#1E293B",
-                  border: `1px solid ${active ? "#7C3AED" : "#E2E8F0"}`,
+                  border: `1px solid ${active ? "#35BD78" : "#E2E8F0"}`,
                 }}>
                 {s.name}
                 <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
@@ -822,7 +822,7 @@ export default function AnalysisPage() {
             {panelLoading ? (
               <div className="flex-1 flex items-center justify-center bg-white rounded-2xl"
                 style={{ border: "1px solid #E2E8F0", minHeight: 300 }}>
-                <Loader2 size={22} className="animate-spin" style={{ color: "#7C3AED" }} />
+                <Loader2 size={22} className="animate-spin" style={{ color: "#35BD78" }} />
               </div>
             ) : detail ? (
               <SidePanel detail={detail} totalRooms={data.hotel.totalRooms} currency={data.hotel.currency}

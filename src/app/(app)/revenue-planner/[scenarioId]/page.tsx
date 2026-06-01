@@ -68,7 +68,7 @@ const BOARD_COLORS: Record<string, { bg: string; text: string }> = {
   RO: { bg: "#F1F5F9", text: "#64748B" },
   BB: { bg: "#DBEAFE", text: "#1D4ED8" },
   HB: { bg: "#D1FAE5", text: "#065F46" },
-  FB: { bg: "#EDE9FE", text: "#5B21B6" },
+  FB: { bg: "rgba(53,189,120,0.12)", text: "#03915A" },
   AI: { bg: "#FEF3C7", text: "#92400E" },
 };
 
@@ -208,7 +208,7 @@ function GuestReadOnly({ guestDay, ageGroups }: { guestDay: GuestDay | undefined
   const activeBts = guestDay.boardTypes.filter(bt => bt.roomCount > 0 || bt.adultCount > 0);
   if (activeBts.length === 0) return null;
 
-  const CHILD_COLORS = ["#F59E0B", "#10B981", "#8B5CF6", "#EF4444", "#3B82F6"];
+  const CHILD_COLORS = ["#F59E0B", "#10B981", "#35BD78", "#EF4444", "#3B82F6"];
   const totalAdults   = activeBts.reduce((s, bt) => s + bt.adultCount, 0);
   const totalChildren = activeBts.reduce((s, bt) => s + bt.childCounts.reduce((cs, c) => cs + c.count, 0), 0);
   const totalRooms    = activeBts.reduce((s, bt) => s + bt.roomCount, 0);
@@ -407,7 +407,7 @@ function GuestPanel({
   // Validáció: minden sorban legalább 1 felnőtt / szoba kell
   const violations = rows.filter(r => r.roomCount > 0 && r.adultCount < r.roomCount);
 
-  const CHILD_COLORS = ["#F59E0B", "#10B981", "#8B5CF6", "#EF4444", "#3B82F6"];
+  const CHILD_COLORS = ["#F59E0B", "#10B981", "#35BD78", "#EF4444", "#3B82F6"];
 
   return (
     <div className="px-4 py-3 space-y-3" style={{ background: "#FAFBFF" }}>
@@ -563,7 +563,7 @@ function GuestPanel({
           onClick={() => onSave(rows)}
           disabled={saving}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-          style={{ background: "#7C3AED", color: "white", opacity: saving ? 0.6 : 1 }}>
+          style={{ background: "#35BD78", color: "white", opacity: saving ? 0.6 : 1 }}>
           {saving
             ? <><Loader2 size={11} className="animate-spin" /> Mentés…</>
             : <><Check size={11} /> Mentés</>}
@@ -773,7 +773,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
   if (!scenario) return <p style={{ color: "#94A3B8" }}>Nem található a forgatókönyv.</p>;
@@ -844,13 +844,13 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
       {/* AI rögzített / tartomány napok banner */}
       {(pinnedFromUrl.length > 0 || rangesFromUrl.length > 0) && (
         <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl text-sm"
-          style={{ background: "#EDE9FE", border: "1px solid #DDD6FE" }}>
-          <Pin size={15} style={{ color: "#7C3AED", marginTop: 2, flexShrink: 0 }} />
+          style={{ background: "rgba(53,189,120,0.12)", border: "1px solid #DDD6FE" }}>
+          <Pin size={15} style={{ color: "#35BD78", marginTop: 2, flexShrink: 0 }} />
           <div className="space-y-0.5">
             {pinnedFromUrl.length > 0 && (
               <div>
-                <span className="font-semibold" style={{ color: "#5B21B6" }}>Pontos napok: </span>
-                <span style={{ color: "#6D28D9" }}>
+                <span className="font-semibold" style={{ color: "#03915A" }}>Pontos napok: </span>
+                <span style={{ color: "#03915A" }}>
                   {pinnedFromUrl.map((p, i) => (
                     <span key={i}>{i > 0 && ", "}{HU_MONTHS_SHORT[p.month - 1]}. {p.day}. ({p.occPct}%)</span>
                   ))}
@@ -859,15 +859,15 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
             )}
             {rangesFromUrl.length > 0 && (
               <div>
-                <span className="font-semibold" style={{ color: "#5B21B6" }}>Tartomány napok: </span>
-                <span style={{ color: "#6D28D9" }}>
+                <span className="font-semibold" style={{ color: "#03915A" }}>Tartomány napok: </span>
+                <span style={{ color: "#03915A" }}>
                   {rangesFromUrl.map((p, i) => (
                     <span key={i}>{i > 0 && ", "}{HU_MONTHS_SHORT[p.month - 1]}. {p.day}. ({p.occPctFrom}–{p.occPctTo}%)</span>
                   ))}
                 </span>
               </div>
             )}
-            <div className="text-xs" style={{ color: "#7C3AED", opacity: 0.7 }}>
+            <div className="text-xs" style={{ color: "#35BD78", opacity: 0.7 }}>
               Az AI ezeket a napokat a szabad szöveges változók alapján rögzítette
             </div>
           </div>
@@ -881,7 +881,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
             <h1 className="text-2xl font-bold" style={{ color: "#0F172A" }}>{scenario.name}</h1>
             {scenario.isBase && (
               <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
                 <Star size={10} /> Alap
               </span>
             )}
@@ -890,7 +890,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
               {probLabel(scenario.probability)} · {scenario.probability}%
             </span>
             <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
-              style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+              style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
               <Sparkles size={10} /> AI generált
             </span>
           </div>
@@ -908,7 +908,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
           </button>
           <span className="text-base font-semibold w-44 text-center" style={{ color: "#0F172A" }}>
             {monthLoading
-              ? <Loader2 size={16} className="animate-spin inline" style={{ color: "#7C3AED" }} />
+              ? <Loader2 size={16} className="animate-spin inline" style={{ color: "#35BD78" }} />
               : `${HU_MONTHS[month - 1]} ${year}`}
           </span>
           <button onClick={() => changeMonth(1)} disabled={month === 12 || monthLoading}
@@ -921,7 +921,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard icon={<DollarSign size={16} />} iconBg="#EDE9FE" iconColor="#7C3AED"
+        <KpiCard icon={<DollarSign size={16} />} iconBg="rgba(53,189,120,0.12)" iconColor="#35BD78"
           label="Szobabevétel" value={`${fmt(mRoomRev)} Ft`} sub={`RevPAR: ${fmt(mRevPar)} Ft`} />
         <KpiCard icon={<TrendingUp size={16} />} iconBg="#D1FAE5" iconColor="#10B981"
           label="F&B + Spa + Egyéb" value={`${fmt(mFb + mSpa + mOther)} Ft`}
@@ -988,7 +988,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
                 {segmentData.segments.filter(s => s.sharePct > 0).map((seg, idx) => {
                   const COLORS = [
-                    { bg: "#EDE9FE", bar: "#7C3AED", text: "#5B21B6" },
+                    { bg: "rgba(53,189,120,0.12)", bar: "#35BD78", text: "#03915A" },
                     { bg: "#D1FAE5", bar: "#10B981", text: "#065F46" },
                     { bg: "#DBEAFE", bar: "#3B82F6", text: "#1D4ED8" },
                     { bg: "#FEF3C7", bar: "#F59E0B", text: "#92400E" },
@@ -1096,8 +1096,8 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
             <button onClick={() => setActiveRtId(null)}
               className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap flex-shrink-0 transition-colors"
               style={{
-                color: activeRtId === null ? "#7C3AED" : "#64748B",
-                borderBottom: activeRtId === null ? "2px solid #7C3AED" : "2px solid transparent",
+                color: activeRtId === null ? "#35BD78" : "#64748B",
+                borderBottom: activeRtId === null ? "2px solid #35BD78" : "2px solid transparent",
                 background: "none",
               }}>
               <Building2 size={13} /> Hotel összesen
@@ -1114,8 +1114,8 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
               }}
                 className="flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap flex-shrink-0 transition-colors"
                 style={{
-                  color: activeRtId === rt.id ? "#7C3AED" : "#64748B",
-                  borderBottom: activeRtId === rt.id ? "2px solid #7C3AED" : "2px solid transparent",
+                  color: activeRtId === rt.id ? "#35BD78" : "#64748B",
+                  borderBottom: activeRtId === rt.id ? "2px solid #35BD78" : "2px solid transparent",
                   background: "none",
                 }}>
                 {rt.name}
@@ -1165,7 +1165,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
                     <>
                       <tr key={key}
                         style={{
-                          background: isExpanded ? "#F5F3FF" : rowBg,
+                          background: isExpanded ? "#FBFBFC" : rowBg,
                           borderBottom: isExpanded ? "none" : "1px solid #F1F5F9",
                         }}>
                         {/* Date */}
@@ -1262,7 +1262,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
                                   <span className="text-xs flex-1 text-left" style={{ color: "#94A3B8" }}>+ rögzít</span>
                                 )}
                                 {(hasSomeGuests || !isHotelView) && (isExpanded
-                                  ? <ChevronUp size={12} style={{ color: "#7C3AED", flexShrink: 0 }} />
+                                  ? <ChevronUp size={12} style={{ color: "#35BD78", flexShrink: 0 }} />
                                   : <ChevronDown size={12} style={{ color: "#94A3B8", flexShrink: 0 }} />)}
                               </button>
                             ) : <Dash />}
@@ -1271,7 +1271,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
 
                         {/* Total */}
                         <td className="px-3 py-2 text-right font-mono text-sm font-bold"
-                          style={{ color: total > 0 ? "#7C3AED" : "#E2E8F0" }}>
+                          style={{ color: total > 0 ? "#35BD78" : "#E2E8F0" }}>
                           {total > 0 ? fmt(total) : <Dash />}
                         </td>
                       </tr>
@@ -1279,11 +1279,11 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
                       {/* Expanded guest panel — szobatípus nézet */}
                       {showGuests && isExpanded && pd && !isHotelView && activeRtId && (
                         <tr key={`${key}-guest`}
-                          style={{ borderBottom: "1px solid #E2E8F0", background: "#F5F3FF" }}>
+                          style={{ borderBottom: "1px solid #E2E8F0", background: "#FBFBFC" }}>
                           <td colSpan={10}>
                             {rtGuestLoading ? (
                               <div className="flex items-center justify-center py-4">
-                                <Loader2 size={16} className="animate-spin" style={{ color: "#7C3AED" }} />
+                                <Loader2 size={16} className="animate-spin" style={{ color: "#35BD78" }} />
                               </div>
                             ) : editingGuestDay === key ? (
                               <div>
@@ -1322,7 +1322,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
                                   </span>
                                   <button onClick={() => setEditingGuestDay(key)}
                                     className="text-xs px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-colors"
-                                    style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                                    style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
                                     <Check size={11} /> Szerkesztés
                                   </button>
                                 </div>
@@ -1391,7 +1391,7 @@ export default function PlannerPage({ params }: { params: Promise<{ scenarioId: 
                     </td>
                   )}
                   <td className="px-3 py-3 text-right font-mono font-bold"
-                    style={{ color: mTotal > 0 ? "#7C3AED" : "#94A3B8", fontSize: 15 }}>
+                    style={{ color: mTotal > 0 ? "#35BD78" : "#94A3B8", fontSize: 15 }}>
                     {mTotal > 0 ? fmt(mTotal) : "—"}
                   </td>
                 </tr>

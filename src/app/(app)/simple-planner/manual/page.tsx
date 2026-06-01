@@ -9,10 +9,10 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
     <div style={{ display: "flex", gap: 18, marginBottom: 28 }}>
       <div style={{
         width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-        background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+        background: "linear-gradient(135deg,#35BD78,#03915A)",
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 15, fontWeight: 800, color: "white",
-        boxShadow: "0 4px 12px rgba(124,58,237,0.3)",
+        boxShadow: "0 4px 12px rgba(53,189,120,0.3)",
         marginTop: 2,
       }}>{n}</div>
       <div style={{ flex: 1 }}>
@@ -32,7 +32,7 @@ function Section({ emoji, title, subtitle, children }: { emoji: string; title: s
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: subtitle ? 6 : 24 }}>
         <div style={{
           width: 44, height: 44, borderRadius: 14, flexShrink: 0,
-          background: "linear-gradient(135deg,#F5F3FF,#EDE9FE)",
+          background: "linear-gradient(135deg,#FBFBFC,rgba(53,189,120,0.12))",
           border: "1px solid #DDD6FE",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 22,
@@ -74,7 +74,7 @@ function Note({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Badge({ children, color = "#7C3AED", bg = "#EDE9FE" }: { children: React.ReactNode; color?: string; bg?: string }) {
+function Badge({ children, color = "#35BD78", bg = "rgba(53,189,120,0.12)" }: { children: React.ReactNode; color?: string; bg?: string }) {
   return (
     <span style={{
       display: "inline-block", fontSize: 11, fontWeight: 700, padding: "2px 8px",
@@ -96,7 +96,7 @@ export default function ManualPage() {
         {/* Back link */}
         <Link href="/simple-planner" style={{
           display: "inline-flex", alignItems: "center", gap: 6,
-          fontSize: 13, fontWeight: 600, color: "#7C3AED",
+          fontSize: 13, fontWeight: 600, color: "#35BD78",
           textDecoration: "none", marginBottom: 28,
         }}>
           ← Vissza a Simple Plannerhez
@@ -104,10 +104,10 @@ export default function ManualPage() {
 
         {/* Hero */}
         <div style={{
-          background: "linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)",
+          background: "linear-gradient(135deg, #35BD78 0%, #4F46E5 100%)",
           borderRadius: 20, padding: "36px 40px", marginBottom: 28,
           position: "relative", overflow: "hidden",
-          boxShadow: "0 8px 32px rgba(124,58,237,0.25)",
+          boxShadow: "0 8px 32px rgba(53,189,120,0.25)",
         }}>
           <div style={{ position: "absolute", right: -30, top: -30, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.05)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", right: 80, bottom: -50, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
@@ -149,9 +149,9 @@ export default function ManualPage() {
             ].map(([n, label]) => (
               <div key={n} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
                 <span style={{
-                  width: 20, height: 20, borderRadius: 6, background: "#F5F3FF",
+                  width: 20, height: 20, borderRadius: 6, background: "#FBFBFC",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 10, fontWeight: 800, color: "#7C3AED", flexShrink: 0,
+                  fontSize: 10, fontWeight: 800, color: "#35BD78", flexShrink: 0,
                 }}>{n}</span>
                 <span style={{ fontSize: 13, color: "#334155" }}>{label}</span>
               </div>
@@ -328,7 +328,7 @@ export default function ManualPage() {
                 display: "flex", gap: 12, background: "#F8FAFC",
                 border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px",
               }}>
-                <strong style={{ fontSize: 12, color: "#7C3AED", minWidth: 180, flexShrink: 0 }}>{field}</strong>
+                <strong style={{ fontSize: 12, color: "#35BD78", minWidth: 180, flexShrink: 0 }}>{field}</strong>
                 <span style={{ fontSize: 12, color: "#475569", lineHeight: 1.6 }}>{desc}</span>
               </div>
             ))}
@@ -416,7 +416,7 @@ export default function ManualPage() {
             Ide írhatsz kontextust, kulcsüzenetet, ajánlást — akár AI-jal is generáltathatod a beépített gombbal.
           </Step>
           <Step n={6} title="Link másolása és küldése">
-            Kattints a <Badge bg="#EDE9FE" color="#7C3AED">🔗 Link másolása</Badge> gombra, majd küldd el az ügyfélnek emailben vagy chatben.
+            Kattints a <Badge bg="rgba(53,189,120,0.12)" color="#35BD78">🔗 Link másolása</Badge> gombra, majd küldd el az ügyfélnek emailben vagy chatben.
           </Step>
           <Note>
             <strong>Mit lát az ügyfél a riporton?</strong><br />
@@ -464,7 +464,7 @@ export default function ManualPage() {
           <p style={{ fontSize: 12, color: "#94A3B8" }}>HeyMax! · Simple Planner kézikönyv</p>
           <Link href="/simple-planner" style={{
             display: "inline-flex", alignItems: "center", gap: 6,
-            marginTop: 8, fontSize: 13, fontWeight: 600, color: "#7C3AED", textDecoration: "none",
+            marginTop: 8, fontSize: 13, fontWeight: 600, color: "#35BD78", textDecoration: "none",
           }}>
             ← Vissza a Simple Plannerhez
           </Link>

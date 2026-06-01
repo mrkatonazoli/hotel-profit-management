@@ -63,7 +63,7 @@ function fmtM(n: number) {
 
 function occColor(occ: number) {
   if (occ >= 85) return "#10B981";
-  if (occ >= 65) return "#7C3AED";
+  if (occ >= 65) return "#35BD78";
   if (occ >= 45) return "#F59E0B";
   return "#EF4444";
 }
@@ -129,7 +129,7 @@ function MonthlyBarChart({ months, metric, currentMonth }: {
   function barColor(m: MonthRow, v: number) {
     if (metric === "avgOcc") return occColor(v);
     if (metric === "profit") return v >= 0 ? "#10B981" : "#EF4444";
-    return m.month === currentMonth ? "#7C3AED" : "#A78BFA";
+    return m.month === currentMonth ? "#35BD78" : "#90DBAC";
   }
 
   return (
@@ -163,7 +163,7 @@ function MonthlyBarChart({ months, metric, currentMonth }: {
             {/* Current month highlight */}
             {isCurrent && m.dayCount > 0 && (
               <rect x={x - 2} y={PAD.t} width={barW + 4} height={chartH}
-                fill="#7C3AED" opacity={0.06} rx={3} />
+                fill="#35BD78" opacity={0.06} rx={3} />
             )}
             <rect x={x} y={bT} width={barW} height={bH}
               fill={m.dayCount > 0 ? color : "#F1F5F9"}
@@ -175,7 +175,7 @@ function MonthlyBarChart({ months, metric, currentMonth }: {
             )}
             <text x={x + barW / 2} y={PAD.t + chartH + 14}
               textAnchor="middle" fontSize={9}
-              fill={isCurrent ? "#7C3AED" : "#94A3B8"}
+              fill={isCurrent ? "#35BD78" : "#94A3B8"}
               fontWeight={isCurrent ? 700 : 400}>
               {HU_MONTHS_SHORT[m.month - 1]}
             </text>
@@ -189,7 +189,7 @@ function MonthlyBarChart({ months, metric, currentMonth }: {
 // ─── Quick Actions ────────────────────────────────────────────────────────────
 
 const QUICK_ACTIONS = [
-  { label: "Revenue Planner", icon: CalendarDays, path: (sid: string) => `/revenue-planner/${sid}`, color: "#7C3AED", bg: "#EDE9FE" },
+  { label: "Revenue Planner", icon: CalendarDays, path: (sid: string) => `/revenue-planner/${sid}`, color: "#35BD78", bg: "rgba(53,189,120,0.12)" },
   { label: "Elemzés",          icon: BarChart3,   path: () => "/analysis",     color: "#3B82F6", bg: "#DBEAFE" },
   { label: "Kiadások",         icon: Receipt,     path: () => "/costs",        color: "#F59E0B", bg: "#FEF3C7" },
   { label: "Szcenáriók",       icon: TrendingUp,  path: () => "/scenarios",    color: "#10B981", bg: "#D1FAE5" },
@@ -233,7 +233,7 @@ export default function DashboardPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
 
@@ -301,7 +301,7 @@ export default function DashboardPage() {
                   <button key={s.id}
                     onClick={() => { setScenarioOpen(false); load(s.id); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
-                    style={{ background: active ? "#F5F3FF" : "white", borderBottom: "1px solid #F8FAFC" }}>
+                    style={{ background: active ? "#FBFBFC" : "white", borderBottom: "1px solid #F8FAFC" }}>
                     {s.isBase && <Star size={13} style={{ color: "#F59E0B", flexShrink: 0 }} />}
                     {!s.isBase && <div style={{ width: 13 }} />}
                     <div className="flex-1 min-w-0">
@@ -423,7 +423,7 @@ export default function DashboardPage() {
           label="Szobabevétel"
           value={`${fmtM(kpis.totalRoomRevenue)} ${ccy}`}
           sub={kpis.totalRevenue > 0 ? `${Math.round(kpis.totalRoomRevenue / kpis.totalRevenue * 100)}% a teljes bevételből` : undefined}
-          icon={<Wallet size={17} />} color="#7C3AED"
+          icon={<Wallet size={17} />} color="#35BD78"
         />
         <KpiCard
           label="RevPAR"
@@ -450,16 +450,16 @@ export default function DashboardPage() {
         <div className="rounded-2xl overflow-hidden" style={{ background: "white", border: "1px solid #E2E8F0" }}>
           {/* Header strip */}
           <div className="px-5 py-3 flex items-center justify-between"
-            style={{ background: "#F5F3FF", borderBottom: "1px solid #EDE9FE" }}>
+            style={{ background: "#FBFBFC", borderBottom: "1px solid rgba(53,189,120,0.12)" }}>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ background: "#7C3AED" }} />
-              <span className="text-sm font-bold" style={{ color: "#5B21B6" }}>
+              <div className="w-2 h-2 rounded-full" style={{ background: "#35BD78" }} />
+              <span className="text-sm font-bold" style={{ color: "#03915A" }}>
                 {HU_MONTHS[currentMonth - 1]} — aktuális hónap
               </span>
             </div>
             <button onClick={() => router.push(`/analysis`)}
               className="flex items-center gap-1 text-xs font-semibold"
-              style={{ color: "#7C3AED", background: "none", border: "none", cursor: "pointer" }}>
+              style={{ color: "#35BD78", background: "none", border: "none", cursor: "pointer" }}>
               Részletes elemzés <ChevronRight size={13} />
             </button>
           </div>
@@ -474,7 +474,7 @@ export default function DashboardPage() {
               color={profitColor(cur.profit)}
               sub={`${cur.profitPct > 0 ? "+" : ""}${cur.profitPct}% margin`}
             />
-            <SpotlightCell label="ADR" value={`${fmt(cur.avgAdr)} ${ccy}`} color="#7C3AED" />
+            <SpotlightCell label="ADR" value={`${fmt(cur.avgAdr)} ${ccy}`} color="#35BD78" />
           </div>
         </div>
       )}
@@ -489,7 +489,7 @@ export default function DashboardPage() {
                 <button key={o.key} onClick={() => setChartMetric(o.key)}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                   style={{
-                    background: chartMetric === o.key ? "#7C3AED" : "#F1F5F9",
+                    background: chartMetric === o.key ? "#35BD78" : "#F1F5F9",
                     color: chartMetric === o.key ? "white" : "#64748B",
                   }}>
                   {o.label}
@@ -522,7 +522,7 @@ export default function DashboardPage() {
           <h2 className="text-base font-semibold" style={{ color: "#0F172A" }}>Havi összesítő</h2>
           <button onClick={() => router.push(`/revenue-planner/${scenario.id}`)}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl"
-            style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+            style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
             Revenue Planner <ArrowRight size={12} />
           </button>
         </div>
@@ -555,7 +555,7 @@ export default function DashboardPage() {
                       }}>
                       <td className="px-5 py-2.5">
                         <div className="flex items-center gap-2">
-                          {isCurrent && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#7C3AED" }} />}
+                          {isCurrent && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#35BD78" }} />}
                           <span className="text-sm font-medium" style={{ color: "#0F172A" }}>
                             {HU_MONTHS[m.month - 1]}
                           </span>
@@ -646,7 +646,7 @@ export default function DashboardPage() {
               <h2 className="text-base font-semibold" style={{ color: "#0F172A" }}>Szegmens mix</h2>
               <button onClick={() => router.push(`/segments/${scenario.id}`)}
                 className="flex items-center gap-1 text-xs font-semibold"
-                style={{ color: "#7C3AED" }}>
+                style={{ color: "#35BD78" }}>
                 Szerkesztés <ChevronRight size={13} />
               </button>
             </div>
@@ -779,7 +779,7 @@ export default function DashboardPage() {
             <h2 className="text-base font-semibold mb-4" style={{ color: "#0F172A" }}>Bevételi mix</h2>
             <div className="space-y-3">
               {[
-                { label: "Szobabevétel", value: kpis.totalRoomRevenue, color: "#7C3AED" },
+                { label: "Szobabevétel", value: kpis.totalRoomRevenue, color: "#35BD78" },
                 { label: "F&B bevétel",  value: kpis.totalFbRevenue,   color: "#10B981" },
                 { label: "Spa bevétel",  value: kpis.totalSpaRevenue,  color: "#3B82F6" },
                 { label: "Egyéb bevétel",value: kpis.totalOtherRevenue,color: "#F59E0B" },

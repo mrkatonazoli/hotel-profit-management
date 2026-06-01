@@ -36,7 +36,7 @@ export async function POST(req: Request, { params }: Ctx) {
     data: {
       scenarioId,
       name: String(name ?? "").trim(),
-      color: String(color ?? "#7C3AED"),
+      color: String(color ?? "#35BD78"),
       sortOrder: Number(sortOrder ?? 0),
       channelMixMode: channelMixMode === "MONTHLY" ? "MONTHLY" : "ANNUAL",
       // Init all 12 months with 0%

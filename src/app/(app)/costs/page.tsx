@@ -106,7 +106,7 @@ const BOARD_META: Record<string, { label: string; bg: string; text: string }> = 
   RO: { label: "Csak szoba",      bg: "#F1F5F9", text: "#64748B" },
   BB: { label: "Reggeli",         bg: "#DBEAFE", text: "#1D4ED8" },
   HB: { label: "Félpanzió",       bg: "#D1FAE5", text: "#065F46" },
-  FB: { label: "Teljes panzió",   bg: "#EDE9FE", text: "#5B21B6" },
+  FB: { label: "Teljes panzió",   bg: "rgba(53,189,120,0.12)", text: "#03915A" },
   AI: { label: "All Inclusive",   bg: "#FEF3C7", text: "#92400E" },
 };
 const PCT_BASE_LABELS: Record<PercentageBase, string> = {
@@ -139,7 +139,7 @@ function Btn({
       ? { color: "#EF4444", background: "transparent" }
       : { background: "#FEE2E2", color: "#DC2626" };
   } else if (variant === "primary") {
-    style = { background: "#7C3AED", color: "white" };
+    style = { background: "#35BD78", color: "white" };
   } else if (variant === "ghost") {
     style = { color: "#64748B", background: "transparent" };
   } else {
@@ -336,7 +336,7 @@ function FixTab({ costs, reload }: { costs: Cost[]; reload: () => void }) {
             {fixCosts.length === 0 && !adding && <EmptyRow label="Nincs rögzített fix kiadás" />}
             {fixCosts.map(c => (
               editId === c.id ? (
-                <tr key={c.id} style={{ background: "#F5F3FF", borderBottom: "1px solid #E2E8F0" }}>
+                <tr key={c.id} style={{ background: "#FBFBFC", borderBottom: "1px solid #E2E8F0" }}>
                   <td className="px-4 py-2">
                     <Input value={editForm.name} onChange={v => setEF("name", v)} placeholder="Megnevezés" className="w-full" />
                   </td>
@@ -382,15 +382,15 @@ function FixTab({ costs, reload }: { costs: Cost[]; reload: () => void }) {
                   <td className="px-4 py-3 font-medium" style={{ color: "#0F172A" }}>{c.name}</td>
                   <td className="px-4 py-3 font-mono text-sm">
                     {c.amountType === "FIXED_AMOUNT"
-                      ? <span style={{ color: "#7C3AED" }}>{fmt(c.amount ?? 0)} {c.currency}</span>
-                      : <span style={{ color: "#7C3AED" }}>{c.percentage}% · {PCT_BASE_LABELS[c.percentageBase]}</span>
+                      ? <span style={{ color: "#35BD78" }}>{fmt(c.amount ?? 0)} {c.currency}</span>
+                      : <span style={{ color: "#35BD78" }}>{c.percentage}% · {PCT_BASE_LABELS[c.percentageBase]}</span>
                     }
                   </td>
                   <td className="px-4 py-3">
                     <span className="px-2 py-0.5 rounded-lg text-xs font-semibold"
                       style={{
-                        background: c.nature === "RECURRING" ? "#EDE9FE" : "#FEF3C7",
-                        color: c.nature === "RECURRING" ? "#7C3AED" : "#D97706",
+                        background: c.nature === "RECURRING" ? "rgba(53,189,120,0.12)" : "#FEF3C7",
+                        color: c.nature === "RECURRING" ? "#35BD78" : "#D97706",
                       }}>
                       {NATURE_LABELS[c.nature]}
                     </span>
@@ -425,7 +425,7 @@ function FixTab({ costs, reload }: { costs: Cost[]; reload: () => void }) {
 
             {/* Add row */}
             {adding && (
-              <tr style={{ background: "#F5F3FF", borderBottom: "1px solid #E2E8F0" }}>
+              <tr style={{ background: "#FBFBFC", borderBottom: "1px solid #E2E8F0" }}>
                 <td className="px-4 py-2">
                   <Input value={form.name} onChange={v => setF("name", v)} placeholder="pl. Bérleti díj" className="w-full" />
                 </td>
@@ -608,7 +608,7 @@ function StaffTab({ costs, reload }: { costs: Cost[]; reload: () => void }) {
                                 {r.occupancyTo != null ? `${r.occupancyTo}%` : "—"}
                               </td>
                               <td className="py-2 pr-4 font-semibold">{r.extraStaffCount} fő</td>
-                              <td className="py-2 pr-4 font-mono" style={{ color: "#7C3AED" }}>
+                              <td className="py-2 pr-4 font-mono" style={{ color: "#35BD78" }}>
                                 {fmt(r.dailyRate)} Ft/nap
                               </td>
                               <td className="py-2">
@@ -626,7 +626,7 @@ function StaffTab({ costs, reload }: { costs: Cost[]; reload: () => void }) {
                     {/* Add rule form */}
                     {addingRule === c.id ? (
                       <div className="flex flex-wrap gap-2 items-end p-3 rounded-xl"
-                        style={{ background: "#F5F3FF" }}>
+                        style={{ background: "#FBFBFC" }}>
                         <div>
                           <label className="text-xs font-medium block mb-1" style={{ color: "#64748B" }}>
                             Kihas. tól (%)
@@ -836,7 +836,7 @@ function VarTab({ costs, reload }: { costs: Cost[]; reload: () => void }) {
             {varCosts.length === 0 && !adding && <EmptyRow label="Nincs rögzített változó kiadás" />}
             {varCosts.map(c => (
               editId === c.id ? (
-                <tr key={c.id} style={{ background: "#F5F3FF", borderBottom: "1px solid #E2E8F0" }}>
+                <tr key={c.id} style={{ background: "#FBFBFC", borderBottom: "1px solid #E2E8F0" }}>
                   <td className="px-4 py-2">
                     <Input value={editForm.name} onChange={v => setEF("name", v)} placeholder="Megnevezés" className="w-full" />
                   </td>
@@ -855,7 +855,7 @@ function VarTab({ costs, reload }: { costs: Cost[]; reload: () => void }) {
                 <tr key={c.id} style={{ borderBottom: "1px solid #F8FAFC" }}
                   className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 font-medium" style={{ color: "#0F172A" }}>{c.name}</td>
-                  <td className="px-4 py-3 font-mono text-sm" style={{ color: "#7C3AED" }}>
+                  <td className="px-4 py-3 font-mono text-sm" style={{ color: "#35BD78" }}>
                     {c.amountType === "PERCENTAGE"
                       ? `${c.percentage}% · ${PCT_BASE_LABELS[c.percentageBase]}`
                       : `${fmt(c.amount ?? 0)} ${c.currency}`}
@@ -874,7 +874,7 @@ function VarTab({ costs, reload }: { costs: Cost[]; reload: () => void }) {
               )
             ))}
             {adding && (
-              <tr style={{ background: "#F5F3FF", borderBottom: "1px solid #E2E8F0" }}>
+              <tr style={{ background: "#FBFBFC", borderBottom: "1px solid #E2E8F0" }}>
                 <td className="px-4 py-2">
                   <Input value={form.name} onChange={v => setF("name", v)} placeholder="pl. Mosodai költség" className="w-full" />
                 </td>
@@ -1042,7 +1042,7 @@ function BoardLabSection({
 
             {bt.labSettings.map(ls => (
               editId === ls.id ? (
-                <tr key={ls.id} style={{ background: "#F5F3FF", borderBottom: "1px solid #E2E8F0" }}>
+                <tr key={ls.id} style={{ background: "#FBFBFC", borderBottom: "1px solid #E2E8F0" }}>
                   <td className="px-3 py-2"><Input value={editForm.validFrom} onChange={v => setEditForm(p => ({ ...p, validFrom: v }))} type="date" className="w-32" /></td>
                   <td className="px-3 py-2"><Input value={editForm.validTo} onChange={v => setEditForm(p => ({ ...p, validTo: v }))} type="date" className="w-32" /></td>
                   <td className="px-3 py-2 text-right">
@@ -1198,10 +1198,10 @@ function DistTab({ distributors, reloadDist }: { distributors: Distributor[]; re
 
       {distributors.length > 0 && (
         <div className="flex gap-3">
-          <div className="px-4 py-3 rounded-xl text-sm" style={{ background: "#EDE9FE" }}>
-            <span className="font-semibold" style={{ color: "#7C3AED" }}>{distributors.length} csatorna</span>
+          <div className="px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(53,189,120,0.12)" }}>
+            <span className="font-semibold" style={{ color: "#35BD78" }}>{distributors.length} csatorna</span>
             <span style={{ color: "#94A3B8" }}> · átl. </span>
-            <span className="font-bold" style={{ color: "#7C3AED" }}>{avgCommission.toFixed(1)}% jutalék</span>
+            <span className="font-bold" style={{ color: "#35BD78" }}>{avgCommission.toFixed(1)}% jutalék</span>
           </div>
         </div>
       )}
@@ -1221,13 +1221,13 @@ function DistTab({ distributors, reloadDist }: { distributors: Distributor[]; re
               <tr>
                 <td colSpan={3} className="px-4 py-8 text-sm text-center" style={{ color: "#94A3B8" }}>
                   Nincs jutalékos csatorna — add hozzá a{" "}
-                  <a href="/hotel-config" style={{ color: "#7C3AED", fontWeight: 600 }}>Hotel beállításoknál</a>
+                  <a href="/hotel-config" style={{ color: "#35BD78", fontWeight: 600 }}>Hotel beállításoknál</a>
                 </td>
               </tr>
             )}
             {distributors.map(d => (
               editId === d.id ? (
-                <tr key={d.id} style={{ background: "#F5F3FF", borderBottom: "1px solid #E2E8F0" }}>
+                <tr key={d.id} style={{ background: "#FBFBFC", borderBottom: "1px solid #E2E8F0" }}>
                   <td className="px-4 py-2 font-medium" style={{ color: "#0F172A" }}>{d.name}</td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-1.5">
@@ -1251,9 +1251,9 @@ function DistTab({ distributors, reloadDist }: { distributors: Distributor[]; re
                     <div className="flex items-center gap-3">
                       <div className="h-2 rounded-full overflow-hidden" style={{ width: 80, background: "#F1F5F9" }}>
                         <div className="h-full rounded-full"
-                          style={{ width: `${Math.min(d.commissionPct * 3, 100)}%`, background: "#7C3AED" }} />
+                          style={{ width: `${Math.min(d.commissionPct * 3, 100)}%`, background: "#35BD78" }} />
                       </div>
-                      <span className="font-mono font-bold" style={{ color: "#7C3AED" }}>
+                      <span className="font-mono font-bold" style={{ color: "#35BD78" }}>
                         {d.commissionPct}%
                       </span>
                     </div>
@@ -1353,7 +1353,7 @@ export default function CostsPage() {
         <div className="flex flex-wrap gap-3">
           <div className="px-4 py-2.5 rounded-2xl text-sm" style={{ background: "white", border: "1px solid #E2E8F0" }}>
             <span style={{ color: "#94A3B8" }}>Fix / hó: </span>
-            <span className="font-bold" style={{ color: "#7C3AED" }}>{(fixTotal).toLocaleString("hu-HU")} Ft</span>
+            <span className="font-bold" style={{ color: "#35BD78" }}>{(fixTotal).toLocaleString("hu-HU")} Ft</span>
           </div>
           <div className="px-4 py-2.5 rounded-2xl text-sm" style={{ background: "white", border: "1px solid #E2E8F0" }}>
             <span style={{ color: "#94A3B8" }}>Bérköltség / hó: </span>
@@ -1380,7 +1380,7 @@ export default function CostsPage() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
               style={{
                 background: active ? "white" : "transparent",
-                color: active ? "#7C3AED" : "#64748B",
+                color: active ? "#35BD78" : "#64748B",
                 boxShadow: active ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
               }}>
               <Icon size={14} />
@@ -1393,7 +1393,7 @@ export default function CostsPage() {
       {/* Tab content */}
       {loading ? (
         <div className="flex items-center justify-center h-40">
-          <Loader2 size={22} className="animate-spin" style={{ color: "#7C3AED" }} />
+          <Loader2 size={22} className="animate-spin" style={{ color: "#35BD78" }} />
         </div>
       ) : (
         <>

@@ -414,7 +414,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
 
@@ -427,8 +427,8 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
           <ArrowLeft size={14} /> Vissza a szcenáriókhoz
         </button>
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#EDE9FE" }}>
-            <Scale size={20} style={{ color: "#7C3AED" }} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(53,189,120,0.12)" }}>
+            <Scale size={20} style={{ color: "#35BD78" }} />
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: "#0F172A" }}>Súlyozás</h1>
@@ -443,7 +443,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
       <div className="rounded-2xl overflow-hidden" style={{ background: "white", border: "1px solid #E2E8F0" }}>
         <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid #E2E8F0" }}>
           <div className="flex items-center gap-3">
-            <Variable size={16} style={{ color: "#7C3AED" }} />
+            <Variable size={16} style={{ color: "#35BD78" }} />
             <div>
               <h2 className="text-base font-semibold" style={{ color: "#0F172A" }}>AI Változók</h2>
               <p className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
@@ -454,7 +454,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
           {!addingVar && (
             <button onClick={() => setAddingVar(true)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium"
-              style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+              style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
               <Plus size={14} /> Új változó
             </button>
           )}
@@ -487,7 +487,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
             <div className="flex gap-2">
               <button onClick={handleAddVariable} disabled={varSaving || !newVarName.trim()}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
-                style={{ background: "#7C3AED", color: "white" }}>
+                style={{ background: "#35BD78", color: "white" }}>
                 {varSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 {varSaving ? "Mentés..." : "Hozzáadás"}
               </button>
@@ -503,8 +503,8 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
         {/* Empty */}
         {variables.length === 0 && !addingVar && (
           <div className="py-10 text-center px-6">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ background: "#F5F3FF" }}>
-              <Variable size={18} style={{ color: "#A78BFA" }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ background: "#FBFBFC" }}>
+              <Variable size={18} style={{ color: "#90DBAC" }} />
             </div>
             <p className="text-sm font-medium mb-1" style={{ color: "#334155" }}>Még nincs változó</p>
             <p className="text-xs" style={{ color: "#94A3B8" }}>
@@ -545,7 +545,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                         disabled={isRefining || !v.value.trim()}
                         title="AI megfogalmazás"
                         className="absolute right-2 top-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40 transition-all"
-                        style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                        style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
                         {isRefining
                           ? <><Loader2 size={11} className="animate-spin" /> Formázás...</>
                           : <><Sparkles size={11} /> AI formázás</>
@@ -565,8 +565,8 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                   /* View mode */
                   <div className="flex items-start gap-3">
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                      style={{ background: "#EDE9FE" }}>
-                      <Variable size={13} style={{ color: "#7C3AED" }} />
+                      style={{ background: "rgba(53,189,120,0.12)" }}>
+                      <Variable size={13} style={{ color: "#35BD78" }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold mb-0.5" style={{ color: "#0F172A" }}>{v.name}</p>
@@ -629,9 +629,9 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                       <tr key={rt.id} style={{ borderBottom: "1px solid #F8FAFC" }}>
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#7C3AED" }} />
+                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#35BD78" }} />
                             <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{rt.name}</span>
-                            {isSaving && <Loader2 size={11} className="animate-spin" style={{ color: "#7C3AED" }} />}
+                            {isSaving && <Loader2 size={11} className="animate-spin" style={{ color: "#35BD78" }} />}
                           </div>
                         </td>
                         <td className="px-3 py-2 text-center">
@@ -654,7 +654,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                             <div className="h-1.5 rounded-full" style={{ width: 60, background: "#F1F5F9", overflow: "hidden" }}>
                               <div className="h-full rounded-full transition-all" style={{
                                 width: `${previewOcc}%`,
-                                background: previewOcc >= 85 ? "#10B981" : previewOcc >= 60 ? "#7C3AED" : previewOcc >= 40 ? "#F59E0B" : "#EF4444",
+                                background: previewOcc >= 85 ? "#10B981" : previewOcc >= 60 ? "#35BD78" : previewOcc >= 40 ? "#F59E0B" : "#EF4444",
                               }} />
                             </div>
                             <span className="text-xs font-mono font-semibold" style={{ color: multColor, minWidth: 36 }}>
@@ -708,16 +708,16 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                   <div key={rt.id} className="px-6 py-5">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#7C3AED" }} />
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#35BD78" }} />
                         <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{rt.name}</span>
-                        <span className="text-xs font-mono px-1.5 py-0.5 rounded" style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                        <span className="text-xs font-mono px-1.5 py-0.5 rounded" style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
                           {rt.count} szoba
                         </span>
-                        {isSaving && <Loader2 size={11} className="animate-spin" style={{ color: "#7C3AED" }} />}
+                        {isSaving && <Loader2 size={11} className="animate-spin" style={{ color: "#35BD78" }} />}
                       </div>
                       <div className="flex items-center gap-3 text-xs font-semibold">
                         <span style={{ color: "#0EA5E9" }}>{singlePct}% esély 1 felnőtt</span>
-                        <span style={{ color: "#8B5CF6" }}>{doublePct}% esély 2 felnőtt</span>
+                        <span style={{ color: "#35BD78" }}>{doublePct}% esély 2 felnőtt</span>
                       </div>
                     </div>
 
@@ -733,7 +733,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                         <div className="absolute inset-y-0 flex items-center w-full" style={{ top: "calc(50% - 3px)", transform: "none", height: 6 }}>
                           {/* 1→csúszka: kék (egyes) */}
                           <div className="h-full rounded-l-full flex-shrink-0 transition-all"
-                            style={{ width: `${sliderPct}%`, background: "#8B5CF6", minWidth: sliderPct === 0 ? 0 : 4 }} />
+                            style={{ width: `${sliderPct}%`, background: "#35BD78", minWidth: sliderPct === 0 ? 0 : 4 }} />
                           {/* csúszka→2: lila (páros) */}
                           <div className="h-full rounded-r-full flex-1 transition-all"
                             style={{ background: "#E2E8F0" }} />
@@ -756,16 +756,16 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                             top: "50%", transform: "translateY(-50%)",
                             left: `calc(${sliderPct}% - ${sliderPct / 100 * 32}px)`,
                             background: "white",
-                            border: "2px solid #7C3AED",
-                            color: "#7C3AED",
-                            boxShadow: "0 2px 8px rgba(124,58,237,0.25)",
+                            border: "2px solid #35BD78",
+                            color: "#35BD78",
+                            boxShadow: "0 2px 8px rgba(53,189,120,0.25)",
                           }}>
                           {v.toFixed(1)}
                         </div>
                       </div>
 
                       <span className="text-xs font-semibold w-16 flex-shrink-0"
-                        style={{ color: doublePct >= 70 ? "#8B5CF6" : "#94A3B8" }}>
+                        style={{ color: doublePct >= 70 ? "#35BD78" : "#94A3B8" }}>
                         2 felnőtt
                       </span>
                     </div>
@@ -815,7 +815,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                     RO: { bar: "#94A3B8", text: "#64748B", light: "#F1F5F9" },
                     BB: { bar: "#3B82F6", text: "#1D4ED8", light: "#DBEAFE" },
                     HB: { bar: "#10B981", text: "#065F46", light: "#D1FAE5" },
-                    FB: { bar: "#8B5CF6", text: "#5B21B6", light: "#EDE9FE" },
+                    FB: { bar: "#35BD78", text: "#03915A", light: "rgba(53,189,120,0.12)" },
                     AI: { bar: "#F59E0B", text: "#92400E", light: "#FEF3C7" },
                   };
 
@@ -1010,7 +1010,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
             <div className="flex gap-2">
               <button type="submit" disabled={seasonSaving}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ background: "#7C3AED", color: "white" }}>
+                style={{ background: "#35BD78", color: "white" }}>
                 {seasonSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 {seasonSaving ? "Mentés..." : "Mentés"}
               </button>
@@ -1040,7 +1040,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                     <div className="flex gap-2">
                       <button onClick={() => handleEditSeason(s.id)} disabled={editSaving}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
-                        style={{ background: "#7C3AED", color: "white" }}>
+                        style={{ background: "#35BD78", color: "white" }}>
                         {editSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                         {editSaving ? "Mentés..." : "Mentés"}
                       </button>
@@ -1057,7 +1057,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                       <div className="flex items-center gap-3 flex-wrap mb-2">
                         <span className="font-semibold text-sm" style={{ color: "#0F172A" }}>{s.name}</span>
                         <span className="text-xs px-2.5 py-0.5 rounded-full font-medium"
-                          style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                          style={{ background: "rgba(53,189,120,0.12)", color: "#35BD78" }}>
                           {formatSeasonRange(s)}
                         </span>
                       </div>
@@ -1078,7 +1078,7 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
                       </div>
                       {s.note && (
                         <div className="flex items-start gap-1.5">
-                          <MessageSquare size={12} style={{ color: "#7C3AED", marginTop: 2, flexShrink: 0 }} />
+                          <MessageSquare size={12} style={{ color: "#35BD78", marginTop: 2, flexShrink: 0 }} />
                           <p className="text-xs leading-relaxed" style={{ color: "#64748B" }}>{s.note}</p>
                         </div>
                       )}
@@ -1109,25 +1109,25 @@ export default function ScenarioWeightingPage({ params }: { params: Promise<{ sc
           padding: 5px 6px; border: 1.5px solid #E2E8F0; border-radius: 8px;
           outline: none; background: white; color: #0F172A; box-sizing: border-box;
         }
-        .mult-input:focus { border-color: #7C3AED; box-shadow: 0 0 0 2px rgba(124,58,237,0.1); }
+        .mult-input:focus { border-color: #35BD78; box-shadow: 0 0 0 2px rgba(53,189,120,0.1); }
         .sf-input {
           width: 100%; padding: 8px 10px; border: 1.5px solid #E2E8F0; border-radius: 10px;
           font-size: 13px; font-family: inherit; color: #0F172A; background: white;
           outline: none; box-sizing: border-box;
         }
-        .sf-input:focus { border-color: #7C3AED; box-shadow: 0 0 0 2px rgba(124,58,237,0.1); }
+        .sf-input:focus { border-color: #35BD78; box-shadow: 0 0 0 2px rgba(53,189,120,0.1); }
         .sf-textarea {
           width: 100%; padding: 8px 10px; border: 1.5px solid #E2E8F0; border-radius: 10px;
           font-size: 13px; font-family: inherit; color: #0F172A; background: white;
           outline: none; box-sizing: border-box; resize: none; line-height: 1.5;
         }
-        .sf-textarea:focus { border-color: #7C3AED; box-shadow: 0 0 0 2px rgba(124,58,237,0.1); }
+        .sf-textarea:focus { border-color: #35BD78; box-shadow: 0 0 0 2px rgba(53,189,120,0.1); }
         .note-textarea {
           width: 100%; padding: 8px 10px; border: 1.5px solid #DDD6FE; border-radius: 10px;
           font-size: 12px; font-family: inherit; color: #334155; background: #FAF9FF;
           outline: none; box-sizing: border-box; resize: none; line-height: 1.5;
         }
-        .note-textarea:focus { border-color: #7C3AED; box-shadow: 0 0 0 2px rgba(124,58,237,0.1); background: white; }
+        .note-textarea:focus { border-color: #35BD78; box-shadow: 0 0 0 2px rgba(53,189,120,0.1); background: white; }
         .wlabel { display: block; font-size: 12px; font-weight: 500; color: #64748B; margin-bottom: 4px; }
       `}</style>
     </div>
@@ -1179,7 +1179,7 @@ function DayGroupTable({
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{group.label}</span>
-                        {isSaving && <Loader2 size={11} className="animate-spin" style={{ color: "#7C3AED" }} />}
+                        {isSaving && <Loader2 size={11} className="animate-spin" style={{ color: "#35BD78" }} />}
                       </div>
                     </td>
                     {columns.map(c => (
@@ -1197,7 +1197,7 @@ function DayGroupTable({
                           <button type="button" onClick={() => onToggleNote(group.key)}
                             title={isNoteOpen ? "Megjegyzés bezárása" : "AI megjegyzés"}
                             className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium"
-                            style={{ background: isNoteOpen || hasNote ? "#EDE9FE" : "#F1F5F9", color: isNoteOpen || hasNote ? "#7C3AED" : "#94A3B8" }}>
+                            style={{ background: isNoteOpen || hasNote ? "rgba(53,189,120,0.12)" : "#F1F5F9", color: isNoteOpen || hasNote ? "#35BD78" : "#94A3B8" }}>
                             <MessageSquare size={11} />
                             {isNoteOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                           </button>
@@ -1218,7 +1218,7 @@ function DayGroupTable({
                           onBlur={() => onSave(group.key)}
                           placeholder={`Pl.: "Péntekenként konferencia-vendégek, magasabb F&B forgalom."`}
                           className="note-textarea" />
-                        <p className="text-xs mt-1" style={{ color: "#C4B5FD" }}>Mentéskor tárolódik</p>
+                        <p className="text-xs mt-1" style={{ color: "rgba(53,189,120,0.4)" }}>Mentéskor tárolódik</p>
                       </td>
                     </tr>
                   )}
@@ -1282,8 +1282,8 @@ function SeasonFormFields({ f, setF }: { f: SeasonForm; setF: (v: SeasonForm) =>
       </div>
       <div className="rounded-xl p-3 space-y-2" style={{ background: "#FAF9FF", border: "1.5px solid #DDD6FE" }}>
         <div className="flex items-center gap-1.5">
-          <MessageSquare size={13} style={{ color: "#7C3AED" }} />
-          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#7C3AED" }}>AI megjegyzés ehhez az időszakhoz</p>
+          <MessageSquare size={13} style={{ color: "#35BD78" }} />
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#35BD78" }}>AI megjegyzés ehhez az időszakhoz</p>
         </div>
         <textarea rows={2} value={f.note} onChange={set("note")}
           placeholder={`Pl.: "Helyi fesztivál miatt korai foglalás jellemző, éttermi forgalom megduplázódik."`}

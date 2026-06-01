@@ -63,10 +63,10 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors max-w-[180px] sm:max-w-none"
         style={{ color: "#94A3B8", background: "#1E293B" }}
       >
-        <Building2 size={14} style={{ color: "#7C3AED", flexShrink: 0 }} />
+        <Building2 size={14} style={{ color: "#35BD78", flexShrink: 0 }} />
         <span className="truncate" style={{ color: "#F8FAFC" }}>{currentHotelName}</span>
         {switching
-          ? <Loader2 size={13} className="animate-spin" style={{ color: "#7C3AED" }} />
+          ? <Loader2 size={13} className="animate-spin" style={{ color: "#35BD78" }} />
           : <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.15s" }} />
         }
       </button>
@@ -92,7 +92,7 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
           <div className="py-1.5 max-h-72 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-6">
-                <Loader2 size={16} className="animate-spin" style={{ color: "#7C3AED" }} />
+                <Loader2 size={16} className="animate-spin" style={{ color: "#35BD78" }} />
               </div>
             ) : hotels.length === 0 ? (
               <div className="px-4 py-4 text-xs text-center" style={{ color: "#64748B" }}>
@@ -113,7 +113,7 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
                 >
                   {/* Icon */}
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: active ? "#7C3AED" : "#334155" }}>
+                    style={{ background: active ? "#35BD78" : "#334155" }}>
                     <Building2 size={14} style={{ color: active ? "white" : "#94A3B8" }} />
                   </div>
 
@@ -129,7 +129,7 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
                   </div>
 
                   {/* Active check */}
-                  {active && <Check size={14} style={{ color: "#7C3AED", flexShrink: 0 }} />}
+                  {active && <Check size={14} style={{ color: "#35BD78", flexShrink: 0 }} />}
                 </button>
               );
             })}

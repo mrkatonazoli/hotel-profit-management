@@ -47,7 +47,7 @@ export default function SelectHotelPage() {
     <div className="min-h-screen flex flex-col" style={{ background: "#0F172A" }}>
 
       {/* Top gradient bar */}
-      <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #7C3AED, #3B82F6, #10B981)" }} />
+      <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #35BD78, #3B82F6, #10B981)" }} />
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
@@ -55,7 +55,7 @@ export default function SelectHotelPage() {
         {/* Logo / brand */}
         <div className="mb-12 text-center">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-            style={{ background: "linear-gradient(135deg, #7C3AED, #5B21B6)", boxShadow: "0 8px 32px rgba(124,58,237,0.4)" }}>
+            style={{ background: "linear-gradient(135deg, #35BD78, #03915A)", boxShadow: "0 8px 32px rgba(53,189,120,0.4)" }}>
             <BarChart3 size={28} color="white" />
           </div>
           <h1 className="text-3xl font-bold mb-2" style={{ color: "#F8FAFC" }}>
@@ -93,13 +93,13 @@ export default function SelectHotelPage() {
                     border: "1px solid #334155",
                     opacity: isDisabled ? 0.5 : 1,
                     transform: isSelecting ? "scale(0.98)" : undefined,
-                    boxShadow: isSelecting ? "0 0 0 2px #7C3AED" : undefined,
+                    boxShadow: isSelecting ? "0 0 0 2px #35BD78" : undefined,
                   }}
                 >
                   {/* Top color stripe per hotel */}
                   <div className="h-1 w-full" style={{
                     background: [
-                      "linear-gradient(90deg, #7C3AED, #5B21B6)",
+                      "linear-gradient(90deg, #35BD78, #03915A)",
                       "linear-gradient(90deg, #3B82F6, #1D4ED8)",
                       "linear-gradient(90deg, #10B981, #059669)",
                       "linear-gradient(90deg, #F59E0B, #D97706)",
@@ -113,13 +113,13 @@ export default function SelectHotelPage() {
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ background: "#0F172A" }}>
                         {isSelecting
-                          ? <Loader2 size={20} className="animate-spin" style={{ color: "#7C3AED" }} />
-                          : <Building2 size={20} style={{ color: "#7C3AED" }} />
+                          ? <Loader2 size={20} className="animate-spin" style={{ color: "#35BD78" }} />
+                          : <Building2 size={20} style={{ color: "#35BD78" }} />
                         }
                       </div>
                       {hotel.role === "MANAGER" && (
                         <div className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold"
-                          style={{ background: "#2D1F6E", color: "#A78BFA" }}>
+                          style={{ background: "#2D1F6E", color: "#90DBAC" }}>
                           <Star size={10} />
                           Kezelő
                         </div>
@@ -160,7 +160,7 @@ export default function SelectHotelPage() {
 
                     {/* CTA */}
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold" style={{ color: isSelecting ? "#7C3AED" : "#64748B" }}>
+                      <span className="text-sm font-semibold" style={{ color: isSelecting ? "#35BD78" : "#64748B" }}>
                         {isSelecting ? "Belépés…" : "Megnyitás"}
                       </span>
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
@@ -168,7 +168,7 @@ export default function SelectHotelPage() {
                           background: "#334155",
                           transform: "translateX(0)",
                         }}
-                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#7C3AED"}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#35BD78"}
                         onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "#334155"}
                       >
                         <ChevronRight size={16} style={{ color: "#94A3B8" }} />

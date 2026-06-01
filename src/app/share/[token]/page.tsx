@@ -219,7 +219,7 @@ function FullScreenMessage({ icon, title, desc }: { icon: string; title: string;
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 48 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+          background: "linear-gradient(135deg,#35BD78,#03915A)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 18,
         }}>📈</div>
@@ -319,7 +319,7 @@ export default function SharePage() {
         <div style={{
           width: 44, height: 44,
           border: "3px solid #E2E8F0",
-          borderTopColor: "#7C3AED",
+          borderTopColor: "#35BD78",
           borderRadius: "50%",
           animation: "spin 0.8s linear infinite",
         }} />
@@ -357,7 +357,7 @@ export default function SharePage() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+          background: "linear-gradient(135deg,#35BD78,#03915A)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 18,
         }}>📈</div>
@@ -374,10 +374,10 @@ export default function SharePage() {
         {/* Lock icon */}
         <div style={{
           width: 56, height: 56, borderRadius: 16,
-          background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+          background: "linear-gradient(135deg,#35BD78,#03915A)",
           display: "flex", alignItems: "center", justifyContent: "center",
           margin: "0 auto 20px",
-          boxShadow: "0 8px 24px rgba(124,58,237,0.3)",
+          boxShadow: "0 8px 24px rgba(53,189,120,0.3)",
         }}>
           <span style={{ fontSize: 26 }}>🔐</span>
         </div>
@@ -433,12 +433,12 @@ export default function SharePage() {
             style={{
               padding: "13px 24px", borderRadius: 12, border: "none",
               background: passwordChecking || !passwordInput.trim()
-                ? "#E2E8F0" : "linear-gradient(135deg,#7C3AED,#5B21B6)",
+                ? "#E2E8F0" : "linear-gradient(135deg,#35BD78,#03915A)",
               color: passwordChecking || !passwordInput.trim() ? "#94A3B8" : "white",
               fontSize: 14, fontWeight: 700, cursor: passwordChecking || !passwordInput.trim() ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               transition: "all 0.2s",
-              boxShadow: passwordChecking || !passwordInput.trim() ? "none" : "0 4px 16px rgba(124,58,237,0.3)",
+              boxShadow: passwordChecking || !passwordInput.trim() ? "none" : "0 4px 16px rgba(53,189,120,0.3)",
             }}
           >
             {passwordChecking
@@ -579,9 +579,9 @@ export default function SharePage() {
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12,
-              background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+              background: "linear-gradient(135deg,#35BD78,#03915A)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0, fontSize: 18, boxShadow: "0 4px 12px rgba(124,58,237,0.3)",
+              flexShrink: 0, fontSize: 18, boxShadow: "0 4px 12px rgba(53,189,120,0.3)",
             }}>🏨</div>
             <div>
               <h1 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0, lineHeight: 1.2, letterSpacing: "-0.01em" }}>
@@ -609,7 +609,7 @@ export default function SharePage() {
             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
               <div style={{
                 width: 28, height: 28, borderRadius: 8,
-                background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+                background: "linear-gradient(135deg,#35BD78,#03915A)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 14,
               }}>📈</div>
@@ -624,12 +624,12 @@ export default function SharePage() {
 
         {/* ── Hero strip ── */}
         <div style={{
-          background: "linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)",
+          background: "linear-gradient(135deg, #35BD78 0%, #4F46E5 100%)",
           borderRadius: 20,
           padding: "32px 40px",
           marginBottom: 28,
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          boxShadow: "0 8px 32px rgba(124,58,237,0.25)",
+          boxShadow: "0 8px 32px rgba(53,189,120,0.25)",
           position: "relative",
           overflow: "hidden",
         }}>
@@ -686,7 +686,7 @@ export default function SharePage() {
               background: "#FAFAFA",
             }}>
               <span style={{ fontSize: 16 }}>✨</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#7C3AED", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#35BD78", textTransform: "uppercase", letterSpacing: "0.07em" }}>
                 AI összefoglaló
               </span>
             </div>
@@ -702,9 +702,9 @@ export default function SharePage() {
         <div style={{
           background: "white",
           borderRadius: 24,
-          border: isSimActive ? "2px solid #7C3AED" : "1px solid #E2E8F0",
+          border: isSimActive ? "2px solid #35BD78" : "1px solid #E2E8F0",
           boxShadow: isSimActive
-            ? "0 12px 48px rgba(124,58,237,0.18)"
+            ? "0 12px 48px rgba(53,189,120,0.18)"
             : "0 2px 12px rgba(15,23,42,0.07)",
           marginBottom: 24,
           overflow: "hidden",
@@ -714,7 +714,7 @@ export default function SharePage() {
           {/* ── Header ── */}
           <div style={{
             background: isSimActive
-              ? "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)"
+              ? "linear-gradient(135deg, #FBFBFC 0%, rgba(53,189,120,0.12) 100%)"
               : "linear-gradient(135deg, #FAFAFA 0%, #F1F5F9 100%)",
             borderBottom: `1px solid ${isSimActive ? "#DDD6FE" : "#E2E8F0"}`,
             padding: "20px 28px",
@@ -725,18 +725,18 @@ export default function SharePage() {
               <div style={{
                 width: 48, height: 48, borderRadius: 16,
                 background: isSimActive
-                  ? "linear-gradient(135deg, #7C3AED, #5B21B6)"
+                  ? "linear-gradient(135deg, #35BD78, #03915A)"
                   : "linear-gradient(135deg, #CBD5E1, #94A3B8)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 22, flexShrink: 0,
-                boxShadow: isSimActive ? "0 4px 16px rgba(124,58,237,0.35)" : "none",
+                boxShadow: isSimActive ? "0 4px 16px rgba(53,189,120,0.35)" : "none",
                 transition: "all 0.3s",
               }}>🎛️</div>
               <div>
                 <h2 style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", margin: 0, letterSpacing: "-0.01em" }}>
                   Foglaltsági forgatókönyv-szimulátor
                 </h2>
-                <p style={{ fontSize: 12, color: isSimActive ? "#7C3AED" : "#94A3B8", margin: "3px 0 0", fontWeight: 600, transition: "color 0.3s" }}>
+                <p style={{ fontSize: 12, color: isSimActive ? "#35BD78" : "#94A3B8", margin: "3px 0 0", fontWeight: 600, transition: "color 0.3s" }}>
                   {isSimActive
                     ? `${simOffset > 0 ? "+" : ""}${simOffset} pp módosítás aktív — az összes szám valós időben frissül`
                     : "Állítsd a csúszkát és nézd meg, hogyan változna az éves eredmény"}
@@ -748,11 +748,11 @@ export default function SharePage() {
                 onClick={() => setSimOffset(0)}
                 style={{
                   fontSize: 12, fontWeight: 700,
-                  color: "#7C3AED", background: "white",
-                  border: "1.5px solid #C4B5FD",
+                  color: "#35BD78", background: "white",
+                  border: "1.5px solid rgba(53,189,120,0.4)",
                   borderRadius: 10, padding: "8px 18px",
                   cursor: "pointer",
-                  boxShadow: "0 2px 8px rgba(124,58,237,0.1)",
+                  boxShadow: "0 2px 8px rgba(53,189,120,0.1)",
                 }}
               >
                 ↺ Visszaállítás
@@ -771,7 +771,7 @@ export default function SharePage() {
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase" }}>Pesszimista</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: isSimActive ? "#7C3AED" : "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase", transition: "color 0.3s" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: isSimActive ? "#35BD78" : "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase", transition: "color 0.3s" }}>
                     {isSimActive ? `${simOffset > 0 ? "+" : ""}${simOffset} pp a tervhez képest` : "◆ Alapterv"}
                   </span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase" }}>Optimista</span>
@@ -782,14 +782,14 @@ export default function SharePage() {
                     min={-30} max={30} step={1}
                     value={simOffset}
                     onChange={e => setSimOffset(Number(e.target.value))}
-                    style={{ width: "100%", accentColor: "#7C3AED", cursor: "pointer", height: 6 }}
+                    style={{ width: "100%", accentColor: "#35BD78", cursor: "pointer", height: 6 }}
                   />
                   {/* center tick */}
                   <div style={{
                     position: "absolute", top: "50%", left: "50%",
                     transform: "translate(-50%, -50%)",
                     width: 2, height: 16,
-                    background: isSimActive ? "#C4B5FD" : "#E2E8F0",
+                    background: isSimActive ? "rgba(53,189,120,0.4)" : "#E2E8F0",
                     borderRadius: 1, pointerEvents: "none",
                     transition: "background 0.3s",
                   }} />
@@ -804,13 +804,13 @@ export default function SharePage() {
               <div style={{
                 minWidth: 90, textAlign: "center",
                 background: isSimActive
-                  ? "linear-gradient(135deg, #7C3AED, #5B21B6)"
+                  ? "linear-gradient(135deg, #35BD78, #03915A)"
                   : "#F1F5F9",
                 borderRadius: 16, padding: "14px 18px",
                 fontSize: 26, fontWeight: 900,
                 color: isSimActive ? "white" : "#CBD5E1",
                 letterSpacing: "-0.03em",
-                boxShadow: isSimActive ? "0 4px 16px rgba(124,58,237,0.3)" : "none",
+                boxShadow: isSimActive ? "0 4px 16px rgba(53,189,120,0.3)" : "none",
                 transition: "all 0.25s",
                 lineHeight: 1,
                 flexShrink: 0,
@@ -947,13 +947,13 @@ export default function SharePage() {
               return (
                 <div style={{
                   padding: "24px 28px",
-                  borderTop: isSimActive ? "3px solid #7C3AED" : "3px solid #E2E8F0",
+                  borderTop: isSimActive ? "3px solid #35BD78" : "3px solid #E2E8F0",
                   transition: "border-color 0.3s",
                 }}>
                   <p style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 5 }}>
                     <span>🏨</span> Átl. kihasználtság
                   </p>
-                  <p style={{ fontSize: 26, fontWeight: 800, color: "#7C3AED", margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                  <p style={{ fontSize: 26, fontWeight: 800, color: "#35BD78", margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
                     {Math.round(current)}%
                   </p>
                   {isSimActive && delta !== 0 ? (
@@ -961,8 +961,8 @@ export default function SharePage() {
                       <span style={{
                         display: "inline-block", fontSize: 12, fontWeight: 700,
                         padding: "2px 8px", borderRadius: 6,
-                        background: delta > 0 ? "#F5F3FF" : "#FEF2F2",
-                        color: delta > 0 ? "#7C3AED" : "#DC2626",
+                        background: delta > 0 ? "#FBFBFC" : "#FEF2F2",
+                        color: delta > 0 ? "#35BD78" : "#DC2626",
                         width: "fit-content",
                       }}>
                         {delta > 0 ? "+" : ""}{Math.round(delta)} pp
@@ -1009,13 +1009,13 @@ export default function SharePage() {
               return (
                 <div style={{
                   padding: "24px 28px",
-                  borderTop: isSimActive ? "3px solid #8B5CF6" : "3px solid #E2E8F0",
+                  borderTop: isSimActive ? "3px solid #35BD78" : "3px solid #E2E8F0",
                   transition: "border-color 0.3s",
                 }}>
                   <p style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 5 }}>
                     <span>🏷️</span> Szobaárbev./szoba/éj
                   </p>
-                  <p style={{ fontSize: 26, fontWeight: 800, color: "#6D28D9", margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                  <p style={{ fontSize: 26, fontWeight: 800, color: "#03915A", margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
                     {avgRevPerRoomNight > 0 ? `${fmt(Math.round(avgRevPerRoomNight))} Ft` : "—"}
                   </p>
                   <p style={{ fontSize: 11, color: "#94A3B8", margin: 0 }}>
@@ -1170,12 +1170,12 @@ export default function SharePage() {
                     </div>
                   )}
                   {extraPct > 0 && (
-                    <div style={{ background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 12, padding: "14px 16px" }}>
+                    <div style={{ background: "#FBFBFC", border: "1px solid #DDD6FE", borderRadius: 12, padding: "14px 16px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                         <span style={{ fontSize: 20 }}>💰</span>
                         <div>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: "#5B21B6", margin: 0 }}>Egyéb bevételek</p>
-                          <p style={{ fontSize: 11, color: "#7C3AED", margin: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#03915A", margin: 0 }}>Egyéb bevételek</p>
+                          <p style={{ fontSize: 11, color: "#35BD78", margin: 0 }}>
                             {[
                               settings.fbOtherEnabled && `Egyéb F&B ${settings.fbOtherPct}%`,
                               settings.spaEnabled && `Spa ${settings.spaPct}%`,
@@ -1184,18 +1184,18 @@ export default function SharePage() {
                           </p>
                         </div>
                         <div style={{
-                          marginLeft: "auto", background: "#EDE9FE", borderRadius: 8, padding: "4px 10px",
-                          fontSize: 18, fontWeight: 800, color: "#7C3AED",
+                          marginLeft: "auto", background: "rgba(53,189,120,0.12)", borderRadius: 8, padding: "4px 10px",
+                          fontSize: 18, fontWeight: 800, color: "#35BD78",
                         }}>
                           {extraPct.toFixed(1)}%
                         </div>
                       </div>
                       {avgAdr > 0 && (
                         <>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: "#7C3AED", margin: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#35BD78", margin: 0 }}>
                             +{fmt(Math.round(extraPerRoom))} Ft/szoba/éj
                           </p>
-                          <p style={{ fontSize: 10, color: "#7C3AED", margin: "2px 0 0" }}>
+                          <p style={{ fontSize: 10, color: "#35BD78", margin: "2px 0 0" }}>
                             átl. ADR {fmt(Math.round(avgAdr))} Ft × {extraPct.toFixed(1)}%
                           </p>
                         </>
@@ -1207,31 +1207,31 @@ export default function SharePage() {
                 {/* Formula */}
                 {boardTotal > 0 && (
                   <div style={{
-                    background: "#F5F3FF", border: "1px solid #DDD6FE",
+                    background: "#FBFBFC", border: "1px solid #DDD6FE",
                     borderRadius: 12, padding: "14px 18px",
                     display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
                   }}>
                     <div>
-                      <p style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: "#35BD78", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                         Képlet — súlyozott átlag
                       </p>
-                      <p style={{ fontSize: 12, color: "#5B21B6", margin: 0, fontFamily: "monospace", lineHeight: 1.6 }}>
+                      <p style={{ fontSize: 12, color: "#03915A", margin: 0, fontFamily: "monospace", lineHeight: 1.6 }}>
                         ({Math.round(bPct)}% × {fmt(settings.breakfastPrice)}
                         {hPct > 0 && ` + ${Math.round(hPct)}% × ${fmt(settings.halfboardPrice)}`})
                         {" "}× {settings.avgPaxPerRoom} fő = <strong>{fmt(Math.round(boardTotal))} Ft</strong>
                       </p>
-                      <p style={{ fontSize: 10, color: "#A78BFA", margin: "3px 0 0" }}>
+                      <p style={{ fontSize: 10, color: "#90DBAC", margin: "3px 0 0" }}>
                         Ez adódik hozzá az ADR-hez minden szobaéjszakára
                       </p>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <p style={{ fontSize: 10, color: "#7C3AED", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase" }}>
+                      <p style={{ fontSize: 10, color: "#35BD78", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase" }}>
                         Összes F&amp;B felár
                       </p>
-                      <p style={{ fontSize: 26, fontWeight: 800, color: "#7C3AED", margin: 0, letterSpacing: "-0.02em" }}>
+                      <p style={{ fontSize: 26, fontWeight: 800, color: "#35BD78", margin: 0, letterSpacing: "-0.02em" }}>
                         +{fmt(Math.round(boardTotal))} Ft
                       </p>
-                      <p style={{ fontSize: 10, color: "#A78BFA", margin: 0 }}>/szoba/éj átlag</p>
+                      <p style={{ fontSize: 10, color: "#90DBAC", margin: 0 }}>/szoba/éj átlag</p>
                     </div>
                   </div>
                 )}
@@ -1254,8 +1254,8 @@ export default function SharePage() {
               <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Bevétel &amp; Profit</h3>
               {isSimActive && (
                 <span style={{
-                  fontSize: 10, fontWeight: 700, color: "#7C3AED",
-                  background: "#EDE9FE", padding: "3px 9px", borderRadius: 6,
+                  fontSize: 10, fontWeight: 700, color: "#35BD78",
+                  background: "rgba(53,189,120,0.12)", padding: "3px 9px", borderRadius: 6,
                   letterSpacing: "0.04em",
                 }}>SZIMULÁCIÓ</span>
               )}
@@ -1302,8 +1302,8 @@ export default function SharePage() {
               <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Kihasználtság &amp; Fedezeti pont</h3>
               {isSimActive && (
                 <span style={{
-                  fontSize: 10, fontWeight: 700, color: "#7C3AED",
-                  background: "#EDE9FE", padding: "3px 9px", borderRadius: 6,
+                  fontSize: 10, fontWeight: 700, color: "#35BD78",
+                  background: "rgba(53,189,120,0.12)", padding: "3px 9px", borderRadius: 6,
                   letterSpacing: "0.04em",
                 }}>SZIMULÁCIÓ</span>
               )}
@@ -1313,10 +1313,10 @@ export default function SharePage() {
                 <CartesianGrid strokeDasharray="2 4" stroke="#F1F5F9" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94A3B8", fontWeight: 600 }} axisLine={false} tickLine={false} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "#CBD5E1" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={38} />
-                <ReTooltip content={<TooltipOcc />} cursor={{ fill: "rgba(124,58,237,0.04)" }} />
+                <ReTooltip content={<TooltipOcc />} cursor={{ fill: "rgba(53,189,120,0.04)" }} />
                 <Bar dataKey="occ" radius={[5, 5, 0, 0]} opacity={0.85}>
                   {chartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.hasData ? "#7C3AED" : "#F1F5F9"} />
+                    <Cell key={i} fill={entry.hasData ? "#35BD78" : "#F1F5F9"} />
                   ))}
                 </Bar>
                 {annualBreakeven !== null && (
@@ -1336,7 +1336,7 @@ export default function SharePage() {
             </ResponsiveContainer>
             <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 3, background: "#7C3AED" }} />
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: "#35BD78" }} />
                 <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Kihasználtság %</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1363,8 +1363,8 @@ export default function SharePage() {
             <h2 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Havi bontás</h2>
             {isSimActive && (
               <span style={{
-                fontSize: 10, fontWeight: 700, color: "#7C3AED",
-                background: "#EDE9FE", padding: "4px 10px", borderRadius: 6,
+                fontSize: 10, fontWeight: 700, color: "#35BD78",
+                background: "rgba(53,189,120,0.12)", padding: "4px 10px", borderRadius: 6,
                 letterSpacing: "0.04em",
               }}>SZIMULÁLT ADATOK</span>
             )}
@@ -1455,7 +1455,7 @@ export default function SharePage() {
                   <td style={{ padding: "12px 24px", fontWeight: 800, fontSize: 12, color: "#0F172A", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     Éves összesen
                   </td>
-                  <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#7C3AED" }}>
+                  <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#35BD78" }}>
                     {Math.round(isSimActive ? simAvgOcc : avgOcc)}% avg
                   </td>
                   <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600, color: "#0F172A", fontVariantNumeric: "tabular-nums" }}>
@@ -1581,8 +1581,8 @@ export default function SharePage() {
                             <span style={{
                               fontSize: 11, fontWeight: 700,
                               padding: "2px 10px", borderRadius: 8,
-                              background: usesRoomRevenue ? "#EDE9FE" : usesAdr ? "#DBEAFE" : "#F1F5F9",
-                              color: usesRoomRevenue ? "#7C3AED" : usesAdr ? "#3B82F6" : "#94A3B8",
+                              background: usesRoomRevenue ? "rgba(53,189,120,0.12)" : usesAdr ? "#DBEAFE" : "#F1F5F9",
+                              color: usesRoomRevenue ? "#35BD78" : usesAdr ? "#3B82F6" : "#94A3B8",
                             }}>
                               {usesRoomRevenue ? "Szobaár" : usesAdr ? "ADR" : "—"}
                             </span>
@@ -1602,7 +1602,7 @@ export default function SharePage() {
               display: "flex", gap: 20,
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 11, padding: "1px 8px", borderRadius: 6, background: "#EDE9FE", color: "#7C3AED", fontWeight: 700 }}>Szobaár</span>
+                <span style={{ fontSize: 11, padding: "1px 8px", borderRadius: 6, background: "rgba(53,189,120,0.12)", color: "#35BD78", fontWeight: 700 }}>Szobaár</span>
                 <span style={{ fontSize: 11, color: "#94A3B8" }}>— fix bevétel/szoba/éj</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1667,10 +1667,10 @@ export default function SharePage() {
                         <td style={{ padding: "10px 24px" }}>
                           <div style={{
                             display: "inline-flex", alignItems: "center", gap: 6,
-                            background: "#F5F3FF", borderRadius: 8,
+                            background: "#FBFBFC", borderRadius: 8,
                             padding: "4px 10px",
                           }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: "#7C3AED", fontVariantNumeric: "tabular-nums" }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "#35BD78", fontVariantNumeric: "tabular-nums" }}>
                               {band.fromOccPct}% – {band.toOccPct}%
                             </span>
                           </div>
@@ -1725,7 +1725,7 @@ export default function SharePage() {
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <div style={{
               width: 22, height: 22, borderRadius: 6,
-              background: "linear-gradient(135deg,#7C3AED,#5B21B6)",
+              background: "linear-gradient(135deg,#35BD78,#03915A)",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 11,
             }}>📈</div>

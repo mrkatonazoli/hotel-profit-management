@@ -38,7 +38,7 @@ export async function sendInviteEmail(opts: {
 
         <!-- Header -->
         <tr>
-          <td style="background:linear-gradient(135deg,#7C3AED,#5B21B6);padding:32px 40px;text-align:center;">
+          <td style="background:linear-gradient(135deg,#35BD78,#03915A);padding:32px 40px;text-align:center;">
             <div style="width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;">
               <span style="font-size:24px;">📈</span>
             </div>
@@ -60,14 +60,14 @@ export async function sendInviteEmail(opts: {
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="width:44px;vertical-align:top;">
-                    <div style="width:44px;height:44px;background:#EDE9FE;border-radius:12px;text-align:center;line-height:44px;font-size:20px;">🏨</div>
+                    <div style="width:44px;height:44px;background:rgba(53,189,120,0.12);border-radius:12px;text-align:center;line-height:44px;font-size:20px;">🏨</div>
                   </td>
                   <td style="padding-left:14px;vertical-align:top;">
                     <p style="margin:0;font-size:16px;font-weight:700;color:#0F172A;">${hotelName}</p>
                     <p style="margin:2px 0 0;font-size:13px;color:#64748B;">${hotelCity}</p>
                   </td>
                   <td style="text-align:right;vertical-align:top;">
-                    <span style="display:inline-block;background:#EDE9FE;color:#7C3AED;font-size:12px;font-weight:700;padding:4px 12px;border-radius:8px;">${roleLabel}</span>
+                    <span style="display:inline-block;background:rgba(53,189,120,0.12);color:#35BD78;font-size:12px;font-weight:700;padding:4px 12px;border-radius:8px;">${roleLabel}</span>
                   </td>
                 </tr>
               </table>
@@ -76,7 +76,7 @@ export async function sendInviteEmail(opts: {
             <!-- CTA button -->
             <div style="text-align:center;margin-bottom:24px;">
               <a href="${inviteUrl}"
-                style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;">
+                style="display:inline-block;background:linear-gradient(135deg,#35BD78,#03915A);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;">
                 Meghívó elfogadása →
               </a>
             </div>

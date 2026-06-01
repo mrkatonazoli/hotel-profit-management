@@ -178,7 +178,7 @@ function EditableName({ value, onSave }: { value: string; onSave: (v: string) =>
         onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setEditing(false); setVal(value); } }}
         style={{
           fontSize: 22, fontWeight: 700, color: "#0F172A",
-          border: "none", borderBottom: "2px solid #7C3AED", outline: "none",
+          border: "none", borderBottom: "2px solid #35BD78", outline: "none",
           background: "transparent", padding: "0 2px", minWidth: 200,
         }}
       />
@@ -229,7 +229,7 @@ function MonthInput({
       {label !== "" && (
         <p style={{
           fontSize: 9, margin: "0 0 2px", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.04em",
-          color: highlight ? "#7C3AED" : fromBand ? "#0EA5E9" : "#94A3B8",
+          color: highlight ? "#35BD78" : fromBand ? "#0EA5E9" : "#94A3B8",
         }}>
           {label}{unit ? ` (${unit})` : ""}
         </p>
@@ -246,21 +246,21 @@ function MonthInput({
         style={{
           width: "100%", boxSizing: "border-box",
           fontSize: 12, fontWeight: 600, color: "#0F172A",
-          border: `1px solid ${highlight ? "#A78BFA" : fromBand ? "#BAE6FD" : "#E2E8F0"}`,
+          border: `1px solid ${highlight ? "#90DBAC" : fromBand ? "#BAE6FD" : "#E2E8F0"}`,
           borderRadius: 6, padding: "4px 6px",
           outline: "none",
-          background: highlight ? "#F5F3FF" : fromBand ? "#F0F9FF" : "#FAFAFA",
+          background: highlight ? "#FBFBFC" : fromBand ? "#F0F9FF" : "#FAFAFA",
           fontVariantNumeric: "tabular-nums",
         }}
-        onMouseEnter={e => (e.currentTarget.style.borderColor = "#A78BFA")}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = highlight ? "#A78BFA" : fromBand ? "#BAE6FD" : "#E2E8F0")}
-        onFocusCapture={e => (e.currentTarget.style.borderColor = "#7C3AED")}
-        onBlurCapture={e => (e.currentTarget.style.borderColor = highlight ? "#A78BFA" : fromBand ? "#BAE6FD" : "#E2E8F0")}
+        onMouseEnter={e => (e.currentTarget.style.borderColor = "#90DBAC")}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = highlight ? "#90DBAC" : fromBand ? "#BAE6FD" : "#E2E8F0")}
+        onFocusCapture={e => (e.currentTarget.style.borderColor = "#35BD78")}
+        onBlurCapture={e => (e.currentTarget.style.borderColor = highlight ? "#90DBAC" : fromBand ? "#BAE6FD" : "#E2E8F0")}
       />
       {note && (
         <p style={{
           fontSize: 8, margin: "1px 0 0", fontWeight: 700,
-          color: fromBand ? "#0EA5E9" : "#7C3AED",
+          color: fromBand ? "#0EA5E9" : "#35BD78",
         }}>{note}</p>
       )}
     </div>
@@ -406,8 +406,8 @@ function ImportModal({
           padding: "20px 24px", borderBottom: "1px solid #E2E8F0",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Download size={16} color="#7C3AED" />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FBFBFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Download size={16} color="#35BD78" />
             </div>
             <div>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", margin: 0 }}>
@@ -430,7 +430,7 @@ function ImportModal({
         <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
           {loading ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
-              <Loader2 size={20} style={{ color: "#7C3AED" }} className="animate-spin" />
+              <Loader2 size={20} style={{ color: "#35BD78" }} className="animate-spin" />
             </div>
           ) : scenarios.length === 0 ? (
             <p style={{ textAlign: "center", color: "#94A3B8", padding: 32, fontSize: 13 }}>
@@ -448,14 +448,14 @@ function ImportModal({
                       width: "100%", textAlign: "left",
                       display: "flex", alignItems: "center", gap: 12,
                       padding: "12px 14px", borderRadius: 14, cursor: "pointer",
-                      border: `1px solid ${isSelected ? "#7C3AED" : "#E2E8F0"}`,
-                      background: isSelected ? "#F5F3FF" : "white",
+                      border: `1px solid ${isSelected ? "#35BD78" : "#E2E8F0"}`,
+                      background: isSelected ? "#FBFBFC" : "white",
                       transition: "all 0.15s",
                     }}
                   >
                     <div style={{
                       width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                      background: isSelected ? "#7C3AED" : "#F1F5F9",
+                      background: isSelected ? "#35BD78" : "#F1F5F9",
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
                       <GitBranch size={14} color={isSelected ? "white" : "#94A3B8"} />
@@ -466,7 +466,7 @@ function ImportModal({
                           {s.name}
                         </span>
                         {s.isBase && (
-                          <span style={{ fontSize: 9, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "1px 5px", borderRadius: 4, textTransform: "uppercase", flexShrink: 0 }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: "#35BD78", background: "#FBFBFC", padding: "1px 5px", borderRadius: 4, textTransform: "uppercase", flexShrink: 0 }}>
                             BASE
                           </span>
                         )}
@@ -475,7 +475,7 @@ function ImportModal({
                         {s.year} · {s.probability}% valószínűség
                       </span>
                     </div>
-                    <ChevronRight size={14} color={isSelected ? "#7C3AED" : "#CBD5E1"} style={{ flexShrink: 0 }} />
+                    <ChevronRight size={14} color={isSelected ? "#35BD78" : "#CBD5E1"} style={{ flexShrink: 0 }} />
                   </button>
                 );
               })}
@@ -516,7 +516,7 @@ function ImportModal({
                           <p style={{ fontSize: 11, fontWeight: 700, color: "#0F172A", margin: 0 }}>
                             {(m.avgAdr / 1000).toFixed(0)}e
                           </p>
-                          <p style={{ fontSize: 10, color: "#7C3AED", margin: 0 }}>
+                          <p style={{ fontSize: 10, color: "#35BD78", margin: 0 }}>
                             {m.avgOcc}%
                           </p>
                         </>
@@ -553,7 +553,7 @@ function ImportModal({
             disabled={!preview || importing}
             style={{
               padding: "9px 20px", borderRadius: 10, border: "none",
-              background: preview && !importing ? "#7C3AED" : "#E2E8F0",
+              background: preview && !importing ? "#35BD78" : "#E2E8F0",
               color: preview && !importing ? "white" : "#94A3B8",
               fontSize: 13, fontWeight: 700, cursor: preview && !importing ? "pointer" : "not-allowed",
               display: "flex", alignItems: "center", gap: 6,
@@ -1017,14 +1017,14 @@ export default function SimplePlanDetailPage() {
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200 }}>
-      <Loader2 size={24} className="animate-spin" style={{ color: "#7C3AED" }} />
+      <Loader2 size={24} className="animate-spin" style={{ color: "#35BD78" }} />
     </div>
   );
 
   if (!plan) return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 200, gap: 12 }}>
       <p style={{ color: "#94A3B8" }}>A terv nem található.</p>
-      <button onClick={() => router.push("/simple-planner")} style={{ color: "#7C3AED", background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
+      <button onClick={() => router.push("/simple-planner")} style={{ color: "#35BD78", background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
         ← Vissza
       </button>
     </div>
@@ -1063,8 +1063,8 @@ export default function SimplePlanDetailPage() {
               padding: "20px 24px", borderBottom: "1px solid #E2E8F0",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Share2 size={16} color="#7C3AED" />
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FBFBFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Share2 size={16} color="#35BD78" />
                 </div>
                 <div>
                   <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", margin: 0 }}>Ügyfél prezentáció</h2>
@@ -1083,7 +1083,7 @@ export default function SimplePlanDetailPage() {
             <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
               {shareLoading ? (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
-                  <Loader2 size={20} style={{ color: "#7C3AED" }} className="animate-spin" />
+                  <Loader2 size={20} style={{ color: "#35BD78" }} className="animate-spin" />
                 </div>
               ) : (
                 <>
@@ -1105,7 +1105,7 @@ export default function SimplePlanDetailPage() {
                         onClick={() => setShareState(prev => prev ? { ...prev, shareEnabled: !prev.shareEnabled } : prev)}
                         style={{
                           width: 48, height: 26, borderRadius: 13, border: "none", cursor: "pointer",
-                          background: shareState?.shareEnabled ? "#7C3AED" : "#E2E8F0",
+                          background: shareState?.shareEnabled ? "#35BD78" : "#E2E8F0",
                           position: "relative", transition: "background 0.2s", flexShrink: 0,
                         }}
                       >
@@ -1128,7 +1128,7 @@ export default function SimplePlanDetailPage() {
                                 type="radio"
                                 checked={shareExpiry === "forever"}
                                 onChange={() => setShareExpiry("forever")}
-                                style={{ accentColor: "#7C3AED" }}
+                                style={{ accentColor: "#35BD78" }}
                               />
                               <span style={{ fontSize: 13, color: "#0F172A" }}>Örök érvényű</span>
                             </label>
@@ -1137,7 +1137,7 @@ export default function SimplePlanDetailPage() {
                                 type="radio"
                                 checked={shareExpiry === "custom"}
                                 onChange={() => setShareExpiry("custom")}
-                                style={{ accentColor: "#7C3AED" }}
+                                style={{ accentColor: "#35BD78" }}
                               />
                               <span style={{ fontSize: 13, color: "#0F172A" }}>Időkorlátos</span>
                               {shareExpiry === "custom" && (
@@ -1176,7 +1176,7 @@ export default function SimplePlanDetailPage() {
                                 padding: "5px 10px", borderRadius: 8,
                                 border: "1px solid #E2E8F0", background: "white",
                                 cursor: "pointer", fontSize: 11, fontWeight: 600,
-                                color: copiedShareLink ? "#10B981" : "#7C3AED",
+                                color: copiedShareLink ? "#10B981" : "#35BD78",
                                 flexShrink: 0,
                               }}
                             >
@@ -1240,7 +1240,7 @@ export default function SimplePlanDetailPage() {
                             style={{
                               fontSize: 12, fontWeight: 600, cursor: "pointer",
                               padding: "5px 12px", borderRadius: 8,
-                              background: "#F5F3FF", color: "#7C3AED",
+                              background: "#FBFBFC", color: "#35BD78",
                               border: "1px solid #DDD6FE",
                             }}
                           >
@@ -1344,9 +1344,9 @@ export default function SimplePlanDetailPage() {
                       style={{
                         display: "flex", alignItems: "center", gap: 6,
                         marginTop: 8, padding: "8px 14px", borderRadius: 10,
-                        border: "1px solid #7C3AED", background: shareSummaryStreaming ? "#F5F3FF" : "white",
+                        border: "1px solid #35BD78", background: shareSummaryStreaming ? "#FBFBFC" : "white",
                         cursor: shareSummaryStreaming ? "not-allowed" : "pointer",
-                        color: "#7C3AED", fontSize: 13, fontWeight: 600,
+                        color: "#35BD78", fontSize: 13, fontWeight: 600,
                       }}
                     >
                       {shareSummaryStreaming ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
@@ -1394,7 +1394,7 @@ export default function SimplePlanDetailPage() {
                   style={{
                     display: "flex", alignItems: "center", gap: 6,
                     padding: "9px 20px", borderRadius: 10, border: "none",
-                    background: shareSaving || shareLoading ? "#E2E8F0" : "#7C3AED",
+                    background: shareSaving || shareLoading ? "#E2E8F0" : "#35BD78",
                     color: shareSaving || shareLoading ? "#94A3B8" : "white",
                     fontSize: 13, fontWeight: 700,
                     cursor: shareSaving || shareLoading ? "not-allowed" : "pointer",
@@ -1443,11 +1443,11 @@ export default function SimplePlanDetailPage() {
             style={{
               display: "flex", alignItems: "center", gap: 6,
               background: "white", border: "1px solid #E2E8F0", borderRadius: 10,
-              padding: "8px 14px", cursor: "pointer", color: "#7C3AED",
+              padding: "8px 14px", cursor: "pointer", color: "#35BD78",
               fontSize: 13, fontWeight: 600,
               transition: "all 0.15s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#7C3AED"; e.currentTarget.style.background = "#F5F3FF"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#35BD78"; e.currentTarget.style.background = "#FBFBFC"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = "white"; }}
           >
             <Share2 size={14} />
@@ -1461,11 +1461,11 @@ export default function SimplePlanDetailPage() {
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 background: "white", border: "1px solid #E2E8F0", borderRadius: 10,
-                padding: "8px 14px", cursor: "pointer", color: "#7C3AED",
+                padding: "8px 14px", cursor: "pointer", color: "#35BD78",
                 fontSize: 13, fontWeight: 600,
                 transition: "all 0.15s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#7C3AED"; e.currentTarget.style.background = "#F5F3FF"; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#35BD78"; e.currentTarget.style.background = "#FBFBFC"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.background = "white"; }}
             >
               <Download size={14} />
@@ -1531,7 +1531,7 @@ export default function SimplePlanDetailPage() {
               }}
             >
               <p style={{
-                fontSize: 11, fontWeight: 700, color: "#7C3AED", margin: "0 0 8px",
+                fontSize: 11, fontWeight: 700, color: "#35BD78", margin: "0 0 8px",
                 textAlign: "center", letterSpacing: "0.03em",
               }}>
                 {HU_MONTHS_SHORT[m.month - 1]}
@@ -1688,7 +1688,7 @@ export default function SimplePlanDetailPage() {
                 onClick={fillAllMonths}
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
-                  background: "#7C3AED", color: "white",
+                  background: "#35BD78", color: "white",
                   border: "none", borderRadius: 10, padding: "8px 16px",
                   fontSize: 13, fontWeight: 600, cursor: "pointer",
                 }}
@@ -1867,31 +1867,31 @@ export default function SimplePlanDetailPage() {
 
             {/* Formula + total */}
             <div style={{
-              background: "#F5F3FF", border: "1px solid #DDD6FE",
+              background: "#FBFBFC", border: "1px solid #DDD6FE",
               borderRadius: 14, padding: "14px 18px",
               display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
             }}>
               <div style={{ flex: 1, minWidth: 260 }}>
-                <p style={{ fontSize: 10, color: "#7C3AED", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <p style={{ fontSize: 10, color: "#35BD78", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Képlet — súlyozott átlag az összes szobára
                 </p>
-                <p style={{ fontSize: 12, color: "#5B21B6", margin: 0, fontFamily: "monospace", lineHeight: 1.6 }}>
+                <p style={{ fontSize: 12, color: "#03915A", margin: 0, fontFamily: "monospace", lineHeight: 1.6 }}>
                   ({Math.round(breakfastPct)}% × {fmt(breakfastPrice)}{" "}
                   {halfboardPct > 0 && `+ ${Math.round(halfboardPct)}% × ${fmt(halfboardPrice)}`}){" "}
                   × {avgPaxPerRoom} fő = <strong>{fmt(totalBoardSuppl)} Ft</strong>
                 </p>
-                <p style={{ fontSize: 10, color: "#7C3AED", margin: "4px 0 0" }}>
+                <p style={{ fontSize: 10, color: "#35BD78", margin: "4px 0 0" }}>
                   Ez adódik hozzá az ADR-hez minden szobaéjszakára (ha nincs manuális szobaárbevétel)
                 </p>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <p style={{ fontSize: 10, color: "#7C3AED", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase" }}>
+                <p style={{ fontSize: 10, color: "#35BD78", fontWeight: 700, margin: "0 0 2px", textTransform: "uppercase" }}>
                   Összes F&B felár
                 </p>
-                <p style={{ fontSize: 28, fontWeight: 800, color: "#7C3AED", margin: 0, letterSpacing: "-0.02em" }}>
+                <p style={{ fontSize: 28, fontWeight: 800, color: "#35BD78", margin: 0, letterSpacing: "-0.02em" }}>
                   +{fmt(totalBoardSuppl)} Ft
                 </p>
-                <p style={{ fontSize: 10, color: "#A78BFA", margin: "2px 0 0" }}>
+                <p style={{ fontSize: 10, color: "#90DBAC", margin: "2px 0 0" }}>
                   /szoba/éj átlag
                 </p>
               </div>
@@ -1935,7 +1935,7 @@ export default function SimplePlanDetailPage() {
         <KpiCard
           label="Átl. kihasználtság"
           value={`${Math.round(isSimActive ? simAvgOcc : avgOcc)}%`}
-          color="#7C3AED"
+          color="#35BD78"
           icon={<Bed size={16} />}
           delta={isSimActive && simOffset !== 0 ? `${simOffset > 0 ? "+" : ""}${simOffset} pp az összes hónapra` : undefined}
           sub={filledCalcs.length > 0 ? `${filledCalcs.length} hónap alapján` : "nincs adat"}
@@ -1958,7 +1958,7 @@ export default function SimplePlanDetailPage() {
         <KpiCard
           label="Szobaárbev./szoba/éj"
           value={avgRevPerRoomNight > 0 ? `${fmt(Math.round(avgRevPerRoomNight))} Ft` : "—"}
-          color="#8B5CF6"
+          color="#35BD78"
           icon={<TrendingUp size={16} />}
           sub={fbEnabled ? "ADR + F&B + egyéb" : "ADR alapján"}
         />
@@ -2004,8 +2004,8 @@ export default function SimplePlanDetailPage() {
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
       <div style={{
-        background: isSimActive ? "linear-gradient(135deg, #F5F3FF 0%, #EEF2FF 100%)" : "white",
-        border: `1px solid ${isSimActive ? "#A78BFA" : "#E2E8F0"}`,
+        background: isSimActive ? "linear-gradient(135deg, #FBFBFC 0%, #EEF2FF 100%)" : "white",
+        border: `1px solid ${isSimActive ? "#90DBAC" : "#E2E8F0"}`,
         borderRadius: 20, padding: "20px 24px", marginBottom: 24,
         transition: "all 0.2s",
       }}>
@@ -2014,7 +2014,7 @@ export default function SimplePlanDetailPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10,
-              background: isSimActive ? "#7C3AED" : "#E2E8F0",
+              background: isSimActive ? "#35BD78" : "#E2E8F0",
               display: "flex", alignItems: "center", justifyContent: "center",
               transition: "all 0.2s",
             }}>
@@ -2057,7 +2057,7 @@ export default function SimplePlanDetailPage() {
               step={1}
               value={simOffset}
               onChange={e => setSimOffset(Number(e.target.value))}
-              style={{ width: "100%", accentColor: "#7C3AED", cursor: "pointer", height: 6 }}
+              style={{ width: "100%", accentColor: "#35BD78", cursor: "pointer", height: 6 }}
             />
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
               <span style={{ fontSize: 10, color: "#94A3B8" }}>-30%</span>
@@ -2067,7 +2067,7 @@ export default function SimplePlanDetailPage() {
           </div>
           <div style={{
             minWidth: 64, textAlign: "center",
-            background: isSimActive ? "#7C3AED" : "#F1F5F9",
+            background: isSimActive ? "#35BD78" : "#F1F5F9",
             borderRadius: 10, padding: "6px 12px",
             fontSize: 16, fontWeight: 800,
             color: isSimActive ? "white" : "#94A3B8",
@@ -2120,7 +2120,7 @@ export default function SimplePlanDetailPage() {
               <p style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px" }}>
                 Kihasználtság (avg)
               </p>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "#7C3AED", margin: 0 }}>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#35BD78", margin: 0 }}>
                 {Math.round(simAvgOcc)}%
               </p>
               {annualBreakeven !== null && (
@@ -2147,7 +2147,7 @@ export default function SimplePlanDetailPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Bevétel & Profit</h3>
             {isSimActive && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "3px 8px", borderRadius: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#35BD78", background: "#FBFBFC", padding: "3px 8px", borderRadius: 6 }}>
                 SZIMULÁCIÓ AKTÍV
               </span>
             )}
@@ -2174,9 +2174,9 @@ export default function SimplePlanDetailPage() {
 
               {isSimActive ? (
                 <>
-                  <Bar dataKey="simRevenue" name="simRevenue" fill="#7C3AED" radius={[4, 4, 0, 0]} opacity={0.9}>
+                  <Bar dataKey="simRevenue" name="simRevenue" fill="#35BD78" radius={[4, 4, 0, 0]} opacity={0.9}>
                     {chartData.map((entry, i) => (
-                      <Cell key={i} fill={entry.hasData ? "#7C3AED" : "#E2E8F0"} />
+                      <Cell key={i} fill={entry.hasData ? "#35BD78" : "#E2E8F0"} />
                     ))}
                   </Bar>
                   <Bar dataKey="simProfit" name="simProfit" fill="#10B981" radius={[4, 4, 0, 0]} opacity={0.85}>
@@ -2204,7 +2204,7 @@ export default function SimplePlanDetailPage() {
 
           <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 6 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 3, background: isSimActive ? "#7C3AED" : "#3B82F6" }} />
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: isSimActive ? "#35BD78" : "#3B82F6" }} />
               <span style={{ fontSize: 11, color: "#64748B" }}>Bevétel</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -2223,7 +2223,7 @@ export default function SimplePlanDetailPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Kihasználtság & Fedezeti pont</h3>
             {isSimActive && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "3px 8px", borderRadius: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#35BD78", background: "#FBFBFC", padding: "3px 8px", borderRadius: 6 }}>
                 SZIMULÁCIÓ AKTÍV
               </span>
             )}
@@ -2251,21 +2251,21 @@ export default function SimplePlanDetailPage() {
               {/* Actual or simulated occupancy bars */}
               {isSimActive ? (
                 <>
-                  <Bar dataKey="occ" name="occ" fill="#C4B5FD" radius={[3, 3, 0, 0]} opacity={0.5}>
+                  <Bar dataKey="occ" name="occ" fill="rgba(53,189,120,0.4)" radius={[3, 3, 0, 0]} opacity={0.5}>
                     {chartData.map((entry, i) => (
-                      <Cell key={i} fill={entry.hasData ? "#C4B5FD" : "#F1F5F9"} />
+                      <Cell key={i} fill={entry.hasData ? "rgba(53,189,120,0.4)" : "#F1F5F9"} />
                     ))}
                   </Bar>
-                  <Bar dataKey="simOcc" name="simOcc" fill="#7C3AED" radius={[3, 3, 0, 0]} opacity={0.85}>
+                  <Bar dataKey="simOcc" name="simOcc" fill="#35BD78" radius={[3, 3, 0, 0]} opacity={0.85}>
                     {chartData.map((entry, i) => (
-                      <Cell key={i} fill={entry.hasData ? "#7C3AED" : "#F1F5F9"} />
+                      <Cell key={i} fill={entry.hasData ? "#35BD78" : "#F1F5F9"} />
                     ))}
                   </Bar>
                 </>
               ) : (
-                <Bar dataKey="occ" name="occ" fill="#7C3AED" radius={[4, 4, 0, 0]} opacity={0.85}>
+                <Bar dataKey="occ" name="occ" fill="#35BD78" radius={[4, 4, 0, 0]} opacity={0.85}>
                   {chartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.hasData ? "#7C3AED" : "#E2E8F0"} />
+                    <Cell key={i} fill={entry.hasData ? "#35BD78" : "#E2E8F0"} />
                   ))}
                 </Bar>
               )}
@@ -2294,17 +2294,17 @@ export default function SimplePlanDetailPage() {
             {isSimActive ? (
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "#C4B5FD" }} />
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "rgba(53,189,120,0.4)" }} />
                   <span style={{ fontSize: 11, color: "#64748B" }}>Terv</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "#7C3AED" }} />
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "#35BD78" }} />
                   <span style={{ fontSize: 11, color: "#64748B" }}>Szimuláció</span>
                 </div>
               </>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 3, background: "#7C3AED" }} />
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: "#35BD78" }} />
                 <span style={{ fontSize: 11, color: "#64748B" }}>Kihasználtság %</span>
               </div>
             )}
@@ -2324,7 +2324,7 @@ export default function SimplePlanDetailPage() {
         <div style={{ padding: "16px 20px", borderBottom: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>Havi eredmények</h2>
           {isSimActive && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "4px 10px", borderRadius: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#35BD78", background: "#FBFBFC", padding: "4px 10px", borderRadius: 8 }}>
               Szimulált adatok megjelenítve
             </span>
           )}
@@ -2372,7 +2372,7 @@ export default function SimplePlanDetailPage() {
                       {HU_MONTHS[c.month - 1]}
                     </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                      <span style={{ color: occChanged ? "#7C3AED" : "#334155", fontWeight: occChanged ? 700 : 400 }}>
+                      <span style={{ color: occChanged ? "#35BD78" : "#334155", fontWeight: occChanged ? 700 : 400 }}>
                         {c.hasData ? `${m.occupancyPct}%` : "—"}
                       </span>
                       {occChanged && (
@@ -2388,7 +2388,7 @@ export default function SimplePlanDetailPage() {
                       {c.hasData && c.roomNights > 0 ? (
                         <span>
                           <span style={{
-                            color: m.roomRevenue > 0 ? "#7C3AED" : "#334155",
+                            color: m.roomRevenue > 0 ? "#35BD78" : "#334155",
                             fontWeight: m.roomRevenue > 0 ? 700 : 400,
                           }}>
                             {fmt(Math.round(c.revenue / c.roomNights))} Ft
@@ -2399,7 +2399,7 @@ export default function SimplePlanDetailPage() {
                         </span>
                       ) : "—"}
                     </td>
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isSimActive && c.revenue !== savedC.revenue ? "#7C3AED" : "#334155", fontWeight: isSimActive && c.revenue !== savedC.revenue ? 600 : 400 }}>
+                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isSimActive && c.revenue !== savedC.revenue ? "#35BD78" : "#334155", fontWeight: isSimActive && c.revenue !== savedC.revenue ? 600 : 400 }}>
                       {c.hasData ? fmtM(c.revenue) : "—"}
                     </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: costIsFromBand ? "#0EA5E9" : "#94A3B8" }}>
@@ -2431,7 +2431,7 @@ export default function SimplePlanDetailPage() {
                 <td style={{ padding: "10px 16px", fontWeight: 700, fontSize: 12, color: "#64748B", textTransform: "uppercase" }}>
                   Éves összesen
                 </td>
-                <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#7C3AED" }}>
+                <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#35BD78" }}>
                   {Math.round(isSimActive ? simAvgOcc : avgOcc)}% avg
                 </td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#0F172A" }}>

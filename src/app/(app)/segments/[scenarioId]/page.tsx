@@ -30,11 +30,11 @@ type Segment = {
 const HU_MONTHS = ["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","Sze","Okt","Nov","Dec"];
 
 const SEGMENT_COLORS = [
-  "#7C3AED","#10B981","#F59E0B","#3B82F6","#EF4444","#8B5CF6","#06B6D4","#84CC16",
+  "#35BD78","#10B981","#F59E0B","#3B82F6","#EF4444","#35BD78","#06B6D4","#84CC16",
 ];
 
 const DEFAULT_SEGMENTS = [
-  { name: "Egyéni", color: "#7C3AED" },
+  { name: "Egyéni", color: "#35BD78" },
   { name: "Corporate", color: "#3B82F6" },
   { name: "MICE", color: "#10B981" },
   { name: "Utazási iroda", color: "#F59E0B" },
@@ -65,7 +65,7 @@ function SegNumInput({
       onChange={e => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={e => { if (e.key === "Enter") { commit(); ref.current?.blur(); } }}
-      className={className ?? "w-20 text-center text-sm font-semibold rounded-lg px-2 py-1.5 border border-slate-200 focus:border-violet-400 bg-white outline-none"}
+      className={className ?? "w-20 text-center text-sm font-semibold rounded-lg px-2 py-1.5 border border-slate-200 focus:border-emerald-400 bg-white outline-none"}
     />
   );
 }
@@ -81,7 +81,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   return (
     <button type="button" onClick={onChange} className="flex items-center gap-1.5 flex-shrink-0">
       <span className="relative inline-flex items-center rounded-full transition-colors duration-200"
-        style={{ width: 36, height: 20, background: checked ? "#7C3AED" : "#CBD5E1" }}>
+        style={{ width: 36, height: 20, background: checked ? "#35BD78" : "#CBD5E1" }}>
         <span className="absolute rounded-full bg-white shadow-sm transition-transform duration-200"
           style={{ width: 14, height: 14, transform: checked ? "translateX(18px)" : "translateX(3px)" }} />
       </span>
@@ -403,7 +403,7 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                         value={val}
                         onCommit={v => updateMonthShare(seg, month, v)}
                         className={`w-full text-center text-sm font-semibold rounded-lg px-1 py-1.5 border outline-none transition-colors ${
-                          over ? "border-red-300 bg-red-50 text-red-600" : "border-slate-200 focus:border-violet-400 bg-slate-50"
+                          over ? "border-red-300 bg-red-50 text-red-600" : "border-slate-200 focus:border-emerald-400 bg-slate-50"
                         }`}
                       />
                     </div>
@@ -441,7 +441,7 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <span className={seg.useChannelMix ? "text-slate-400" : "font-semibold text-slate-700"}>Fix %</span>
                     <Toggle checked={seg.useChannelMix} onChange={() => toggleUseChannelMix(seg)} />
-                    <span className={seg.useChannelMix ? "font-semibold text-violet-600" : "text-slate-400"}>Csatorna mix</span>
+                    <span className={seg.useChannelMix ? "font-semibold text-emerald-600" : "text-slate-400"}>Csatorna mix</span>
                   </div>
                 </div>
                 {!seg.useChannelMix && (
@@ -511,7 +511,7 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                                   value={share}
                                   onCommit={v => updateChannelShare(seg, dist.id, null, v)}
                                   className={`w-20 text-center text-sm font-semibold rounded-lg px-2 py-1.5 border outline-none transition-colors ${
-                                    over ? "border-red-300 bg-red-50 text-red-600" : "border-slate-200 focus:border-violet-400 bg-slate-50"
+                                    over ? "border-red-300 bg-red-50 text-red-600" : "border-slate-200 focus:border-emerald-400 bg-slate-50"
                                   }`}
                                 />
                                 <span className="text-xs text-slate-400">%</span>
@@ -583,7 +583,7 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                                             value={share}
                                             onCommit={v => updateChannelShare(seg, dist.id, month, v)}
                                             className={`w-12 text-center font-semibold rounded px-1 py-1 border outline-none transition-colors ${
-                                              over ? "border-red-200 bg-red-50 text-red-600" : "border-slate-200 focus:border-violet-400 bg-slate-50"
+                                              over ? "border-red-200 bg-red-50 text-red-600" : "border-slate-200 focus:border-emerald-400 bg-slate-50"
                                             }`}
                                           />
                                         </td>
@@ -636,12 +636,12 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                       {!isPickerOpen ? (
                         <button
                           onClick={() => { setChannelPickerId(seg.id); setShowNewChannelForm(false); setNewChannelForm({ name: "", isCommission: true, commissionPct: "0" }); }}
-                          className="flex items-center gap-1.5 text-xs font-semibold text-violet-500 hover:text-violet-700 transition-colors"
+                          className="flex items-center gap-1.5 text-xs font-semibold text-emerald-500 hover:text-emerald-700 transition-colors"
                         >
                           <Plus size={13} /> Csatorna hozzáadása
                         </button>
                       ) : (
-                        <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 space-y-3">
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-3">
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-semibold text-slate-600">Melyik csatornát adod hozzá?</p>
                             <button onClick={() => { setChannelPickerId(null); setShowNewChannelForm(false); }}
@@ -662,7 +662,7 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                             const renderBtn = (d: Distributor) => (
                               <button key={d.id}
                                 onClick={() => addChannelToSegment(seg, d)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:border-violet-300 hover:text-violet-700 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:border-emerald-300 hover:text-emerald-700 transition-colors"
                                 style={{ color: "#334155" }}>
                                 <Plus size={11} /> {d.name}
                                 {d.isCommission && d.commissionPct > 0 && (
@@ -702,11 +702,11 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                           {!showNewChannelForm ? (
                             <button
                               onClick={() => setShowNewChannelForm(true)}
-                              className="text-xs font-semibold text-violet-600 hover:text-violet-800 flex items-center gap-1">
+                              className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 flex items-center gap-1">
                               <Plus size={12} /> Új csatorna létrehozása
                             </button>
                           ) : (
-                            <div className="space-y-2 pt-1 border-t border-violet-200">
+                            <div className="space-y-2 pt-1 border-t border-emerald-200">
                               <p className="text-xs font-semibold text-slate-500">Új csatorna:</p>
                               <div className="flex gap-2 flex-wrap">
                                 <input
@@ -715,7 +715,7 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                                   placeholder="Csatorna neve (pl. MICE Agency)"
                                   value={newChannelForm.name}
                                   onChange={e => setNewChannelForm(f => ({ ...f, name: e.target.value }))}
-                                  className="flex-1 min-w-[180px] px-3 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-violet-400"
+                                  className="flex-1 min-w-[180px] px-3 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-emerald-400"
                                 />
                                 <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
                                   <input type="checkbox"
@@ -730,7 +730,7 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                                       type="number" min={0} max={100} step={0.5}
                                       value={newChannelForm.commissionPct}
                                       onChange={e => setNewChannelForm(f => ({ ...f, commissionPct: e.target.value }))}
-                                      className="w-16 text-center px-2 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-violet-400"
+                                      className="w-16 text-center px-2 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-emerald-400"
                                     />
                                     <span className="text-xs text-slate-400">% jut.</span>
                                   </div>
@@ -739,7 +739,7 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                                   onClick={() => createAndAddChannel(seg)}
                                   disabled={!newChannelForm.name.trim() || channelSaving === seg.id}
                                   className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-40"
-                                  style={{ background: "#7C3AED" }}>
+                                  style={{ background: "#35BD78" }}>
                                   {channelSaving === seg.id ? <Loader2 size={12} className="animate-spin" /> : "Hozzáadás"}
                                 </button>
                               </div>
@@ -757,7 +757,7 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
               <div className="px-5 pb-3 flex items-center gap-4 text-xs text-slate-400">
                 <span>Jutalék: <strong className="text-amber-600">{effectiveCommission(seg, 6).toFixed(1)}%</strong></span>
                 <span>{seg.useChannelMix ? `Csatorna mix (${seg.channelMixMode === "MONTHLY" ? "havi" : "éves"})` : "Fix jutalék"}</span>
-                <button onClick={() => setExpanded(seg.id)} className="text-violet-500 hover:text-violet-700 font-semibold">
+                <button onClick={() => setExpanded(seg.id)} className="text-emerald-500 hover:text-emerald-700 font-semibold">
                   Beállítás →
                 </button>
               </div>
@@ -773,13 +773,13 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
             <button
               onClick={() => { setShowPicker(true); setCustomName(""); }}
               disabled={saving === "new"}
-              className="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-violet-300 hover:text-violet-500 transition-colors text-sm font-semibold flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-emerald-300 hover:text-emerald-500 transition-colors text-sm font-semibold flex items-center justify-center gap-2"
             >
               {saving === "new" ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
               Új szegmens hozzáadása
             </button>
           ) : (
-            <div className="rounded-2xl border-2 border-violet-200 bg-white shadow-lg p-5 space-y-4">
+            <div className="rounded-2xl border-2 border-emerald-200 bg-white shadow-lg p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-slate-700">Melyik szegmenst adod hozzá?</p>
                 <button onClick={() => setShowPicker(false)}
@@ -834,13 +834,13 @@ export default function SegmentsPage({ params }: { params: Promise<{ scenarioId:
                     value={customName}
                     onChange={e => setCustomName(e.target.value)}
                     placeholder="pl. Kormányzati, Long-stay, …"
-                    className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-violet-400"
+                    className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-emerald-400"
                   />
                   <button
                     type="submit"
                     disabled={!customName.trim() || saving === "new"}
                     className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-40 transition-opacity"
-                    style={{ background: "#7C3AED" }}>
+                    style={{ background: "#35BD78" }}>
                     Hozzáadás
                   </button>
                 </form>
