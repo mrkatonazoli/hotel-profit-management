@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { HeyMaxLogo } from "@/components/HeyMaxLogo";
 import {
-  TrendingUp,
   LayoutDashboard,
   Calendar,
   GitBranch,
@@ -62,16 +62,8 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
     >
       {/* Logo + close button (mobile) */}
       <div className="flex items-center justify-between px-5 py-5" style={{ borderBottom: "1px solid #1E293B" }}>
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: "#7C3AED" }}
-          >
-            <TrendingUp size={16} color="white" />
-          </div>
-          <span className="font-bold text-base" style={{ color: "#F8FAFC" }}>
-            HeyMax!
-          </span>
+        <div className="flex items-center">
+          <HeyMaxLogo size={18} onDark={true} iconVariant="full" />
         </div>
         {/* Close button — only visible on mobile */}
         <button

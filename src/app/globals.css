@@ -123,7 +123,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
     font-variant-numeric: tabular-nums;
   }
   html {
@@ -131,8 +131,19 @@
   }
 }
 
-/* Brand design tokens */
+/* ── HeyMax! Brand Tokens ─────────────────────────────────── */
 :root {
+  --hm-navy:        #153251;
+  --hm-navy-deep:   #09203A;
+  --hm-navy-soft:   #5A6E89;
+  --hm-green:       #35BD78;
+  --hm-green-deep:  #03915A;
+  --hm-green-lite:  #90DBAC;
+  --hm-paper:       #FBFBFC;
+  --hm-line:        #E4E6EA;
+  --hm-font: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Legacy UI tokens (megtartva a meglévő komponensekhez) */
   --hp-navy-dark:  #0F172A;
   --hp-navy-mid:   #1E293B;
   --hp-navy-light: #334155;

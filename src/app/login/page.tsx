@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { Loader2 } from "lucide-react";
+import { HeyMaxLogo } from "@/components/HeyMaxLogo";
 
 export default function LoginPage() {
   const [step, setStep] = useState<"email" | "code">("email");
@@ -52,7 +53,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#0F172A", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#09203A", fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
 
       {/* ── LEFT PANEL ── */}
       <div style={{ flex: 1.1, background: "#0F172A", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "48px 56px", position: "relative", overflow: "hidden" }}>
@@ -70,12 +71,8 @@ export default function LoginPage() {
         <div style={{ position: "absolute", bottom: -80, left: -80, width: 360, height: 360, background: "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
 
         {/* Brand */}
-        <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 42, height: 42, background: "#7C3AED", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🏨</div>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>HeyMax!</div>
-            <div style={{ fontSize: 11, color: "#475569", marginTop: 1 }}>Plan. Forecast. Maximize.</div>
-          </div>
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <HeyMaxLogo size={20} onDark={true} iconVariant="full" />
         </div>
 
         {/* Headline */}
