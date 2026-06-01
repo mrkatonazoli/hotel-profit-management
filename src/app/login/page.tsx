@@ -66,9 +66,9 @@ export default function LoginPage() {
         }} />
 
         {/* Violet glow top-right */}
-        <div style={{ position: "absolute", top: -120, right: -120, width: 480, height: 480, background: "radial-gradient(circle, rgba(124,58,237,0.25) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: -120, right: -120, width: 480, height: 480, background: "radial-gradient(circle, rgba(53,189,120,0.15) 0%, transparent 70%)", pointerEvents: "none" }} />
         {/* Emerald glow bottom-left */}
-        <div style={{ position: "absolute", bottom: -80, left: -80, width: 360, height: 360, background: "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: -80, left: -80, width: 360, height: 360, background: "radial-gradient(circle, rgba(21,50,81,0.4) 0%, transparent 70%)", pointerEvents: "none" }} />
 
         {/* Brand */}
         <div style={{ position: "relative", zIndex: 1 }}>
@@ -79,7 +79,7 @@ export default function LoginPage() {
         <div style={{ position: "relative", zIndex: 1 }}>
           <h1 style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em", color: "#fff", marginBottom: 24 }}>
             Maximize your<br />
-            <span style={{ background: "linear-gradient(135deg, #7C3AED, #10B981)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+            <span style={{ background: "linear-gradient(135deg, #35BD78, #03915A)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
               hotel&apos;s profit.
             </span>
           </h1>
@@ -91,7 +91,7 @@ export default function LoginPage() {
         {/* Floating cards area */}
         <div style={{ position: "relative", height: 200, zIndex: 1 }}>
           <FloatCard style={{ left: 0, top: 20, animationDelay: "0s", animationDuration: "5.5s" }}
-            icon="📈" iconBg="rgba(124,58,237,0.3)" label="Kihasználtság"
+            icon="📈" iconBg="rgba(53,189,120,0.25)" label="Kihasználtság"
             value="88%" trend="▲ +23%" trendColor="#10B981" />
           <FloatCard style={{ left: "40%", top: 0, animationDelay: "1.2s", animationDuration: "6.5s" }}
             icon="💰" iconBg="rgba(16,185,129,0.3)" label="Napi profit"
@@ -106,7 +106,7 @@ export default function LoginPage() {
           {/* SVG chart */}
           <svg viewBox="0 0 300 80" style={{ position: "absolute", bottom: 0, left: 0, right: 0, width: "100%", opacity: 0.18 }}>
             <path d="M0,70 C30,68 50,60 80,50 C110,40 130,35 160,25 C190,15 220,10 260,5 C275,3 290,4 300,4"
-              fill="none" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round"
+              fill="none" stroke="#35BD78" strokeWidth="2.5" strokeLinecap="round"
               style={{ strokeDasharray: 300, strokeDashoffset: 0 }} />
             <path d="M0,75 C30,73 50,68 80,62 C110,55 130,50 160,42 C190,34 220,28 260,20 C275,17 290,16 300,15"
               fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round"
@@ -115,7 +115,7 @@ export default function LoginPage() {
         </div>
 
         {/* Testimonial */}
-        <div style={{ position: "relative", zIndex: 1, borderLeft: "2px solid #7C3AED", paddingLeft: 16 }}>
+        <div style={{ position: "relative", zIndex: 1, borderLeft: "2px solid #35BD78", paddingLeft: 16 }}>
           <p style={{ fontSize: 13.5, color: "#94A3B8", lineHeight: 1.6, fontStyle: "italic", marginBottom: 10 }}>
             „Először látom tisztán, hogy melyik nap mikor válik profitábilissá — és mit kell tennem azért, hogy az legyen."
           </p>
@@ -161,7 +161,7 @@ export default function LoginPage() {
                     background: "#fff", outline: "none", boxSizing: "border-box" as const,
                     transition: "border-color .15s, box-shadow .15s"
                   }}
-                  onFocus={e => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124,58,237,0.1)"; }}
+                  onFocus={e => { e.target.style.borderColor = "#35BD78"; e.target.style.boxShadow = "0 0 0 3px rgba(53,189,120,0.15)"; }}
                   onBlur={e => { e.target.style.borderColor = "#E2E8F0"; e.target.style.boxShadow = "none"; }}
                 />
               </div>
@@ -169,10 +169,10 @@ export default function LoginPage() {
               {error && <p style={{ fontSize: 13, color: "#EF4444", marginBottom: 12 }}>{error}</p>}
 
               <button type="submit" disabled={loading || !email} style={{
-                width: "100%", padding: 14, background: "#7C3AED", color: "#fff",
+                width: "100%", padding: 14, background: "#35BD78", color: "#fff",
                 border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700,
                 fontFamily: "inherit", cursor: loading || !email ? "not-allowed" : "pointer",
-                letterSpacing: "-0.01em", boxShadow: "0 4px 14px rgba(124,58,237,0.35)",
+                letterSpacing: "-0.01em", boxShadow: "0 4px 14px rgba(53,189,120,0.35)",
                 opacity: loading || !email ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8
               }}>
                 {loading ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Küldés...</> : "Kód küldése →"}
@@ -212,7 +212,7 @@ export default function LoginPage() {
                     background: "#fff", outline: "none", boxSizing: "border-box" as const,
                     fontVariantNumeric: "tabular-nums"
                   }}
-                  onFocus={e => { e.target.style.borderColor = "#7C3AED"; e.target.style.boxShadow = "0 0 0 3px rgba(124,58,237,0.1)"; }}
+                  onFocus={e => { e.target.style.borderColor = "#35BD78"; e.target.style.boxShadow = "0 0 0 3px rgba(53,189,120,0.15)"; }}
                   onBlur={e => { e.target.style.borderColor = "#E2E8F0"; e.target.style.boxShadow = "none"; }}
                 />
                 <div style={{ fontSize: 11.5, color: "#64748B", marginTop: 6, textAlign: "center" as const }}>A kód 10 percig érvényes</div>
@@ -221,10 +221,10 @@ export default function LoginPage() {
               {error && <p style={{ fontSize: 13, color: "#EF4444", marginBottom: 12, textAlign: "center" as const }}>{error}</p>}
 
               <button type="submit" disabled={loading || code.length !== 6} style={{
-                width: "100%", padding: 14, background: "#7C3AED", color: "#fff",
+                width: "100%", padding: 14, background: "#35BD78", color: "#fff",
                 border: "none", borderRadius: 10, fontSize: 15, fontWeight: 700,
                 fontFamily: "inherit", cursor: loading || code.length !== 6 ? "not-allowed" : "pointer",
-                letterSpacing: "-0.01em", boxShadow: "0 4px 14px rgba(124,58,237,0.35)",
+                letterSpacing: "-0.01em", boxShadow: "0 4px 14px rgba(53,189,120,0.35)",
                 opacity: loading || code.length !== 6 ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 marginTop: 8
               }}>
@@ -234,7 +234,7 @@ export default function LoginPage() {
               <div style={{ textAlign: "center" as const, marginTop: 20 }}>
                 <span style={{ fontSize: 12.5, color: "#64748B" }}>Nem érkezett meg? </span>
                 <button type="button" onClick={() => { setStep("email"); setCode(""); setError(""); }}
-                  style={{ fontSize: 12.5, color: "#7C3AED", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                  style={{ fontSize: 12.5, color: "#35BD78", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                   Új kód kérése
                 </button>
               </div>
