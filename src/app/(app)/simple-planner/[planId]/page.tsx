@@ -977,11 +977,18 @@ export default function SimplePlanDetailPage() {
     ? (annualCost / annualNetRevenue) * avgOcc
     : null;
 
-  // Simulated calcs (with occupancy offset + TFH) — use monthsWithBands so monthlyCost is filled from bands
-  const simMonths: MonthData[] = monthsWithBands.map(m => ({
-    ...m,
-    occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
-  }));
+  // Simulated calcs — az eredeti months-ból indulunk, és a sávot a SZIMULÁLT occ alapján alkalmazzuk
+  // (nem a monthsWithBands-ből, mert ott az eredeti occ alapján van már betöltve a sáv kiadás)
+  const simMonths: MonthData[] = months.map(m => {
+    const simOcc = Math.min(100, Math.max(0, m.occupancyPct + simOffset));
+    let updated = applyBoardDefaults({ ...m, occupancyPct: simOcc });
+    // Ha nincs kézi kiadás beállítva, a szimulált occ alapján töltjük be a sávot
+    if (m.monthlyCost === 0) {
+      const bandCost = getCostFromBands(simOcc);
+      if (bandCost !== null) updated = { ...updated, monthlyCost: bandCost };
+    }
+    return updated;
+  });
   const simCalcs: MonthCalc[] = simMonths.map(m =>
     computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb)
   );
