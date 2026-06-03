@@ -996,6 +996,13 @@ export default function SimplePlanDetailPage() {
     : 0;
   const simAvgMargin = simAnnualRevenue > 0 ? (simAnnualProfit / simAnnualRevenue) * 100 : 0;
 
+  // Szimulált break-even: a szimulált adatokból újraszámolva, hogy konzisztens legyen a sim profittal
+  // (ha a kihasználtság változik, a break-even occ is arányosan változik — nem az alap marad érvényes)
+  const simNetRevenue = simAnnualRevenue - simAnnualTfh;
+  const simBreakeven = (simNetRevenue > 0 && simAvgOcc > 0)
+    ? (simAnnualCost / simNetRevenue) * simAvgOcc
+    : annualBreakeven;
+
   // Revenue/Profit delta
   const deltaRevenue = simAnnualRevenue - annualRevenue;
   const deltaProfit = simAnnualProfit - annualProfit;
@@ -1984,16 +1991,20 @@ export default function SimplePlanDetailPage() {
           <div>
             <p style={{ fontSize: 14, fontWeight: 700, color: (isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#065F46" : "#991B1B", margin: 0 }}>
               {(isSimActive ? simAnnualProfit : annualProfit) >= 0
-                ? `Éves szinten nyereséges — fedezeti pont: ${Math.round(annualBreakeven)}% kihasználtság`
-                : `Éves szinten veszteséges — fedezeti pont: ${Math.round(annualBreakeven)}% kihasználtság`}
+                ? `Éves szinten nyereséges — fedezeti pont: ${Math.round(isSimActive ? (simBreakeven ?? 0) : (annualBreakeven ?? 0))}% kihasználtság`
+                : `Éves szinten veszteséges — fedezeti pont: ${Math.round(isSimActive ? (simBreakeven ?? 0) : (annualBreakeven ?? 0))}% kihasználtság`}
             </p>
             <p style={{ fontSize: 12, color: (isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#047857" : "#B91C1C", margin: "2px 0 0" }}>
               {isSimActive ? "Szimulált" : "Jelenlegi"} átlagos kihasználtság: {Math.round(isSimActive ? simAvgOcc : avgOcc)}%
-              {(isSimActive ? simAvgOcc : avgOcc) > 0 && annualBreakeven !== null && (
-                (isSimActive ? simAnnualProfit : annualProfit) >= 0
-                  ? ` — ${Math.round((isSimActive ? simAvgOcc : avgOcc) - annualBreakeven)} százalékponttal a fedezeti pont felett`
-                  : ` — ${Math.round(annualBreakeven - (isSimActive ? simAvgOcc : avgOcc))} százalékpont hiányzik a nullszaldóhoz`
-              )}
+              {(() => {
+                const activeOcc = isSimActive ? simAvgOcc : avgOcc;
+                const activeBe = isSimActive ? (simBreakeven ?? annualBreakeven) : annualBreakeven;
+                if (activeOcc <= 0 || activeBe === null) return null;
+                const diff = activeOcc - activeBe;
+                return diff >= 0
+                  ? ` — ${Math.round(diff)} százalékponttal a fedezeti pont felett`
+                  : ` — ${Math.round(-diff)} százalékpont hiányzik a nullszaldóhoz`;
+              })()}
             </p>
           </div>
         </div>
@@ -2123,12 +2134,12 @@ export default function SimplePlanDetailPage() {
               <p style={{ fontSize: 20, fontWeight: 800, color: "#35BD78", margin: 0 }}>
                 {Math.round(simAvgOcc)}%
               </p>
-              {annualBreakeven !== null && (
+              {simBreakeven !== null && (
                 <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 0" }}>
-                  fedezeti pont: {Math.round(annualBreakeven)}%
-                  {simAvgOcc >= annualBreakeven
-                    ? ` ✓ +${Math.round(simAvgOcc - annualBreakeven)} pp`
-                    : ` ✗ ${Math.round(annualBreakeven - simAvgOcc)} pp hiányzik`}
+                  fedezeti pont: {Math.round(simBreakeven)}%
+                  {simAvgOcc >= simBreakeven
+                    ? ` ✓ +${Math.round(simAvgOcc - simBreakeven)} pp`
+                    : ` ✗ ${Math.round(simBreakeven - simAvgOcc)} pp hiányzik`}
                 </p>
               )}
             </div>
