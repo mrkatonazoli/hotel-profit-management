@@ -20,6 +20,7 @@ import {
   Zap,
   SlidersHorizontal,
   BookOpen,
+  PlusCircle,
 } from "lucide-react";
 
 const navItems = [
@@ -182,6 +183,28 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
             );
           })()}
         </div>}
+
+        {/* ── Új szálloda igény — csak restricted (professional) usereknél ── */}
+        {allowedModules !== null && allowedModules !== undefined && (() => {
+          const active = pathname === "/request-hotel";
+          return (
+            <div style={{ paddingTop: 10, paddingBottom: 2 }}>
+              <div style={{ height: 1, background: "#1E293B", marginBottom: 10 }} />
+              <Link
+                href="/request-hotel"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  color: active ? "#35BD78" : "#64748B",
+                  background: active ? "rgba(53,189,120,0.08)" : "transparent",
+                  border: `1px dashed ${active ? "rgba(53,189,120,0.4)" : "#334155"}`,
+                }}
+              >
+                <PlusCircle size={16} color={active ? "#35BD78" : "#64748B"} />
+                Új szálloda
+              </Link>
+            </div>
+          );
+        })()}
       </nav>
 
       {/* Bottom nav */}
