@@ -50,8 +50,10 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
   const pathname = usePathname();
 
   function isModuleAllowed(module: string | null): boolean {
+    // Ha nincs modul-korlátozás (pl. super admin, manager full access) → minden látszik
     if (allowedModules === null || allowedModules === undefined) return true;
-    if (module === null) return true;
+    // Ha van korlátozás, a module: null itemek (Dashboard, Beállítások) sem látszanak
+    if (module === null) return false;
     return allowedModules.includes(module);
   }
 
