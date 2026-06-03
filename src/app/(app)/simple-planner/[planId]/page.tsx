@@ -977,17 +977,35 @@ export default function SimplePlanDetailPage() {
     ? (annualCost / annualNetRevenue) * avgOcc
     : null;
 
-  // Simulated calcs — fix kiadás modell:
-  // A havi kiadás ÖSSZEGE nem változik az occ-tól függően (fix bérek, rezsi, stb.)
-  // Ehhez a per-szoba-éj értéket arányosan felfelé igazítjuk, ha az occ csökken.
-  // Képlet: simCostPerRoom = baseCostPerRoom × (baseOcc / simOcc)
-  // → simCostPerRoom × simRoomNights = baseCostPerRoom × baseRoomNights = fix havi összeg
+  // Simulated calcs — hibrid kiadás modell:
+  //
+  // 1. Ha sávos kiadás van konfigurálva (nincs kézi kiadás a hónapban):
+  //    → a SZIMULÁLT occ-hoz tartozó sávot alkalmazzuk
+  //    → a sávok már tartalmazzák a fix/változó kiadás arányát
+  //      (alacsonyabb occ → magasabb Ft/szoba → közel fix havi összeg)
+  //
+  // 2. Ha kézi kiadás van beállítva a hónapra:
+  //    → fix összeg modell: havi total = konstans
+  //    → simCostPerRoom = baseCostPerRoom × (baseOcc / simOcc)
+  //    → simCostPerRoom × simRoomNights = baseCostPerRoom × baseRoomNights
   const simMonths: MonthData[] = monthsWithBands.map(m => {
     const simOcc = Math.min(100, Math.max(0, m.occupancyPct + simOffset));
-    const adjustedCost = simOcc > 0 && m.occupancyPct > 0
-      ? m.monthlyCost * (m.occupancyPct / simOcc)
-      : m.monthlyCost;
-    return { ...m, occupancyPct: simOcc, monthlyCost: adjustedCost };
+    const originalMonth = months.find(om => om.month === m.month);
+    const hasManualCost = (originalMonth?.monthlyCost ?? 0) > 0;
+
+    let simCost: number;
+    if (!hasManualCost) {
+      // Sávos logika: a szimulált occ-hoz tartozó sáv kiadása
+      const bandCost = getCostFromBands(simOcc);
+      simCost = bandCost !== null ? bandCost : m.monthlyCost;
+    } else {
+      // Kézi kiadás: fix havi összeg — arányos felskálázás
+      simCost = simOcc > 0 && m.occupancyPct > 0
+        ? m.monthlyCost * (m.occupancyPct / simOcc)
+        : m.monthlyCost;
+    }
+
+    return { ...m, occupancyPct: simOcc, monthlyCost: simCost };
   });
   const simCalcs: MonthCalc[] = simMonths.map(m =>
     computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb)
