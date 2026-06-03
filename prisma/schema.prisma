@@ -577,6 +577,14 @@ model SimplePlannerCostBand {
   settings    SimplePlannerSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
 }
 
+// ─── SYSTEM SETTINGS ─────────────────────────────────────────────────────────
+
+model SystemSetting {
+  key       String   @id       // pl. "admin_notification_email"
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 // ─── CURRENCY ────────────────────────────────────────────────────────────────
 
 model ExchangeRate {

@@ -110,9 +110,10 @@ export async function sendHotelRequestEmail(opts: {
   requesterName: string | null;
   requesterEmail: string;
   hotelName: string;
+  adminEmail?: string;
 }) {
-  const { requesterName, requesterEmail, hotelName } = opts;
-  const adminEmail = process.env.ADMIN_EMAIL ?? process.env.EMAIL_FROM ?? "katonazoltanads@gmail.com";
+  const { requesterName, requesterEmail, hotelName, adminEmail: overrideEmail } = opts;
+  const adminEmail = overrideEmail || process.env.ADMIN_EMAIL || process.env.EMAIL_FROM || "katonazoltanads@gmail.com";
   const from = process.env.EMAIL_FROM ?? "HeyMax! <hello@heymax.app>";
   const displayName = requesterName ?? requesterEmail;
   const now = new Date().toLocaleString("hu-HU", { timeZone: "Europe/Budapest" });

@@ -255,6 +255,18 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
               <ShieldCheck size={16} />
               AI Token stats
             </Link>
+            <Link
+              href="/admin/settings"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+              style={{
+                color: pathname === "/admin/settings" ? "#90DBAC" : "#475569",
+                background: pathname === "/admin/settings" ? "#1E1030" : "transparent",
+                borderLeft: pathname === "/admin/settings" ? "3px solid #35BD78" : "3px solid transparent",
+              }}
+            >
+              <Settings size={16} />
+              Rendszerbeállítások
+            </Link>
           </>
         )}
       </div>
