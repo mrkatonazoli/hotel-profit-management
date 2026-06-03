@@ -37,7 +37,6 @@ const navItems = [
 const bottomItems = [
   { href: "/hotel-config", icon: Building2, label: "Hotel beállítások", module: "HOTEL_CONFIG" },
   { href: "/team",         icon: Users,     label: "Csapat",            module: "TEAM" },
-  { href: "/settings",     icon: Settings,  label: "Beállítások",       module: null },
 ];
 
 interface SidebarProps {
