@@ -977,17 +977,17 @@ export default function SimplePlanDetailPage() {
     ? (annualCost / annualNetRevenue) * avgOcc
     : null;
 
-  // Simulated calcs — az eredeti months-ból indulunk, és a sávot a SZIMULÁLT occ alapján alkalmazzuk
-  // (nem a monthsWithBands-ből, mert ott az eredeti occ alapján van már betöltve a sáv kiadás)
-  const simMonths: MonthData[] = months.map(m => {
+  // Simulated calcs — fix kiadás modell:
+  // A havi kiadás ÖSSZEGE nem változik az occ-tól függően (fix bérek, rezsi, stb.)
+  // Ehhez a per-szoba-éj értéket arányosan felfelé igazítjuk, ha az occ csökken.
+  // Képlet: simCostPerRoom = baseCostPerRoom × (baseOcc / simOcc)
+  // → simCostPerRoom × simRoomNights = baseCostPerRoom × baseRoomNights = fix havi összeg
+  const simMonths: MonthData[] = monthsWithBands.map(m => {
     const simOcc = Math.min(100, Math.max(0, m.occupancyPct + simOffset));
-    let updated = applyBoardDefaults({ ...m, occupancyPct: simOcc });
-    // Ha nincs kézi kiadás beállítva, a szimulált occ alapján töltjük be a sávot
-    if (m.monthlyCost === 0) {
-      const bandCost = getCostFromBands(simOcc);
-      if (bandCost !== null) updated = { ...updated, monthlyCost: bandCost };
-    }
-    return updated;
+    const adjustedCost = simOcc > 0 && m.occupancyPct > 0
+      ? m.monthlyCost * (m.occupancyPct / simOcc)
+      : m.monthlyCost;
+    return { ...m, occupancyPct: simOcc, monthlyCost: adjustedCost };
   });
   const simCalcs: MonthCalc[] = simMonths.map(m =>
     computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb)
