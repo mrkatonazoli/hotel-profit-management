@@ -18,10 +18,9 @@ export async function sendInviteEmail(opts: {
   hotelCity: string;
   role: "MANAGER" | "PROFESSIONAL";
   inviteUrl: string;
-  loginUrl: string;
   expiresInDays?: number;
 }) {
-  const { to, hotelName, hotelCity, role, inviteUrl, loginUrl, expiresInDays = 7 } = opts;
+  const { to, hotelName, hotelCity, role, inviteUrl, expiresInDays = 7 } = opts;
   const roleLabel = role === "MANAGER" ? "Manager" : "Professional";
   const from = process.env.EMAIL_FROM ?? "HeyMax! <hello@heymax.app>";
 
@@ -29,7 +28,7 @@ export async function sendInviteEmail(opts: {
     from,
     to,
     subject: `Meghívó — ${hotelName} csapata vár!`,
-    text: `Meghívtak a(z) ${hotelName} (${hotelCity}) csapatába ${roleLabel} szerepkörrel.\n\nMeghívó link: ${inviteUrl}\n\nBejelentkezés és csatlakozás: ${loginUrl}\n\nA linkek ${expiresInDays} napig érvényesek.`,
+    text: `Meghívtak a(z) ${hotelName} (${hotelCity}) csapatába ${roleLabel} szerepkörrel.\n\nFogadd el a meghívót: ${inviteUrl}\n\nA link ${expiresInDays} napig érvényes.`,
     html: `
 <!DOCTYPE html>
 <html lang="hu">
@@ -48,15 +47,16 @@ export async function sendInviteEmail(opts: {
               </span>
             </div>
             <h1 style="margin:0;color:#F8FAFC;font-size:20px;font-weight:700;">Csapati meghívó</h1>
-            <p style="margin:6px 0 0;color:rgba(255,255,255,0.5);font-size:13px;">Meghívtak egy szálloda csapatába</p>
+            <p style="margin:6px 0 0;color:rgba(255,255,255,0.5);font-size:13px;">Profit tervezés és elemzés</p>
           </td>
         </tr>
 
         <!-- Body -->
         <tr>
           <td style="padding:36px 40px;">
+            <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0F172A;">Csapati meghívó 🎉</h2>
             <p style="margin:0 0 24px;font-size:15px;color:#475569;line-height:1.6;">
-              Meghívtak a(z) <strong style="color:#0F172A;">${hotelName}</strong> csapatába. Fogadd el a meghívót, és kezdj el dolgozni a szálloda adataival.
+              Meghívtak a(z) <strong style="color:#0F172A;">${hotelName}</strong> csapatába.
             </p>
 
             <!-- Hotel card -->
@@ -77,64 +77,16 @@ export async function sendInviteEmail(opts: {
               </table>
             </div>
 
-            <!-- Lépések -->
-            <div style="background:#F0FDF4;border:1px solid #A7F3D0;border-radius:12px;padding:18px 20px;margin-bottom:24px;">
-              <p style="margin:0 0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#047857;">Hogyan csatlakozz?</p>
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="width:24px;vertical-align:top;padding-top:1px;">
-                    <span style="display:inline-block;width:20px;height:20px;background:#35BD78;border-radius:50%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:white;">1</span>
-                  </td>
-                  <td style="padding-left:10px;font-size:13px;color:#374151;line-height:1.5;">
-                    Kattints a <strong>„Bejelentkezés és csatlakozás"</strong> gombra, és add meg ezt az e-mail címet: <strong>${to}</strong>
-                  </td>
-                </tr>
-                <tr><td colspan="2" style="height:10px;"></td></tr>
-                <tr>
-                  <td style="width:24px;vertical-align:top;padding-top:1px;">
-                    <span style="display:inline-block;width:20px;height:20px;background:#35BD78;border-radius:50%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:white;">2</span>
-                  </td>
-                  <td style="padding-left:10px;font-size:13px;color:#374151;line-height:1.5;">
-                    A rendszer küld egy <strong>egyszeri belépési kódot</strong> — add meg azt, és máris bent vagy.
-                  </td>
-                </tr>
-                <tr><td colspan="2" style="height:10px;"></td></tr>
-                <tr>
-                  <td style="width:24px;vertical-align:top;padding-top:1px;">
-                    <span style="display:inline-block;width:20px;height:20px;background:#35BD78;border-radius:50%;text-align:center;line-height:20px;font-size:11px;font-weight:700;color:white;">3</span>
-                  </td>
-                  <td style="padding-left:10px;font-size:13px;color:#374151;line-height:1.5;">
-                    Bejelentkezés után automatikusan a meghívó elfogadó oldalra kerülsz.
-                  </td>
-                </tr>
-              </table>
-            </div>
-
-            <!-- Fő CTA — bejelentkezés + elfogadás -->
-            <div style="text-align:center;margin-bottom:16px;">
-              <a href="${loginUrl}"
-                style="display:inline-block;background:linear-gradient(135deg,#35BD78,#03915A);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;box-shadow:0 4px 14px rgba(53,189,120,0.35);">
-                Bejelentkezés és csatlakozás →
-              </a>
-            </div>
-
-            <!-- Másodlagos link — már be van jelentkezve -->
+            <!-- CTA button -->
             <div style="text-align:center;margin-bottom:24px;">
-              <p style="margin:0 0 8px;font-size:12px;color:#94A3B8;">Már be vagy jelentkezve?</p>
               <a href="${inviteUrl}"
-                style="display:inline-block;color:#35BD78;text-decoration:none;font-size:13px;font-weight:600;padding:8px 20px;border-radius:10px;border:1.5px solid rgba(53,189,120,0.4);">
-                Meghívó közvetlen elfogadása →
+                style="display:inline-block;background:linear-gradient(135deg,#35BD78,#03915A);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;box-shadow:0 4px 14px rgba(53,189,120,0.35);">
+                Meghívó elfogadása →
               </a>
-            </div>
-
-            <!-- Link szövegesen -->
-            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
-              <p style="margin:0 0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#94A3B8;">Meghívó link (ha a gomb nem működik)</p>
-              <p style="margin:0;font-size:11px;color:#64748B;word-break:break-all;">${inviteUrl}</p>
             </div>
 
             <p style="margin:0;font-size:12px;color:#94A3B8;text-align:center;">
-              A linkek <strong>${expiresInDays} napig</strong> érvényesek. Ha nem te kaptad ezt az e-mailt, hagyd figyelmen kívül.
+              A link <strong>${expiresInDays} napig</strong> érvényes. Ha nem te kaptad ezt az e-mailt, hagyd figyelmen kívül.
             </p>
           </td>
         </tr>
