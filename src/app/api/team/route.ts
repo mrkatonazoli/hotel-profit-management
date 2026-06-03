@@ -103,6 +103,8 @@ export async function POST(req: Request) {
 
   const baseUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const inviteUrl = `${baseUrl}/invite/${invite.token}`;
+  // Bejelentkezési link: direkt a login oldalra visz, majd elfogadás után a meghívóhoz
+  const loginUrl = `${baseUrl}/login?callbackUrl=${encodeURIComponent(`/invite/${invite.token}`)}`;
 
   // Send invite email (non-blocking — don't fail if email fails)
   try {
@@ -112,6 +114,7 @@ export async function POST(req: Request) {
       hotelCity: hotel.city,
       role,
       inviteUrl,
+      loginUrl,
       expiresInDays: 7,
     });
   } catch (err) {
