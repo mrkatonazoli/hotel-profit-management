@@ -24,6 +24,21 @@ export default function LoginPage() {
     setError("");
     const callbackUrl = getCallbackUrl();
     try {
+      // 1. Ellenőrizzük, hogy létezik-e a felhasználó a rendszerben
+      const checkRes = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const checkData = await checkRes.json();
+
+      if (!checkData.exists) {
+        setError("Önnek jelenleg nincs fiókja a rendszerben. Kérjük, vegye fel a kapcsolatot az adminisztrátorral.");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Ha létezik, küldjük a belépési kódot
       const res = await signIn("nodemailer", { email, redirect: false, callbackUrl });
       if (res?.error) {
         setError("Hiba történt. Ellenőrizd az e-mail címet.");
