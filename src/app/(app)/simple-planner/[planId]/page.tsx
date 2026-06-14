@@ -1591,64 +1591,93 @@ export default function SimplePlanDetailPage() {
           overflowX: "auto",
           minWidth: 700,
         }}>
-          {months.map(m => (
-            <div
-              key={m.month}
-              style={{
-                background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10,
-                padding: "8px 8px 6px",
-              }}
-            >
-              <p style={{
-                fontSize: 11, fontWeight: 700, color: "#35BD78", margin: "0 0 8px",
-                textAlign: "center", letterSpacing: "0.03em",
-              }}>
-                {HU_MONTHS_SHORT[m.month - 1]}
-              </p>
+          {months.map(m => {
+            const c = calcs.find(c => c.month === m.month);
+            const costPerRoom = c && c.roomNights > 0 ? Math.round(c.cost / c.roomNights) : null;
+            return (
+              <div
+                key={m.month}
+                style={{
+                  background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10,
+                  padding: "8px 8px 6px",
+                }}
+              >
+                <p style={{
+                  fontSize: 11, fontWeight: 700, color: "#35BD78", margin: "0 0 8px",
+                  textAlign: "center", letterSpacing: "0.03em",
+                }}>
+                  {HU_MONTHS_SHORT[m.month - 1]}
+                </p>
 
-              <MonthInput
-                label="ADR"
-                unit="Ft"
-                value={m.adr}
-                step={100}
-                onBlur={v => updateMonthField(m.month, "adr", v)}
-              />
-              <MonthInput
-                label="Kihas."
-                unit="%"
-                value={m.occupancyPct}
-                step={1}
-                onBlur={v => updateMonthField(m.month, "occupancyPct", Math.min(100, Math.max(0, v)))}
-              />
-              <MonthInput
-                label="Szobaárb."
-                unit="Ft/szoba/éj"
-                value={m.roomRevenue}
-                step={10000}
-                highlight={m.roomRevenue > 0}
-                note={m.roomRevenue > 0 ? "↑ egyedi érték" : undefined}
-                onBlur={v => updateMonthField(m.month, "roomRevenue", v)}
-              />
-              {fbEnabled && (
-                <>
-                  <MonthInput
-                    label="🌅 Reggeli"
-                    unit="%"
-                    value={m.breakfastPct}
-                    step={1}
-                    onBlur={v => updateMonthField(m.month, "breakfastPct", Math.min(100, Math.max(0, v)))}
-                  />
-                  <MonthInput
-                    label="🍽️ Félpanzió"
-                    unit="%"
-                    value={m.halfboardPct}
-                    step={1}
-                    onBlur={v => updateMonthField(m.month, "halfboardPct", Math.min(100, Math.max(0, v)))}
-                  />
-                </>
-              )}
-            </div>
-          ))}
+                <MonthInput
+                  label="ADR"
+                  unit="Ft"
+                  value={m.adr}
+                  step={100}
+                  onBlur={v => updateMonthField(m.month, "adr", v)}
+                />
+                <MonthInput
+                  label="Kihas."
+                  unit="%"
+                  value={m.occupancyPct}
+                  step={1}
+                  onBlur={v => updateMonthField(m.month, "occupancyPct", Math.min(100, Math.max(0, v)))}
+                />
+                <MonthInput
+                  label="Szobaárb."
+                  unit="Ft/szoba/éj"
+                  value={m.roomRevenue}
+                  step={10000}
+                  highlight={m.roomRevenue > 0}
+                  note={m.roomRevenue > 0 ? "↑ egyedi érték" : undefined}
+                  onBlur={v => updateMonthField(m.month, "roomRevenue", v)}
+                />
+
+                {/* Kalkulált kiadás/szoba/éj — read-only, settings-ből számolt */}
+                <div style={{ marginBottom: 4 }}>
+                  <p style={{
+                    fontSize: 9, margin: "0 0 2px", textTransform: "uppercase",
+                    fontWeight: 600, letterSpacing: "0.04em", color: "#F87171",
+                  }}>
+                    Kiadás (Ft/éj)
+                  </p>
+                  <div style={{
+                    width: "100%", boxSizing: "border-box",
+                    fontSize: 12, fontWeight: 600,
+                    color: costPerRoom !== null && costPerRoom > 0 ? "#DC2626" : "#CBD5E1",
+                    border: "1px solid #FCA5A5",
+                    borderRadius: 6, padding: "4px 6px",
+                    background: "#FFF5F5",
+                    fontVariantNumeric: "tabular-nums",
+                    userSelect: "none",
+                  }}>
+                    {costPerRoom !== null && costPerRoom > 0
+                      ? `${costPerRoom.toLocaleString("hu-HU")}`
+                      : "—"}
+                  </div>
+                </div>
+
+                {fbEnabled && (
+                  <>
+                    <MonthInput
+                      label="🌅 Reggeli"
+                      unit="%"
+                      value={m.breakfastPct}
+                      step={1}
+                      onBlur={v => updateMonthField(m.month, "breakfastPct", Math.min(100, Math.max(0, v)))}
+                    />
+                    <MonthInput
+                      label="🍽️ Félpanzió"
+                      unit="%"
+                      value={m.halfboardPct}
+                      step={1}
+                      onBlur={v => updateMonthField(m.month, "halfboardPct", Math.min(100, Math.max(0, v)))}
+                    />
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <p style={{ fontSize: 11, color: "#94A3B8", margin: "10px 0 0" }}>
