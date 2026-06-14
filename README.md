@@ -58,7 +58,7 @@ Ha a szálloda nem alanya a TFH-nak (pl. nem szálláshely-szolgáltatás), kapc
 
 ### 1.2 Fix éves költségek
 
-Ez a szekció a szálloda **kihasználtságtól független**, fix terheinek felvételére szolgál. Minden tételt külön sorban adsz meg, éves összegben (Ft). A sorok szabadon bővíthetők, törölhetők és átrendezhetők.
+Ez a szekció a szálloda **kihasználtságtól független**, fix terheinek felvételére szolgál. Minden tételt külön sorban adsz meg, névvel és éves összeggel (Ft/év). A sorok szabadon bővíthetők és törölhetők.
 
 **Tipikus tételek:**
 
@@ -79,61 +79,63 @@ Ez az összeg minden hónap kiadásában megjelenik, függetlenül a kihasznált
 
 ---
 
-### 1.3 F&B (Étkezési) bevételek
+### 1.3 F&B bevételek és önköltség
 
-Ha a szállodában van étkeztetés, ebben a szekcióban adod meg az árakat és az alapértelmezett arányokat.
+Ha a szállodában van étkeztetés, ebben a szekcióban adod meg az árakat, az önköltséget és az alapértelmezett ellátási arányokat. Az ár- és kiadásmezők egymás mellett jelennek meg — így azonnal látod a nettó hatást.
 
 | Mező | Leírás |
 |---|---|
 | F&B bekapcsolva | Be/ki kapcsoló |
-| Reggeli ára (Ft/fő/éj) | A reggeli ellátás nettó ára fejenként |
-| Félpanzió ára (Ft/fő/éj) | A félpanzió nettó ára fejenként |
 | Átlagos vendégszám szobánként | Hány fő tartózkodik átlagosan egy szobában (pl. 1,8) |
-| Alapértelmezett reggeli arány (%) | Ha a havi kártyán nem adod meg, ez az érték kerül alkalmazásra |
-| Alapértelmezett félpanzió arány (%) | Ugyanez félpanzióra |
+| Reggeli ára (Ft/fő/éj) | A reggeli ellátás nettó bevételi ára fejenként |
+| Reggeli önköltség (Ft/fő/éj) | Egy reggeli nyersanyag- / előállítási költsége fejenként |
+| Félpanzió ára (Ft/fő/éj) | A félpanzió nettó bevételi ára fejenként |
+| Félpanzió önköltség (Ft/fő/éj) | Félpanzió önköltsége fejenként |
 
-**Számítás:**
+Az adatok megadása után a rendszer minden sorhoz azonnal megmutatja a szobánkénti nettó hatást (bevétel és kiadás Ft/szoba/éj értékben), a beállított átlagos vendégszám és az alapértelmezett arány alapján.
+
+**Bevétel számítása:**
 
 ```
 F&B bevétel/szoba/éj = Vendégszám × (Reggeli arány × Reggeli ára + Félpanzió arány × Félpanzió ára)
 ```
 
-Ez az érték az ADR-re kerül rá, ha ADR alapon tervez a terv. Ha szobaárbevétel-sort töltesz ki, a rendszer azt veszi figyelembe.
-
----
-
-### 1.4 Egyéb bevételek (ADR %-ában)
-
-Ha a szállodának van spa, éttermi bevétel (nem ellátás), fizetős parkoló, bankett vagy egyéb bevétele, ezeket az ADR százalékában veheted fel.
-
-| Kapcsoló | Leírás |
-|---|---|
-| Egyéb F&B (%) | Étterem, bár forgalma — az ADR X%-a |
-| Spa (%) | Wellness, masszázs — az ADR X%-a |
-| Egyéb bevétel (%) | Minden más — az ADR X%-a |
-
-> **Fontos:** ezek csak az ADR-alapú számításhoz adódnak hozzá. Ha szobaárbevétel-sorral (room revenue) dolgozol, ezek nem kerülnek rá automatikusan — a sor már tartalmaz mindent.
-
----
-
-### 1.5 F&B önköltség (kiadás oldal)
-
-A bevételek mellé az étkeztetés saját önköltségét is megadhatod, hogy valós profit jelenjen meg.
-
-| Mező | Leírás |
-|---|---|
-| Reggeli önköltség (Ft/fő/éj) | Egy reggeli előállítási/nyersanyag-költsége fejenként |
-| Félpanzió önköltség (Ft/fő/éj) | Félpanzió önköltsége fejenként |
-
-**Számítás:**
+**Kiadás számítása:**
 
 ```
 F&B kiadás/szoba/éj = Vendégszám × (Reggeli arány × Reggeli önköltség + Félpanzió arány × Félpanzió önköltség)
 ```
 
+#### Board mix — alapértelmezett arányok
+
+Az F&B szekció alján állíthatod be, hogy alapértelmezésként a vendégek hány %-a veszi igénybe az egyes ellátásokat. Ehhez csúszkák és gyorsgombok (0 / 10 / 25 / 50 / 75 / 100%) állnak rendelkezésre.
+
+| Mező | Leírás |
+|---|---|
+| Alapértelmezett reggeli arány (%) | Ha a havi kártyán nem adod meg külön, ez az érték kerül alkalmazásra |
+| Alapértelmezett félpanzió arány (%) | Ugyanez félpanzióra |
+
+A sávos vizualizáció azonnal mutatja a board mix megoszlását (reggeli / félpanzió / csak szoba), és ügyel arra, hogy a két arány összege ne haladja meg a 100%-ot.
+
 ---
 
-### 1.6 Mosatás
+### 1.4 Egyéb bevételek (ADR %-ában)
+
+Ha a szállodának van spa, éttermi bevétel (nem ellátás), fizetős parkoló, konferencia vagy egyéb bevétele, ezeket az ADR százalékában veheted fel.
+
+| Kapcsoló | Leírás |
+|---|---|
+| Egyéb F&B bevétel (%) | Étterem, bár, room service forgalma — az ADR X%-a |
+| Spa & wellness bevétel (%) | Masszázs, medence, szépségápolás — az ADR X%-a |
+| Egyéb bevétel (%) | Parkoló, áruház, bankett stb. — az ADR X%-a |
+
+Minden kategóriát külön kapcsolóval aktiválhatsz, és megadhatod a százalékot. A rendszer azonnal megmutatja a nettó hatást (pl. 20 000 Ft ADR esetén +X Ft).
+
+> **Fontos:** a spa és az egyéb extra bevételek **nem** képezik alapját az OTA-jutaléknak. A jutalékszámítás kizárólag az ADR + ellátás bevételére vonatkozik.
+
+---
+
+### 1.5 Mosatás
 
 | Mező | Leírás |
 |---|---|
@@ -144,7 +146,7 @@ A mosatás **változó kiadás**: szorzódik a kiadott szobaéjszakák számáva
 
 ---
 
-### 1.7 Jutalék
+### 1.6 Jutalék
 
 | Mező | Leírás |
 |---|---|
@@ -166,14 +168,23 @@ Jutalék/szoba/éj = (ADR + Ellátás bevétele) × Jutalék% × Jutalékos ará
 Jutalék = 32 000 × 0,15 × 0,60 = 2 880 Ft/szoba/éj
 ```
 
-Gyorsgombok az arányhoz: 20% / 40% / 60% / 80% / 100%.
+A rendszer megmutatja az effektív jutalékkulcsot is (jutalék % × jutalékos arány %), amelyet a teljes szobaárbevételre vetítve értelmez.
+
+Gyorsgombok az arányhoz: **20% / 40% / 60% / 80% / 100%**.
 
 ---
 
 ### A teljes kiadásképlet összefoglalva
 
 ```
-Havi kiadás = (Éves fix ÷ 12) + (F&B önköltség + Mosatás + Jutalék) × Kiadott szobaéjszakák
+Változó kiadás/szoba/éj =
+    F&B önköltség (vendégszám × ellátás önköltsége)
+  + Mosatás (Ft/szoba/éj)
+  + Jutalék ((ADR + Ellátás bevétele) × Jutalék% × Jutalékos arány%)
+
+Havi kiadás =
+    Fix/hó (éves fix ÷ 12)
+  + Változó/szoba/éj × Kiadott szobaéjszakák
 ```
 
 Ez a modell helyesen tükrözi a szállodai gazdaságtant: a fix rész állandó (kihasználtságtól független), a változó rész arányosan nő a forgalommal.
@@ -200,14 +211,14 @@ Minden hónaphoz egy kártya tartozik. A kitölthető mezők:
 | Mező | Leírás |
 |---|---|
 | Kihasználtság (%) | Tervezett foglaltság az adott hónapra |
-| ADR (Ft) | Átlagos szobai díj (Average Daily Rate) |
+| ADR (Ft/szoba/éj) | Átlagos szobai díj (Average Daily Rate) |
 | Szobaárbevétel (Ft/szoba/éj) | Opcionális: ha PMS-ből jövő összbevételt adsz meg |
-| Reggeli arány (%) | A vendégek hány %-a veszi igénybe a reggelit |
-| Félpanzió arány (%) | A vendégek hány %-a veszi igénybe a félpanziót |
+| Reggeli arány (%) | A vendégek hány %-a veszi igénybe a reggelit ebben a hónapban |
+| Félpanzió arány (%) | A vendégek hány %-a veszi igénybe a félpanziót ebben a hónapban |
 
 A mezők **fókuszvesztéskor automatikusan mentődnek** — nincs külön Mentés gomb, csak egy diszkrét visszajelzés.
 
-Minden kártyán megjelenik egy **olvasható kiadás/éj érték** (kiadás/szoba/éj az aktuális kihasználtságon), amely automatikusan frissül, ha változtatod a kihasználtságot vagy a beállításokat. Ez a mező nem szerkeszthető.
+Minden kártyán megjelenik egy **olvasható kiadás/szoba/éj érték**, amely automatikusan frissül, ha változtatod a kihasználtságot vagy a beállításokat. Ez a mező nem szerkeszthető.
 
 ---
 
@@ -217,7 +228,7 @@ Ha a legtöbb hónapra azonos ellátási arány érvényes, az **Alapértelmezet
 
 ---
 
-### 2.4 ADR vs. szobaárbevétel — melyiket válassza?
+### 2.4 ADR vs. szobaárbevétel — melyiket válasszam?
 
 | Módszer | Mikor használd |
 |---|---|
@@ -338,7 +349,7 @@ Az alábbi sorrendet ajánljuk minden új szállodánál:
 
 ```
 Ha ADR alapon tervez:
-  Bevétel/szoba/éj = ADR + F&B bevétel + Egyéb bevételek (spa, parking stb.)
+  Bevétel/szoba/éj = ADR + F&B bevétel + Egyéb bevételek (spa, parkoló stb.)
 
 Ha szobaárbevétel-sort töltöttél ki:
   Bevétel/szoba/éj = Szobaárbevétel (mindent tartalmaz)
@@ -371,12 +382,13 @@ Havi profit = Havi bevétel − Havi kiadás − TFH
 ## 8. Tippek a hatékony használathoz
 
 - **Több szcenárió** — Hozz létre alap-, optimista- és pesszimista tervet ugyanarra az évre. Megosztásnál mindig az alaptervet add az ügyfélnek, és ő maga állítja a szimulátort.
-- **Jutalék kalibrálása** — Ha nem tudod pontosan a jutalékos arányt, kezdj 40%-kal, és finomhangold az év előrehaladtával.
+- **Jutalék kalibrálása** — Ha nem tudod pontosan a jutalékos arányt, kezdj 40%-kal, és finomhangold az év előrehaladtával. A gyorsgombok (20/40/60/80/100%) megkönnyítik a gyors becslést.
 - **Fix kiadások tételezése** — Minél részletesebben veszed fel a fix kiadásokat (pl. külön sor bérre, rezsire, bérletre), annál értékesebb a terv az ügyfél számára — látja, hol vannak a valódi fixek.
+- **F&B önköltség** — Ne hagyd üresen: az önköltség nélkül a profit túlzottan optimistának tűnik, és az ügyfél nem fogja érteni, miért kevesebb a valódi margin.
 - **Lejárati dátum** — Mindig állíts be lejáratot a megosztott linkre. Egy tárgyalás utáni terv ne legyen örökre elérhető.
 - **AI összefoglaló** — Generáltatás után olvasd át és egészítsd ki személyes kontextussal. Az AI a számokból indul ki, de a stratégiai ajánláshoz te kellesz.
 
 ---
 
-*HeyMax! · Belső felhasználói kézikönyv*
+*HeyMax! · Felhasználói kézikönyv*
 *Legutóbb frissítve: 2026. június*
