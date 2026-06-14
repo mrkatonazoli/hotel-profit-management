@@ -1645,7 +1645,7 @@ export default function SimplePlanDetailPage() {
                     fontSize: 9, margin: "0 0 2px", textTransform: "uppercase",
                     fontWeight: 600, letterSpacing: "0.04em", color: "#F87171",
                   }}>
-                    Kiadás (Ft/éj)
+                    Kiadás (Ft/szoba/éj)
                   </p>
                   <div style={{
                     width: "100%", boxSizing: "border-box",
