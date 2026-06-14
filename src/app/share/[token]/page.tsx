@@ -280,8 +280,9 @@ export default function SharePage() {
           setPasswordRequired(true);
           // Try sessionStorage cached password first
           if (!pwd) {
-            const cached = sessionStorage.getItem(`share_pwd_${token}`);
-            if (cached) { fetchData(cached); return; }
+            let cached: string | null = null;
+            try { cached = sessionStorage.getItem(`share_pwd_${token}`); } catch { /* ignore */ }
+            if (cached) { fetchData(cached).catch(() => {}); return; }
           }
           return;
         }
@@ -289,7 +290,7 @@ export default function SharePage() {
         return;
       }
       if (!res.ok) { setError("not_found"); return; }
-      if (pwd) sessionStorage.setItem(`share_pwd_${token}`, pwd);
+      if (pwd) { try { sessionStorage.setItem(`share_pwd_${token}`, pwd); } catch { /* ignore */ } }
       setData(await res.json() as ShareData);
     } catch {
       setError("not_found");
@@ -306,19 +307,24 @@ export default function SharePage() {
     if (!passwordInput.trim()) return;
     setPasswordError(false);
     setPasswordChecking(true);
-    const headers: Record<string, string> = { "X-Share-Password": passwordInput };
-    const res = await fetch(`/api/public/share/${token}`, { headers });
-    if (res.status === 401) {
+    try {
+      const headers: Record<string, string> = { "X-Share-Password": passwordInput };
+      const res = await fetch(`/api/public/share/${token}`, { headers });
+      if (res.status === 401) {
+        setPasswordError(true);
+        return;
+      }
+      if (!res.ok) { setError("not_found"); return; }
+      try { sessionStorage.setItem(`share_pwd_${token}`, passwordInput); } catch { /* ignore storage errors */ }
+      const json = await res.json() as ShareData;
+      setData(json);
+      setPasswordRequired(false);
+      setLoading(false);
+    } catch {
       setPasswordError(true);
+    } finally {
       setPasswordChecking(false);
-      return;
     }
-    if (!res.ok) { setError("not_found"); setPasswordChecking(false); return; }
-    sessionStorage.setItem(`share_pwd_${token}`, passwordInput);
-    setData(await res.json() as ShareData);
-    setPasswordRequired(false);
-    setPasswordChecking(false);
-    setLoading(false);
   }
 
   if (loading) {
