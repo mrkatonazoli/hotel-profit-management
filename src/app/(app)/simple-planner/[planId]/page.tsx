@@ -686,8 +686,9 @@ export default function SimplePlanDetailPage() {
   }, []);
 
   // ─── Simulator state ──────────────────────────────────────────────────────
-  const [simOffset, setSimOffset] = useState(0); // global occ % offset
-  const isSimActive = simOffset !== 0;
+  const [simOffset, setSimOffset] = useState(0);  // occ pp offset
+  const [simAdrPct, setSimAdrPct] = useState(0);  // ADR korrekció %
+  const isSimActive = simOffset !== 0 || simAdrPct !== 0;
 
   // ─── Import modal state ───────────────────────────────────────────────────
   const [showImport, setShowImport] = useState(false);
@@ -1039,10 +1040,15 @@ export default function SimplePlanDetailPage() {
     ? (annualCost / annualNetRevenue) * avgOcc
     : null;
 
-  // Simulated calcs — occ offset, fix + változó kiadás automatikusan újraszámolódik
+  // Simulated calcs — occ offset + ADR korrekció, kiadás automatikusan újraszámolódik
   const simMonths: MonthData[] = monthsWithBands.map(m => ({
     ...m,
     occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
+    adr: simAdrPct !== 0 ? Math.round(m.adr * (1 + simAdrPct / 100)) : m.adr,
+    // Ha roomRevenue manuálisan van beírva, azt is arányosan skálázzuk az ADR korrekcióval
+    roomRevenue: simAdrPct !== 0 && m.roomRevenue > 0
+      ? Math.round(m.roomRevenue * (1 + simAdrPct / 100))
+      : m.roomRevenue,
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m =>
     computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb, costs)
@@ -2014,7 +2020,10 @@ export default function SimplePlanDetailPage() {
           value={`${Math.round(isSimActive ? simAvgOcc : avgOcc)}%`}
           color="#35BD78"
           icon={<Bed size={16} />}
-          delta={isSimActive && simOffset !== 0 ? `${simOffset > 0 ? "+" : ""}${simOffset} pp az összes hónapra` : undefined}
+          delta={isSimActive ? [
+            simOffset !== 0 ? `${simOffset > 0 ? "+" : ""}${simOffset} pp occ` : "",
+            simAdrPct !== 0 ? `${simAdrPct > 0 ? "+" : ""}${simAdrPct}% ADR` : "",
+          ].filter(Boolean).join(" · ") || undefined : undefined}
           sub={filledCalcs.length > 0 ? `${filledCalcs.length} hónap alapján` : "nincs adat"}
         />
         <KpiCard
@@ -2106,13 +2115,13 @@ export default function SimplePlanDetailPage() {
                 Élő szimulátor
               </h2>
               <p style={{ fontSize: 12, color: "#94A3B8", margin: 0 }}>
-                Állítsd a kihasználtságot — valós időben látod a hatást (nem menti)
+                Kihasználtság és ADR korrekció — valós időben látod a hatást (nem menti)
               </p>
             </div>
           </div>
           {isSimActive && (
             <button
-              onClick={() => setSimOffset(0)}
+              onClick={() => { setSimOffset(0); setSimAdrPct(0); }}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 background: "#EF4444", border: "none", borderRadius: 10,
@@ -2125,36 +2134,65 @@ export default function SimplePlanDetailPage() {
           )}
         </div>
 
-        {/* Slider */}
-        <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: isSimActive ? 20 : 0 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#64748B", whiteSpace: "nowrap" }}>
-            Kihasználtság módosítás:
-          </span>
-          <div style={{ flex: 1, position: "relative" }}>
-            <input
-              type="range"
-              min={-30}
-              max={30}
-              step={1}
-              value={simOffset}
-              onChange={e => setSimOffset(Number(e.target.value))}
-              style={{ width: "100%", accentColor: "#35BD78", cursor: "pointer", height: 6 }}
-            />
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-              <span style={{ fontSize: 10, color: "#94A3B8" }}>-30%</span>
-              <span style={{ fontSize: 10, color: "#94A3B8" }}>0%</span>
-              <span style={{ fontSize: 10, color: "#94A3B8" }}>+30%</span>
+        {/* Sliders */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: isSimActive ? 20 : 0 }}>
+
+          {/* Kihasználtság slider */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#64748B", whiteSpace: "nowrap", width: 160 }}>
+              Kihasználtság:
+            </span>
+            <div style={{ flex: 1, position: "relative" }}>
+              <input
+                type="range" min={-30} max={30} step={1} value={simOffset}
+                onChange={e => setSimOffset(Number(e.target.value))}
+                style={{ width: "100%", accentColor: "#35BD78", cursor: "pointer", height: 6 }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                <span style={{ fontSize: 10, color: "#94A3B8" }}>-30 pp</span>
+                <span style={{ fontSize: 10, color: "#94A3B8" }}>0</span>
+                <span style={{ fontSize: 10, color: "#94A3B8" }}>+30 pp</span>
+              </div>
+            </div>
+            <div style={{
+              minWidth: 64, textAlign: "center",
+              background: simOffset !== 0 ? "#35BD78" : "#F1F5F9",
+              borderRadius: 10, padding: "6px 12px",
+              fontSize: 16, fontWeight: 800,
+              color: simOffset !== 0 ? "white" : "#94A3B8",
+              transition: "all 0.2s",
+            }}>
+              {simOffset > 0 ? "+" : ""}{simOffset} pp
             </div>
           </div>
-          <div style={{
-            minWidth: 64, textAlign: "center",
-            background: isSimActive ? "#35BD78" : "#F1F5F9",
-            borderRadius: 10, padding: "6px 12px",
-            fontSize: 16, fontWeight: 800,
-            color: isSimActive ? "white" : "#94A3B8",
-            transition: "all 0.2s",
-          }}>
-            {simOffset > 0 ? "+" : ""}{simOffset}%
+
+          {/* ADR korrekció slider */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#64748B", whiteSpace: "nowrap", width: 160 }}>
+              ADR korrekció:
+            </span>
+            <div style={{ flex: 1, position: "relative" }}>
+              <input
+                type="range" min={-30} max={30} step={1} value={simAdrPct}
+                onChange={e => setSimAdrPct(Number(e.target.value))}
+                style={{ width: "100%", accentColor: "#6366F1", cursor: "pointer", height: 6 }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                <span style={{ fontSize: 10, color: "#94A3B8" }}>-30%</span>
+                <span style={{ fontSize: 10, color: "#94A3B8" }}>0%</span>
+                <span style={{ fontSize: 10, color: "#94A3B8" }}>+30%</span>
+              </div>
+            </div>
+            <div style={{
+              minWidth: 64, textAlign: "center",
+              background: simAdrPct !== 0 ? "#6366F1" : "#F1F5F9",
+              borderRadius: 10, padding: "6px 12px",
+              fontSize: 16, fontWeight: 800,
+              color: simAdrPct !== 0 ? "white" : "#94A3B8",
+              transition: "all 0.2s",
+            }}>
+              {simAdrPct > 0 ? "+" : ""}{simAdrPct}%
+            </div>
           </div>
         </div>
 
@@ -2445,6 +2483,7 @@ export default function SimplePlanDetailPage() {
                 const effectiveCostPerRoom = c.roomNights > 0 ? c.cost / c.roomNights : 0;
                 const savedC = calcs[i];
                 const occChanged = isSimActive && m.occupancyPct !== months[i].occupancyPct;
+                const adrChanged = isSimActive && simAdrPct !== 0;
                 return (
                   <tr key={c.month} style={{ borderBottom: "1px solid #F8FAFC", opacity: c.hasData ? 1 : 0.35 }}>
                     <td style={{ padding: "9px 16px", fontWeight: 600, color: "#0F172A" }}>
@@ -2456,7 +2495,7 @@ export default function SimplePlanDetailPage() {
                       </span>
                       {occChanged && (
                         <span style={{ fontSize: 10, color: simOffset > 0 ? "#10B981" : "#EF4444", marginLeft: 4 }}>
-                          ({simOffset > 0 ? "+" : ""}{simOffset}pp)
+                          ({simOffset > 0 ? "+" : ""}{simOffset} pp)
                         </span>
                       )}
                     </td>
@@ -2467,12 +2506,17 @@ export default function SimplePlanDetailPage() {
                       {c.hasData && c.roomNights > 0 ? (
                         <span>
                           <span style={{
-                            color: m.roomRevenue > 0 ? "#35BD78" : "#334155",
-                            fontWeight: m.roomRevenue > 0 ? 700 : 400,
+                            color: adrChanged ? "#6366F1" : m.roomRevenue > 0 ? "#35BD78" : "#334155",
+                            fontWeight: adrChanged || m.roomRevenue > 0 ? 700 : 400,
                           }}>
                             {fmt(Math.round(c.revenue / c.roomNights))} Ft
                           </span>
-                          {m.roomRevenue === 0 && fbEnabled && (
+                          {adrChanged && (
+                            <span style={{ fontSize: 9, color: simAdrPct > 0 ? "#6366F1" : "#EF4444", marginLeft: 4 }}>
+                              ({simAdrPct > 0 ? "+" : ""}{simAdrPct}%)
+                            </span>
+                          )}
+                          {!adrChanged && m.roomRevenue === 0 && fbEnabled && (
                             <span style={{ fontSize: 9, color: "#10B981", marginLeft: 4, fontWeight: 700 }}>+F&B</span>
                           )}
                         </span>
