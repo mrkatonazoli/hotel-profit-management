@@ -25,20 +25,28 @@ type MonthData = {
   occupancyPct: number; roomRevenue: number; monthlyCost: number;
   breakfastPct: number; halfboardPct: number;
 };
-type CostBand = { fromOccPct: number; toOccPct: number; costPerRoom: number };
 type ShareData = {
   plan: { id: string; name: string; year: number; shareSummary: string | null; shareExpiresAt: string | null };
   hotel: { name: string; totalRooms: number | null };
   months: MonthData[];
   settings: {
-    tfhEnabled: boolean; tfhRate: number; costBands: CostBand[];
+    tfhEnabled: boolean; tfhRate: number;
     fbEnabled: boolean; breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
     defaultBreakfastPct: number; defaultHalfboardPct: number;
     fbOtherEnabled: boolean; fbOtherPct: number;
     spaEnabled: boolean; spaPct: number;
     otherRevenueEnabled: boolean; otherRevenuePct: number;
+    annualFixedCost: number;
+    breakfastCost: number; halfboardCost: number;
+    laundryEnabled: boolean; laundryPerRoom: number;
+    commissionEnabled: boolean; commissionPct: number; commissionBookingsPct: number;
   };
-  // boardMix eltávolítva — breakfastPct/halfboardPct havi szinten van a months-ban
+};
+type CostParams = {
+  annualFixedCost: number;
+  breakfastCost: number; halfboardCost: number; avgPaxPerRoom: number;
+  laundryEnabled: boolean; laundryPerRoom: number;
+  commissionEnabled: boolean; commissionPct: number; commissionBookingsPct: number;
 };
 type MonthCalc = {
   month: number; daysInMonth: number; roomNights: number;
@@ -55,28 +63,21 @@ function fmtM(n: number) {
   return fmt(n);
 }
 function getDaysInMonth(month: number, year: number) { return new Date(year, month, 0).getDate(); }
-function getCostFromBands(occupancyPct: number, costBands: CostBand[]): number | null {
-  if (costBands.length === 0) return null;
-  const band = costBands.find(b => occupancyPct >= b.fromOccPct && occupancyPct <= b.toOccPct);
-  return band ? band.costPerRoom : null;
-}
+
 type FbParams = {
   enabled: boolean;
-  // breakfastPct/halfboardPct most havi szinten van (MonthData-ban)
   breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
   fbOtherEnabled: boolean; fbOtherPct: number;
   spaEnabled: boolean; spaPct: number;
   otherRevenueEnabled: boolean; otherRevenuePct: number;
 };
 
-function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate: number, costBands: CostBand[], fb?: FbParams): MonthCalc {
+function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate: number, fb?: FbParams, costs?: CostParams): MonthCalc {
   const days = getDaysInMonth(m.month, year);
   const availableNights = totalRooms * days;
-  const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
+  const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0;
   const roomNights = (m.occupancyPct / 100) * availableNights;
-  const effectiveCost = m.monthlyCost > 0 ? m.monthlyCost : (getCostFromBands(m.occupancyPct, costBands) ?? 0);
 
-  // F&B board supplement — havi mix %-ok alapján (m.breakfastPct, m.halfboardPct)
   let boardPerRoomNight = 0;
   if (fb?.enabled && m.roomRevenue === 0) {
     boardPerRoomNight = fb.avgPaxPerRoom * (
@@ -84,8 +85,6 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
       (m.halfboardPct / 100) * fb.halfboardPrice
     );
   }
-
-  // Egyéb bevételek: ADR %-a
   let extraRevPerRoomNight = 0;
   if (m.roomRevenue === 0 && fb) {
     const extraPct =
@@ -94,22 +93,34 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
       (fb.otherRevenueEnabled ? fb.otherRevenuePct : 0);
     extraRevPerRoomNight = m.adr * (extraPct / 100);
   }
-
   const revenuePerRoomNight = m.roomRevenue > 0
     ? m.roomRevenue
     : m.adr + boardPerRoomNight + extraRevPerRoomNight;
   const revenue = revenuePerRoomNight * roomNights;
 
-  const cost = effectiveCost * roomNights;
+  // Jutalék alapja: ADR + ellátás (egyéb % nélkül)
+  const commissionableRevPerRoomNight = m.roomRevenue > 0 ? m.roomRevenue : m.adr + boardPerRoomNight;
+
+  let cost = 0;
+  if (costs) {
+    const fixedPerMonth = costs.annualFixedCost / 12;
+    const fbCostPerRoomNight = costs.avgPaxPerRoom * (
+      (m.breakfastPct / 100) * costs.breakfastCost +
+      (m.halfboardPct / 100) * costs.halfboardCost
+    );
+    const laundryCostPerRoomNight = costs.laundryEnabled ? costs.laundryPerRoom : 0;
+    const commissionCostPerRoomNight = costs.commissionEnabled
+      ? commissionableRevPerRoomNight * (costs.commissionPct / 100) * (costs.commissionBookingsPct / 100)
+      : 0;
+    cost = fixedPerMonth + (fbCostPerRoomNight + laundryCostPerRoomNight + commissionCostPerRoomNight) * roomNights;
+  }
+
   const tfh = revenue * (tfhRate / 100);
   const profit = revenue - cost - tfh;
   const margin = revenue > 0 ? (profit / revenue) * 100 : null;
   const netRevenue = revenue - tfh;
-  const unitRate = revenuePerRoomNight;
-  const breakeven = netRevenue > 0 && m.occupancyPct > 0
+  const breakeven = netRevenue > 0 && cost > 0 && m.occupancyPct > 0
     ? (cost / netRevenue) * m.occupancyPct
-    : unitRate > 0 && effectiveCost > 0
-    ? (effectiveCost / (unitRate * (1 - tfhRate / 100))) * 100
     : null;
   return { month: m.month, daysInMonth: days, roomNights, revenue, cost, tfh, profit, margin, breakeven, hasData };
 }
@@ -250,6 +261,7 @@ export default function SharePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<"not_found" | "expired" | null>(null);
   const [simOffset, setSimOffset] = useState(0);
+  const [simAdrPct, setSimAdrPct] = useState(0);
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
@@ -477,7 +489,6 @@ export default function SharePage() {
     otherRevenuePct: settings.otherRevenuePct,
   };
 
-  // Ha egy hónapnál nincs saját board mix (0/0) → settings alapértelmezettjeit használjuk
   function applyBoardDefaults(m: MonthData): MonthData {
     if (
       settings.fbEnabled &&
@@ -489,17 +500,22 @@ export default function SharePage() {
     return m;
   }
 
-  const monthsWithBands = months.map(m => {
-    let updated = applyBoardDefaults(m);
-    if (updated.monthlyCost === 0) {
-      const bandCost = getCostFromBands(updated.occupancyPct, settings.costBands);
-      if (bandCost !== null) updated = { ...updated, monthlyCost: bandCost };
-    }
-    return updated;
-  });
+  const monthsWithDefaults = months.map(m => applyBoardDefaults(m));
 
-  const calcs: MonthCalc[] = monthsWithBands.map(m =>
-    computeMonthCalc(m, totalRooms, plan.year, effectiveTfhRate, settings.costBands, fb)
+  const costs: CostParams = {
+    annualFixedCost: settings.annualFixedCost,
+    breakfastCost: settings.breakfastCost,
+    halfboardCost: settings.halfboardCost,
+    avgPaxPerRoom: settings.avgPaxPerRoom,
+    laundryEnabled: settings.laundryEnabled,
+    laundryPerRoom: settings.laundryPerRoom,
+    commissionEnabled: settings.commissionEnabled,
+    commissionPct: settings.commissionPct,
+    commissionBookingsPct: settings.commissionBookingsPct,
+  };
+
+  const calcs: MonthCalc[] = monthsWithDefaults.map(m =>
+    computeMonthCalc(m, totalRooms, plan.year, effectiveTfhRate, fb, costs)
   );
   const filledCalcs = calcs.filter(c => c.hasData);
 
@@ -518,7 +534,7 @@ export default function SharePage() {
   const totalFilledRoomNights = filledCalcs.reduce((s, c) => s + c.roomNights, 0);
   const weightedAvgAdr = totalFilledRoomNights > 0
     ? filledCalcs.reduce((s, c) => {
-        const m = monthsWithBands.find(mm => mm.month === c.month);
+        const m = monthsWithDefaults.find(mm => mm.month === c.month);
         return s + (m?.adr ?? 0) * c.roomNights;
       }, 0) / totalFilledRoomNights
     : 0;
@@ -526,13 +542,17 @@ export default function SharePage() {
     ? annualRevenue / totalFilledRoomNights
     : 0;
 
-  const isSimActive = simOffset !== 0;
-  const simMonths = months.map(m => ({
-    ...applyBoardDefaults(m),
+  const isSimActive = simOffset !== 0 || simAdrPct !== 0;
+  const simMonths = monthsWithDefaults.map(m => ({
+    ...m,
     occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
+    adr: simAdrPct !== 0 ? Math.round(m.adr * (1 + simAdrPct / 100)) : m.adr,
+    roomRevenue: simAdrPct !== 0 && m.roomRevenue > 0
+      ? Math.round(m.roomRevenue * (1 + simAdrPct / 100))
+      : m.roomRevenue,
   }));
   const simCalcs: MonthCalc[] = simMonths.map(m =>
-    computeMonthCalc(m, totalRooms, plan.year, effectiveTfhRate, settings.costBands, fb)
+    computeMonthCalc(m, totalRooms, plan.year, effectiveTfhRate, fb, costs)
   );
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
   const simAnnualRevenue = simCalcs.reduce((s, c) => s + c.revenue, 0);
@@ -738,14 +758,17 @@ export default function SharePage() {
                 </h2>
                 <p style={{ fontSize: 12, color: isSimActive ? "#35BD78" : "#94A3B8", margin: "3px 0 0", fontWeight: 600, transition: "color 0.3s" }}>
                   {isSimActive
-                    ? `${simOffset > 0 ? "+" : ""}${simOffset} pp módosítás aktív — az összes szám valós időben frissül`
-                    : "Állítsd a csúszkát és nézd meg, hogyan változna az éves eredmény"}
+                    ? [
+                        simOffset !== 0 ? `${simOffset > 0 ? "+" : ""}${simOffset} pp occ` : "",
+                        simAdrPct !== 0 ? `${simAdrPct > 0 ? "+" : ""}${simAdrPct}% ADR` : "",
+                      ].filter(Boolean).join(" · ") + " — az összes szám valós időben frissül"
+                    : "Állítsd a csúszkákat és nézd meg, hogyan változna az éves eredmény"}
                 </p>
               </div>
             </div>
             {isSimActive && (
               <button
-                onClick={() => setSimOffset(0)}
+                onClick={() => { setSimOffset(0); setSimAdrPct(0); }}
                 style={{
                   fontSize: 12, fontWeight: 700,
                   color: "#35BD78", background: "white",
@@ -760,63 +783,87 @@ export default function SharePage() {
             )}
           </div>
 
-          {/* ── Csúszka ── */}
+          {/* ── Csúszkák ── */}
           <div style={{
-            padding: "28px 32px 24px",
+            padding: "24px 32px",
             borderBottom: "1px solid #F1F5F9",
             background: isSimActive ? "#FDFCFF" : "white",
             transition: "background 0.3s",
+            display: "flex", flexDirection: "column", gap: 20,
           }}>
+            {/* Kihasználtság slider */}
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase" }}>Pesszimista</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: isSimActive ? "#35BD78" : "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase", transition: "color 0.3s" }}>
-                    {isSimActive ? `${simOffset > 0 ? "+" : ""}${simOffset} pp a tervhez képest` : "◆ Alapterv"}
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#64748B", whiteSpace: "nowrap", width: 140, flexShrink: 0 }}>
+                Kihasználtság:
+              </span>
+              <div style={{ flex: 1, position: "relative" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Pesszimista</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: simOffset !== 0 ? "#35BD78" : "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", transition: "color 0.3s" }}>
+                    {simOffset !== 0 ? `${simOffset > 0 ? "+" : ""}${simOffset} pp` : "Alapterv"}
                   </span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.05em", textTransform: "uppercase" }}>Optimista</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Optimista</span>
                 </div>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type="range"
-                    min={-30} max={30} step={1}
-                    value={simOffset}
-                    onChange={e => setSimOffset(Number(e.target.value))}
-                    style={{ width: "100%", accentColor: "#35BD78", cursor: "pointer", height: 6 }}
-                  />
-                  {/* center tick */}
-                  <div style={{
-                    position: "absolute", top: "50%", left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: 2, height: 16,
-                    background: isSimActive ? "rgba(53,189,120,0.4)" : "#E2E8F0",
-                    borderRadius: 1, pointerEvents: "none",
-                    transition: "background 0.3s",
-                  }} />
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                <input
+                  type="range" min={-30} max={30} step={1} value={simOffset}
+                  onChange={e => setSimOffset(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "#35BD78", cursor: "pointer", height: 6 }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
                   <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>−30 pp</span>
                   <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>0</span>
                   <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>+30 pp</span>
                 </div>
               </div>
-              {/* Live értékkijelző */}
               <div style={{
-                minWidth: 90, textAlign: "center",
-                background: isSimActive
-                  ? "linear-gradient(135deg, #35BD78, #03915A)"
-                  : "#F1F5F9",
-                borderRadius: 16, padding: "14px 18px",
-                fontSize: 26, fontWeight: 900,
-                color: isSimActive ? "white" : "#CBD5E1",
-                letterSpacing: "-0.03em",
-                boxShadow: isSimActive ? "0 4px 16px rgba(53,189,120,0.3)" : "none",
-                transition: "all 0.25s",
-                lineHeight: 1,
-                flexShrink: 0,
+                minWidth: 72, textAlign: "center",
+                background: simOffset !== 0 ? "linear-gradient(135deg, #35BD78, #03915A)" : "#F1F5F9",
+                borderRadius: 12, padding: "10px 14px",
+                fontSize: 20, fontWeight: 900,
+                color: simOffset !== 0 ? "white" : "#CBD5E1",
+                boxShadow: simOffset !== 0 ? "0 4px 12px rgba(53,189,120,0.3)" : "none",
+                transition: "all 0.25s", lineHeight: 1, flexShrink: 0,
               }}>
-                {isSimActive ? (simOffset > 0 ? "+" : "") + simOffset : "0"}
-                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, opacity: 0.75, letterSpacing: "0.05em" }}>pp</div>
+                {simOffset > 0 ? "+" : ""}{simOffset}
+                <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, opacity: 0.8 }}>pp</div>
+              </div>
+            </div>
+
+            {/* ADR korrekció slider */}
+            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#64748B", whiteSpace: "nowrap", width: 140, flexShrink: 0 }}>
+                ADR korrekció:
+              </span>
+              <div style={{ flex: 1, position: "relative" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Alacsonyabb</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: simAdrPct !== 0 ? "#6366F1" : "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", transition: "color 0.3s" }}>
+                    {simAdrPct !== 0 ? `${simAdrPct > 0 ? "+" : ""}${simAdrPct}% ADR` : "Változatlan"}
+                  </span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Magasabb</span>
+                </div>
+                <input
+                  type="range" min={-30} max={30} step={1} value={simAdrPct}
+                  onChange={e => setSimAdrPct(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "#6366F1", cursor: "pointer", height: 6 }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>−30%</span>
+                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>0%</span>
+                  <span style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600 }}>+30%</span>
+                </div>
+              </div>
+              <div style={{
+                minWidth: 72, textAlign: "center",
+                background: simAdrPct !== 0 ? "linear-gradient(135deg, #6366F1, #4F46E5)" : "#F1F5F9",
+                borderRadius: 12, padding: "10px 14px",
+                fontSize: 20, fontWeight: 900,
+                color: simAdrPct !== 0 ? "white" : "#CBD5E1",
+                boxShadow: simAdrPct !== 0 ? "0 4px 12px rgba(99,102,241,0.3)" : "none",
+                transition: "all 0.25s", lineHeight: 1, flexShrink: 0,
+              }}>
+                {simAdrPct > 0 ? "+" : ""}{simAdrPct}
+                <div style={{ fontSize: 10, fontWeight: 700, marginTop: 3, opacity: 0.8 }}>%</div>
               </div>
             </div>
           </div>
@@ -1497,10 +1544,10 @@ export default function SharePage() {
           </div>
         </div>
 
-        {/* ── Planning details: monthly prices + cost bands ── */}
+        {/* ── Planning details: monthly prices ── */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: settings.costBands.length > 0 ? "1fr 340px" : "1fr",
+          gridTemplateColumns: "1fr",
           gap: 16,
           marginBottom: 24,
           alignItems: "start",
@@ -1612,105 +1659,6 @@ export default function SharePage() {
             </div>
           </div>
 
-          {/* Cost bands */}
-          {settings.costBands.length > 0 && (
-            <div style={{
-              background: "white", borderRadius: 18,
-              border: "1px solid #E2E8F0",
-              boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-              overflow: "hidden",
-            }}>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "14px 24px",
-                borderBottom: "1px solid #F1F5F9",
-                background: "#FAFAFA",
-              }}>
-                <span style={{ fontSize: 16 }}>📊</span>
-                <div>
-                  <h2 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>
-                    Kiadási sávok
-                  </h2>
-                  <p style={{ fontSize: 11, color: "#94A3B8", margin: "2px 0 0", fontWeight: 500 }}>
-                    Kiadás/szoba/éj kihasználtság szerint
-                  </p>
-                </div>
-              </div>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-                    <th style={{
-                      padding: "10px 24px", textAlign: "left",
-                      fontSize: 10, fontWeight: 700, color: "#94A3B8",
-                      textTransform: "uppercase", letterSpacing: "0.07em",
-                    }}>Kihasználtság sáv</th>
-                    <th style={{
-                      padding: "10px 16px 10px 0", textAlign: "right",
-                      fontSize: 10, fontWeight: 700, color: "#94A3B8",
-                      textTransform: "uppercase", letterSpacing: "0.07em",
-                    }}>Kiadás / szoba / éj</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {settings.costBands.map((band, i) => {
-                    // Check which months fall into this band
-                    const matchingMonths = months.filter(m =>
-                      calcs.find(c => c.month === m.month)?.hasData &&
-                      m.occupancyPct >= band.fromOccPct &&
-                      m.occupancyPct <= band.toOccPct
-                    );
-                    return (
-                      <tr key={i} style={{
-                        borderBottom: "1px solid #F8FAFC",
-                        background: i % 2 === 0 ? "white" : "#FAFBFC",
-                      }}>
-                        <td style={{ padding: "10px 24px" }}>
-                          <div style={{
-                            display: "inline-flex", alignItems: "center", gap: 6,
-                            background: "#FBFBFC", borderRadius: 8,
-                            padding: "4px 10px",
-                          }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: "#35BD78", fontVariantNumeric: "tabular-nums" }}>
-                              {band.fromOccPct}% – {band.toOccPct}%
-                            </span>
-                          </div>
-                          {matchingMonths.length > 0 && (
-                            <div style={{ marginTop: 5, display: "flex", flexWrap: "wrap", gap: 3 }}>
-                              {matchingMonths.map(m => (
-                                <span key={m.month} style={{
-                                  fontSize: 10, fontWeight: 600,
-                                  color: "#64748B", background: "#F1F5F9",
-                                  borderRadius: 5, padding: "1px 6px",
-                                }}>
-                                  {HU_MONTHS_SHORT[m.month - 1]}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{
-                          padding: "10px 16px 10px 0", textAlign: "right",
-                          fontVariantNumeric: "tabular-nums",
-                          fontWeight: 700, color: "#0F172A", fontSize: 14,
-                        }}>
-                          {fmt(band.costPerRoom)} Ft
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              <div style={{
-                padding: "10px 24px",
-                borderTop: "1px solid #F1F5F9",
-                background: "#FAFAFA",
-              }}>
-                <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, lineHeight: 1.6 }}>
-                  A kiadás az adott hónapban <strong style={{ color: "#64748B" }}>kiadott szobaéjszakák</strong> száma alapján kerül kiszámításra.
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* ── Footer ── */}
