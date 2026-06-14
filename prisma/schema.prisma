@@ -564,6 +564,9 @@ model SimplePlannerSettings {
   halfboardCost       Float    @default(0)     // félpanzió önköltség Ft/fő/éj (kiadás)
   laundryEnabled      Boolean  @default(false) // mosatás változó költség bekapcsolva?
   laundryPerRoom      Float    @default(0)     // mosatás Ft/szoba/éj
+  commissionEnabled   Boolean  @default(false) // jutalék változó kiadás bekapcsolva?
+  commissionPct       Float    @default(0)     // átlagos jutalék mértéke %
+  commissionBookingsPct Float  @default(100)   // foglalások hány %-a jutalékos
   hotel               Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   fixedCosts          SimplePlannerFixedCost[]
 }

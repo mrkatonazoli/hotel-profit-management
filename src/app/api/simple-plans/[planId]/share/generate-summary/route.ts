@@ -49,6 +49,9 @@ export async function POST(_req: Request, { params }: Params) {
   const halfboardCost = settings?.halfboardCost ?? 0;
   const laundryEnabled = settings?.laundryEnabled ?? false;
   const laundryPerRoom = settings?.laundryPerRoom ?? 0;
+  const commissionEnabled = settings?.commissionEnabled ?? false;
+  const commissionPct = settings?.commissionPct ?? 0;
+  const commissionBookingsPct = settings?.commissionBookingsPct ?? 100;
 
   // Build monthly summary lines
   let monthLines = "";
@@ -66,14 +69,18 @@ export async function POST(_req: Request, { params }: Params) {
     const days = getDaysInMonth(m.month, year);
     const availableNights = totalRooms * days;
     const roomNights = (m.occupancyPct / 100) * availableNights;
-    const revenue = m.roomRevenue > 0 ? m.roomRevenue * roomNights : roomNights * m.adr;
+    const revenuePerRoomNight = m.roomRevenue > 0 ? m.roomRevenue : m.adr;
+    const revenue = revenuePerRoomNight * roomNights;
     const fixedPerMonth = annualFixedCost / 12;
     const fbCostPerRoomNight = avgPaxPerRoom * (
       ((m.breakfastPct ?? 0) / 100) * breakfastCost +
       ((m.halfboardPct ?? 0) / 100) * halfboardCost
     );
     const laundryCost = laundryEnabled ? laundryPerRoom : 0;
-    const cost = fixedPerMonth + (fbCostPerRoomNight + laundryCost) * roomNights;
+    const commissionCost = commissionEnabled
+      ? revenuePerRoomNight * (commissionPct / 100) * (commissionBookingsPct / 100)
+      : 0;
+    const cost = fixedPerMonth + (fbCostPerRoomNight + laundryCost + commissionCost) * roomNights;
     const effectiveCostPerRoom = roomNights > 0 ? cost / roomNights : 0;
     const tfh = tfhEnabled ? revenue * (tfhRate / 100) : 0;
     const profit = revenue - cost - tfh;

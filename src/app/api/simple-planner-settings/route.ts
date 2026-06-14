@@ -39,6 +39,7 @@ export async function PUT(req: Request) {
     defaultBreakfastPct, defaultHalfboardPct,
     fbOtherEnabled, fbOtherPct, spaEnabled, spaPct, otherRevenueEnabled, otherRevenuePct,
     laundryEnabled, laundryPerRoom,
+    commissionEnabled, commissionPct, commissionBookingsPct,
   } = body as {
     fixedCosts?: { label: string; annualAmount: number; sortOrder?: number }[];
     tfhEnabled?: boolean;
@@ -59,6 +60,9 @@ export async function PUT(req: Request) {
     otherRevenuePct?: number;
     laundryEnabled?: boolean;
     laundryPerRoom?: number;
+    commissionEnabled?: boolean;
+    commissionPct?: number;
+    commissionBookingsPct?: number;
   };
 
   let settings = await prisma.simplePlannerSettings.upsert({
@@ -83,6 +87,9 @@ export async function PUT(req: Request) {
       otherRevenuePct: otherRevenuePct ?? 0,
       laundryEnabled: laundryEnabled ?? false,
       laundryPerRoom: laundryPerRoom ?? 0,
+      commissionEnabled: commissionEnabled ?? false,
+      commissionPct: commissionPct ?? 0,
+      commissionBookingsPct: commissionBookingsPct ?? 100,
     },
     update: {
       ...(tfhEnabled !== undefined && { tfhEnabled }),
@@ -103,6 +110,9 @@ export async function PUT(req: Request) {
       ...(otherRevenuePct !== undefined && { otherRevenuePct }),
       ...(laundryEnabled !== undefined && { laundryEnabled }),
       ...(laundryPerRoom !== undefined && { laundryPerRoom }),
+      ...(commissionEnabled !== undefined && { commissionEnabled }),
+      ...(commissionPct !== undefined && { commissionPct }),
+      ...(commissionBookingsPct !== undefined && { commissionBookingsPct }),
     },
     include,
   });

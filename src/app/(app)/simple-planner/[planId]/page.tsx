@@ -82,12 +82,15 @@ type FbParams = {
 };
 
 type CostParams = {
-  annualFixedCost: number;   // összes fix éves költség → ÷12 = havi fix
-  breakfastCost: number;     // reggeli önköltség Ft/fő/éj
-  halfboardCost: number;     // félpanzió önköltség Ft/fő/éj
+  annualFixedCost: number;
+  breakfastCost: number;
+  halfboardCost: number;
   avgPaxPerRoom: number;
   laundryEnabled: boolean;
-  laundryPerRoom: number;    // mosatás Ft/szoba/éj
+  laundryPerRoom: number;
+  commissionEnabled: boolean;
+  commissionPct: number;          // átlagos jutalék %
+  commissionBookingsPct: number;  // jutalékos foglalások aránya %
 };
 
 function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate = 0, fb?: FbParams, costs?: CostParams): MonthCalc {
@@ -117,7 +120,7 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
     : m.adr + boardPerRoomNight + extraRevPerRoomNight;
   const revenue = revenuePerRoomNight * roomNights;
 
-  // Kiadás: fix (éves÷12) + változó (F&B önköltség + mosatás) × roomNights
+  // Kiadás: fix (éves÷12) + változó (F&B önköltség + mosatás + jutalék) × roomNights
   let cost = 0;
   if (costs) {
     const fixedPerMonth = costs.annualFixedCost / 12;
@@ -126,7 +129,10 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
       (m.halfboardPct / 100) * costs.halfboardCost
     );
     const laundryCostPerRoomNight = costs.laundryEnabled ? costs.laundryPerRoom : 0;
-    const variablePerRoomNight = fbCostPerRoomNight + laundryCostPerRoomNight;
+    const commissionCostPerRoomNight = costs.commissionEnabled
+      ? revenuePerRoomNight * (costs.commissionPct / 100) * (costs.commissionBookingsPct / 100)
+      : 0;
+    const variablePerRoomNight = fbCostPerRoomNight + laundryCostPerRoomNight + commissionCostPerRoomNight;
     cost = fixedPerMonth + variablePerRoomNight * roomNights;
   }
 
@@ -621,6 +627,9 @@ export default function SimplePlanDetailPage() {
   const [halfboardCost, setHalfboardCost] = useState(0);
   const [laundryEnabled, setLaundryEnabled] = useState(false);
   const [laundryPerRoom, setLaundryPerRoom] = useState(0);
+  const [commissionEnabled, setCommissionEnabled] = useState(false);
+  const [commissionPct, setCommissionPct] = useState(0);
+  const [commissionBookingsPct, setCommissionBookingsPct] = useState(100);
   const [savingRevenues, setSavingRevenues] = useState(false);
   const [boardMixDirty, setBoardMixDirty] = useState(false);
 
@@ -637,6 +646,7 @@ export default function SimplePlanDetailPage() {
         otherRevenueEnabled?: boolean; otherRevenuePct?: number;
         breakfastCost?: number; halfboardCost?: number;
         laundryEnabled?: boolean; laundryPerRoom?: number;
+        commissionEnabled?: boolean; commissionPct?: number; commissionBookingsPct?: number;
         fixedCosts?: { annualAmount: number }[];
       } | null) => {
         if (!data) return;
@@ -661,6 +671,9 @@ export default function SimplePlanDetailPage() {
         if (data.halfboardCost !== undefined) setHalfboardCost(data.halfboardCost);
         if (data.laundryEnabled !== undefined) setLaundryEnabled(data.laundryEnabled);
         if (data.laundryPerRoom !== undefined) setLaundryPerRoom(data.laundryPerRoom);
+        if (data.commissionEnabled !== undefined) setCommissionEnabled(data.commissionEnabled);
+        if (data.commissionPct !== undefined) setCommissionPct(data.commissionPct);
+        if (data.commissionBookingsPct !== undefined) setCommissionBookingsPct(data.commissionBookingsPct);
         if (data.fixedCosts?.length) {
           setAnnualFixedCost(data.fixedCosts.reduce((s, fc) => s + fc.annualAmount, 0));
         }
@@ -981,6 +994,9 @@ export default function SimplePlanDetailPage() {
     avgPaxPerRoom,
     laundryEnabled,
     laundryPerRoom,
+    commissionEnabled,
+    commissionPct,
+    commissionBookingsPct,
   };
 
   // Saved calcs (TFH + cost params)

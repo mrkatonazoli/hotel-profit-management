@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, Trash2, Save, Loader2, Check,
-  Settings2, Landmark, Utensils, Users, WashingMachine,
+  Settings2, Landmark, Utensils, Users, WashingMachine, Percent,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -35,6 +35,9 @@ type Settings = {
   otherRevenuePct: number;
   laundryEnabled: boolean;
   laundryPerRoom: number;
+  commissionEnabled: boolean;
+  commissionPct: number;
+  commissionBookingsPct: number;
   fixedCosts: FixedCost[];
 };
 
@@ -144,6 +147,9 @@ export default function SimplePlannerSettingsPage() {
   const [halfboardCost, setHalfboardCost] = useState(0);
   const [laundryEnabled, setLaundryEnabled] = useState(false);
   const [laundryPerRoom, setLaundryPerRoom] = useState(0);
+  const [commissionEnabled, setCommissionEnabled] = useState(false);
+  const [commissionPct, setCommissionPct] = useState(0);
+  const [commissionBookingsPct, setCommissionBookingsPct] = useState(100);
 
   // ─── Load ──────────────────────────────────────────────────────────────────
 
@@ -170,6 +176,9 @@ export default function SimplePlannerSettingsPage() {
           setOtherRevenuePct(data.otherRevenuePct ?? 0);
           setLaundryEnabled(data.laundryEnabled ?? false);
           setLaundryPerRoom(data.laundryPerRoom ?? 0);
+          setCommissionEnabled(data.commissionEnabled ?? false);
+          setCommissionPct(data.commissionPct ?? 0);
+          setCommissionBookingsPct(data.commissionBookingsPct ?? 100);
           setFixedCosts(data.fixedCosts ?? []);
         }
       })
@@ -192,6 +201,7 @@ export default function SimplePlannerSettingsPage() {
           defaultBreakfastPct, defaultHalfboardPct,
           fbOtherEnabled, fbOtherPct, spaEnabled, spaPct, otherRevenueEnabled, otherRevenuePct,
           laundryEnabled, laundryPerRoom,
+          commissionEnabled, commissionPct, commissionBookingsPct,
           fixedCosts: fixedCosts.map((fc, i) => ({ ...fc, sortOrder: i })),
         }),
       });
@@ -692,6 +702,101 @@ export default function SimplePlannerSettingsPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* BLOKK 3b — Jutalék (változó kiadás) */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
+      <div style={{
+        background: "white", border: `1px solid ${commissionEnabled ? "#DDD6FE" : "#E2E8F0"}`,
+        borderRadius: 20, padding: "24px", marginBottom: 20,
+        transition: "border-color 0.2s",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: commissionEnabled ? "#EDE9FE" : "#F1F5F9",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.2s",
+            }}>
+              <Percent size={15} color={commissionEnabled ? "#7C3AED" : "#94A3B8"} />
+            </div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+              Jutalék — változó kiadás
+            </h2>
+          </div>
+          <Toggle enabled={commissionEnabled} onToggle={() => setCommissionEnabled(v => !v)} activeColor="#7C3AED" />
+        </div>
+
+        <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
+          A jutalék az ADR + ellátás árából (szobaárbevételből) számolódik, csak a jutalékos foglalásokra.
+          Marketing és egyéb fix éves kiadások a „Fix éves költségek" blokkban adhatók meg.
+        </p>
+
+        <div style={{
+          display: "flex", flexDirection: "column", gap: 14,
+          opacity: commissionEnabled ? 1 : 0.4, transition: "opacity 0.2s",
+          pointerEvents: commissionEnabled ? "auto" : "none",
+        }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+
+            {/* Jutalék mértéke */}
+            <div style={{ background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 14, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: "#7C3AED", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Percent size={14} color="white" />
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#4C1D95", margin: 0 }}>Átlagos jutalék mértéke</p>
+              </div>
+              <NumInput value={commissionPct} onChange={setCommissionPct} min={0} max={50} step={0.5} suffix="%" width={80} />
+              {commissionPct > 0 && (
+                <p style={{ fontSize: 11, color: "#7C3AED", margin: "6px 0 0", fontWeight: 600 }}>
+                  pl. 20 000 Ft/szoba/éj → −{Math.round(20000 * commissionPct / 100).toLocaleString("hu-HU")} Ft jutalék
+                </p>
+              )}
+            </div>
+
+            {/* Jutalékos foglalások aránya */}
+            <div style={{ background: "#FAF5FF", border: "1px solid #E9D5FF", borderRadius: 14, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: "#9333EA", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 14 }}>🔗</span>
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#581C87", margin: 0 }}>Jutalékos foglalások aránya</p>
+              </div>
+              <NumInput value={commissionBookingsPct} onChange={setCommissionBookingsPct} min={0} max={100} step={1} suffix="%" width={80} />
+              <div style={{ display: "flex", gap: 3, marginTop: 8 }}>
+                {[20, 40, 60, 80, 100].map(v => (
+                  <button key={v} onClick={() => setCommissionBookingsPct(v)}
+                    style={{ flex: 1, fontSize: 9, fontWeight: 700, padding: "3px 0", borderRadius: 5, cursor: "pointer", border: "none", background: commissionBookingsPct === v ? "#9333EA" : "#EDE9FE", color: commissionBookingsPct === v ? "white" : "#6B21A8" }}>
+                    {v}%
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Összefoglaló számítás */}
+          {commissionPct > 0 && commissionBookingsPct > 0 && (
+            <div style={{
+              background: "#EDE9FE", border: "1px solid #DDD6FE",
+              borderRadius: 12, padding: "12px 16px",
+              display: "flex", alignItems: "center", gap: 12,
+            }}>
+              <span style={{ fontSize: 20 }}>📊</span>
+              <div style={{ fontSize: 12, color: "#4C1D95", lineHeight: 1.7 }}>
+                <strong>Hatékony jutalék kulcs:</strong>{" "}
+                {(commissionPct * commissionBookingsPct / 100).toFixed(2)}% a teljes szobaárbevételre vetítve
+                <br />
+                <span style={{ color: "#7C3AED" }}>
+                  pl. 20 000 Ft/szoba/éj → −{Math.round(20000 * commissionPct / 100 * commissionBookingsPct / 100).toLocaleString("hu-HU")} Ft/szoba/éj tényleges jutalékteher
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* BLOKK 4 — Egyéb bevételek */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
@@ -812,7 +917,7 @@ export default function SimplePlannerSettingsPage() {
         </p>
         <div style={{ fontSize: 13, color: "#64748B", lineHeight: 1.8 }}>
           <strong style={{ color: "#0F172A" }}>Bevétel/hó</strong> = (ADR + F&amp;B felár + egyéb) × szobaeladott éjszakák<br />
-          <strong style={{ color: "#0F172A" }}>Kiadás/hó</strong> = fix éves / 12 + (F&amp;B önköltség + mosatás) × szobaeladott éjszakák<br />
+          <strong style={{ color: "#0F172A" }}>Kiadás/hó</strong> = fix éves / 12 + (F&amp;B önköltség + mosatás + jutalék) × szobaeladott éjszakák<br />
           <strong style={{ color: "#0F172A" }}>Profit/hó</strong> = Bevétel − Kiadás − TFH
         </div>
       </div>

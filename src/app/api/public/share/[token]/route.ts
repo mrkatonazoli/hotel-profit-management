@@ -71,6 +71,9 @@ export async function GET(req: Request, { params }: Params) {
       halfboardCost: settings?.halfboardCost ?? 0,
       laundryEnabled: settings?.laundryEnabled ?? false,
       laundryPerRoom: settings?.laundryPerRoom ?? 0,
+      commissionEnabled: settings?.commissionEnabled ?? false,
+      commissionPct: settings?.commissionPct ?? 0,
+      commissionBookingsPct: settings?.commissionBookingsPct ?? 100,
     },
     // breakfastPct/halfboardPct most a months tömbben van havi szinten
   });
