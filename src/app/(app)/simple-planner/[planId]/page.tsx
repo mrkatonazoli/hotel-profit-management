@@ -120,6 +120,11 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
     : m.adr + boardPerRoomNight + extraRevPerRoomNight;
   const revenue = revenuePerRoomNight * roomNights;
 
+  // Jutalék alapja: csak ADR + ellátás ára — egyéb bevételi % (spa, parkoló stb.) nem jutalékos
+  const commissionableRevPerRoomNight = m.roomRevenue > 0
+    ? m.roomRevenue
+    : m.adr + boardPerRoomNight;
+
   // Kiadás: fix (éves÷12) + változó (F&B önköltség + mosatás + jutalék) × roomNights
   let cost = 0;
   if (costs) {
@@ -130,7 +135,7 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
     );
     const laundryCostPerRoomNight = costs.laundryEnabled ? costs.laundryPerRoom : 0;
     const commissionCostPerRoomNight = costs.commissionEnabled
-      ? revenuePerRoomNight * (costs.commissionPct / 100) * (costs.commissionBookingsPct / 100)
+      ? commissionableRevPerRoomNight * (costs.commissionPct / 100) * (costs.commissionBookingsPct / 100)
       : 0;
     const variablePerRoomNight = fbCostPerRoomNight + laundryCostPerRoomNight + commissionCostPerRoomNight;
     cost = fixedPerMonth + variablePerRoomNight * roomNights;

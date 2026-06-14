@@ -45,6 +45,8 @@ export async function POST(_req: Request, { params }: Params) {
   const year = plan.year;
   const annualFixedCost = (settings?.fixedCosts ?? []).reduce((s, fc) => s + fc.annualAmount, 0);
   const avgPaxPerRoom = settings?.avgPaxPerRoom ?? 1.8;
+  const breakfastPrice = settings?.breakfastPrice ?? 0;
+  const halfboardPrice = settings?.halfboardPrice ?? 0;
   const breakfastCost = settings?.breakfastCost ?? 0;
   const halfboardCost = settings?.halfboardCost ?? 0;
   const laundryEnabled = settings?.laundryEnabled ?? false;
@@ -69,8 +71,16 @@ export async function POST(_req: Request, { params }: Params) {
     const days = getDaysInMonth(m.month, year);
     const availableNights = totalRooms * days;
     const roomNights = (m.occupancyPct / 100) * availableNights;
-    const revenuePerRoomNight = m.roomRevenue > 0 ? m.roomRevenue : m.adr;
+    const boardRevPerRoomNight = avgPaxPerRoom * (
+      ((m.breakfastPct ?? 0) / 100) * breakfastPrice +
+      ((m.halfboardPct ?? 0) / 100) * halfboardPrice
+    );
+    const revenuePerRoomNight = m.roomRevenue > 0 ? m.roomRevenue : m.adr + boardRevPerRoomNight;
     const revenue = revenuePerRoomNight * roomNights;
+    // Jutalék alapja: ADR + ellátás ára — egyéb bevételek (spa, parkoló stb.) nem jutalékosak
+    const commissionableRevPerRoomNight = m.roomRevenue > 0
+      ? m.roomRevenue
+      : m.adr + boardRevPerRoomNight;
     const fixedPerMonth = annualFixedCost / 12;
     const fbCostPerRoomNight = avgPaxPerRoom * (
       ((m.breakfastPct ?? 0) / 100) * breakfastCost +
@@ -78,7 +88,7 @@ export async function POST(_req: Request, { params }: Params) {
     );
     const laundryCost = laundryEnabled ? laundryPerRoom : 0;
     const commissionCost = commissionEnabled
-      ? revenuePerRoomNight * (commissionPct / 100) * (commissionBookingsPct / 100)
+      ? commissionableRevPerRoomNight * (commissionPct / 100) * (commissionBookingsPct / 100)
       : 0;
     const cost = fixedPerMonth + (fbCostPerRoomNight + laundryCost + commissionCost) * roomNights;
     const effectiveCostPerRoom = roomNights > 0 ? cost / roomNights : 0;
