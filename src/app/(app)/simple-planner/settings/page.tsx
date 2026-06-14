@@ -4,17 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, Trash2, Save, Loader2, Check,
-  Settings2, Landmark, Utensils, Users,
+  Settings2, Landmark, Utensils, Users, WashingMachine,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type CostBand = {
+type FixedCost = {
   id?: string;
-  fromOccPct: number;
-  toOccPct: number;
-  costPerRoom: number;
   label: string;
+  annualAmount: number;
 };
 
 type Settings = {
@@ -24,6 +22,8 @@ type Settings = {
   fbEnabled: boolean;
   breakfastPrice: number;
   halfboardPrice: number;
+  breakfastCost: number;
+  halfboardCost: number;
   avgPaxPerRoom: number;
   defaultBreakfastPct: number;
   defaultHalfboardPct: number;
@@ -33,7 +33,9 @@ type Settings = {
   spaPct: number;
   otherRevenueEnabled: boolean;
   otherRevenuePct: number;
-  costBands: CostBand[];
+  laundryEnabled: boolean;
+  laundryPerRoom: number;
+  fixedCosts: FixedCost[];
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -42,31 +44,45 @@ function fmt(n: number) {
   return Math.round(n).toLocaleString("hu-HU");
 }
 
-const DEFAULT_BANDS: CostBand[] = [
-  { fromOccPct: 0,  toOccPct: 40,  costPerRoom: 0, label: "Nagyon alacsony" },
-  { fromOccPct: 40, toOccPct: 60,  costPerRoom: 0, label: "Alacsony" },
-  { fromOccPct: 60, toOccPct: 80,  costPerRoom: 0, label: "Közepes-magas" },
-  { fromOccPct: 80, toOccPct: 100, costPerRoom: 0, label: "Magas" },
-];
-
-// ─── Number input ─────────────────────────────────────────────────────────────
+function Toggle({ enabled, onToggle, activeColor = "#059669" }: { enabled: boolean; onToggle: () => void; activeColor?: string }) {
+  return (
+    <button
+      onClick={onToggle}
+      style={{
+        display: "flex", alignItems: "center", gap: 8,
+        background: enabled ? `${activeColor}18` : "#F8FAFC",
+        border: `1px solid ${enabled ? activeColor + "44" : "#E2E8F0"}`,
+        borderRadius: 10, padding: "7px 14px",
+        cursor: "pointer", transition: "all 0.2s",
+      }}
+    >
+      <div style={{
+        width: 32, height: 18, borderRadius: 9,
+        background: enabled ? activeColor : "#CBD5E1",
+        position: "relative", transition: "background 0.2s", flexShrink: 0,
+      }}>
+        <div style={{
+          position: "absolute", top: 3, left: enabled ? 17 : 3,
+          width: 12, height: 12, borderRadius: "50%", background: "white",
+          transition: "left 0.15s",
+        }} />
+      </div>
+      <span style={{ fontSize: 13, fontWeight: 600, color: enabled ? activeColor : "#94A3B8" }}>
+        {enabled ? "Bekapcsolva" : "Kikapcsolva"}
+      </span>
+    </button>
+  );
+}
 
 function NumInput({
   value, onChange, min, max, step, suffix, width,
 }: {
-  value: number;
-  onChange: (v: number) => void;
-  min?: number;
-  max?: number;
-  step?: number;
-  suffix?: string;
-  width?: number;
+  value: number; onChange: (v: number) => void;
+  min?: number; max?: number; step?: number; suffix?: string; width?: number;
 }) {
   const [local, setLocal] = useState(value === 0 ? "" : String(value));
   const ref = useRef<HTMLInputElement>(null);
-
   useEffect(() => { setLocal(value === 0 ? "" : String(value)); }, [value]);
-
   function commit() {
     const parsed = parseFloat(local.replace(",", "."));
     let v = isNaN(parsed) ? 0 : parsed;
@@ -75,19 +91,14 @@ function NumInput({
     onChange(v);
     setLocal(v === 0 ? "" : String(v));
   }
-
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <input
-        ref={ref}
-        type="number"
-        value={local}
+        ref={ref} type="number" value={local}
         onChange={e => setLocal(e.target.value)}
-        onBlur={commit}
-        onFocus={e => e.target.select()}
+        onBlur={commit} onFocus={e => e.target.select()}
         onKeyDown={e => e.key === "Enter" && commit()}
-        step={step ?? 1}
-        placeholder="0"
+        step={step ?? 1} placeholder="0"
         style={{
           width: width ?? 80, fontSize: 13, fontWeight: 600, color: "#0F172A",
           border: "1px solid #E2E8F0", borderRadius: 8, padding: "7px 10px",
@@ -106,12 +117,12 @@ function NumInput({
 
 export default function SimplePlannerSettingsPage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Revenue settings
   const [tfhEnabled, setTfhEnabled] = useState(true);
   const [tfhRate, setTfhRate] = useState(4);
   const [fbEnabled, setFbEnabled] = useState(false);
@@ -126,7 +137,13 @@ export default function SimplePlannerSettingsPage() {
   const [spaPct, setSpaPct] = useState(0);
   const [otherRevenueEnabled, setOtherRevenueEnabled] = useState(false);
   const [otherRevenuePct, setOtherRevenuePct] = useState(0);
-  const [bands, setBands] = useState<CostBand[]>(DEFAULT_BANDS);
+
+  // Cost settings
+  const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
+  const [breakfastCost, setBreakfastCost] = useState(0);
+  const [halfboardCost, setHalfboardCost] = useState(0);
+  const [laundryEnabled, setLaundryEnabled] = useState(false);
+  const [laundryPerRoom, setLaundryPerRoom] = useState(0);
 
   // ─── Load ──────────────────────────────────────────────────────────────────
 
@@ -140,6 +157,8 @@ export default function SimplePlannerSettingsPage() {
           setFbEnabled(data.fbEnabled ?? false);
           setBreakfastPrice(data.breakfastPrice ?? 0);
           setHalfboardPrice(data.halfboardPrice ?? 0);
+          setBreakfastCost(data.breakfastCost ?? 0);
+          setHalfboardCost(data.halfboardCost ?? 0);
           setAvgPaxPerRoom(data.avgPaxPerRoom ?? 1.8);
           setDefaultBreakfastPct(data.defaultBreakfastPct ?? 0);
           setDefaultHalfboardPct(data.defaultHalfboardPct ?? 0);
@@ -149,7 +168,9 @@ export default function SimplePlannerSettingsPage() {
           setSpaPct(data.spaPct ?? 0);
           setOtherRevenueEnabled(data.otherRevenueEnabled ?? false);
           setOtherRevenuePct(data.otherRevenuePct ?? 0);
-          setBands(data.costBands.length > 0 ? data.costBands : DEFAULT_BANDS);
+          setLaundryEnabled(data.laundryEnabled ?? false);
+          setLaundryPerRoom(data.laundryPerRoom ?? 0);
+          setFixedCosts(data.fixedCosts ?? []);
         }
       })
       .finally(() => setLoading(false));
@@ -164,21 +185,14 @@ export default function SimplePlannerSettingsPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tfhEnabled,
-          tfhRate,
-          fbEnabled,
-          breakfastPrice,
-          halfboardPrice,
+          tfhEnabled, tfhRate,
+          fbEnabled, breakfastPrice, halfboardPrice,
+          breakfastCost, halfboardCost,
           avgPaxPerRoom,
-          defaultBreakfastPct,
-          defaultHalfboardPct,
-          fbOtherEnabled,
-          fbOtherPct,
-          spaEnabled,
-          spaPct,
-          otherRevenueEnabled,
-          otherRevenuePct,
-          costBands: bands.map((b, i) => ({ ...b, sortOrder: i })),
+          defaultBreakfastPct, defaultHalfboardPct,
+          fbOtherEnabled, fbOtherPct, spaEnabled, spaPct, otherRevenueEnabled, otherRevenuePct,
+          laundryEnabled, laundryPerRoom,
+          fixedCosts: fixedCosts.map((fc, i) => ({ ...fc, sortOrder: i })),
         }),
       });
       setSaved(true);
@@ -189,27 +203,22 @@ export default function SimplePlannerSettingsPage() {
     }
   }
 
-  // ─── Band editing ──────────────────────────────────────────────────────────
+  // ─── Fixed cost helpers ────────────────────────────────────────────────────
 
-  function updateBand(i: number, field: keyof CostBand, value: number | string) {
-    setBands(prev => prev.map((b, idx) => idx === i ? { ...b, [field]: value } : b));
+  function addFixedCost() {
+    setFixedCosts(prev => [...prev, { label: "", annualAmount: 0 }]);
   }
 
-  function addBand() {
-    const last = bands[bands.length - 1];
-    const from = last ? last.toOccPct : 0;
-    const to = Math.min(100, from + 20);
-    setBands(prev => [...prev, { fromOccPct: from, toOccPct: to, costPerRoom: 0, label: "" }]);
+  function updateFixedCost(i: number, field: keyof FixedCost, value: string | number) {
+    setFixedCosts(prev => prev.map((fc, idx) => idx === i ? { ...fc, [field]: value } : fc));
   }
 
-  function removeBand(i: number) {
-    setBands(prev => prev.filter((_, idx) => idx !== i));
+  function removeFixedCost(i: number) {
+    setFixedCosts(prev => prev.filter((_, idx) => idx !== i));
   }
 
-  // ─── Chart preview ────────────────────────────────────────────────────────
-
-  const maxCost = Math.max(...bands.map(b => b.costPerRoom), 1);
-  const sortedBands = [...bands].sort((a, b) => a.fromOccPct - b.fromOccPct);
+  const totalAnnualFixed = fixedCosts.reduce((s, fc) => s + fc.annualAmount, 0);
+  const monthlyFixed = totalAnnualFixed / 12;
 
   // ─── UI ───────────────────────────────────────────────────────────────────
 
@@ -247,10 +256,9 @@ export default function SimplePlannerSettingsPage() {
           </div>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", margin: 0 }}>Simple Planner beállítások</h1>
-            <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>Kiadásstruktúra kihasználtság szerint</p>
+            <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>Bevételek, kiadások és TFH konfigurálása</p>
           </div>
         </div>
-
         <button
           onClick={save}
           disabled={saving}
@@ -268,7 +276,7 @@ export default function SimplePlannerSettingsPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* BLOKK 1 — Kiadás sávok */}
+      {/* BLOKK 1 — Fix éves költségek */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
       <div style={{
@@ -276,163 +284,123 @@ export default function SimplePlannerSettingsPage() {
         padding: "24px", marginBottom: 20,
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
-            Kiadás sávok kihasználtság szerint
-          </h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: "#EFF6FF",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <span style={{ fontSize: 16 }}>🏢</span>
+            </div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+              Fix éves költségek
+            </h2>
+          </div>
           <button
-            onClick={addBand}
+            onClick={addFixedCost}
             style={{
               display: "flex", alignItems: "center", gap: 5,
-              background: "#FBFBFC", border: "1px solid #DDD6FE",
+              background: "#EFF6FF", border: "1px solid #BFDBFE",
               borderRadius: 9, padding: "6px 12px",
-              color: "#35BD78", fontSize: 12, fontWeight: 700, cursor: "pointer",
+              color: "#2563EB", fontSize: 12, fontWeight: 700, cursor: "pointer",
             }}
           >
-            <Plus size={13} /> Sáv hozzáadása
+            <Plus size={13} /> Tétel hozzáadása
           </button>
         </div>
         <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
-          Adj meg kihasználtsági tartományokat és a hozzájuk tartozó szoba/éjszaka kiadást.
-          A Simple Planner a hónap tényleges kihasználtsága alapján automatikusan a megfelelő sávból veszi a kiadást.
+          Ezek a kiadások nem függnek a kihasználtságtól — havonként egyenletesen terhelik a szállodát.
+          A rendszer automatikusan elosztja 12-vel és minden hónap fix terhéként számolja.
         </p>
 
-        {/* Sáv táblázat */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {/* Fejléc */}
+        {fixedCosts.length === 0 ? (
           <div style={{
-            display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 40px",
-            gap: 10, padding: "0 4px",
+            textAlign: "center", padding: "28px 0", color: "#94A3B8", fontSize: 13,
+            border: "2px dashed #E2E8F0", borderRadius: 14,
           }}>
-            {["Kihasználtság (tól)", "Kihasználtság (ig)", "Kiadás (Ft/szoba/éj)", "Megnevezés (opcionális)", ""].map(h => (
-              <p key={h} style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
-                {h}
-              </p>
-            ))}
+            Nincs fix költségtétel. Kattints a „Tétel hozzáadása" gombra.
           </div>
-
-          {bands.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "32px 0", color: "#94A3B8", fontSize: 13 }}>
-              Nincs sáv megadva. Kattints a „Sáv hozzáadása" gombra.
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {/* Fejléc */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 200px 40px", gap: 10, padding: "0 4px" }}>
+              {["Megnevezés", "Éves összeg (Ft/év)", ""].map(h => (
+                <p key={h} style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
+                  {h}
+                </p>
+              ))}
             </div>
-          ) : (
-            bands.map((band, i) => {
-              return (
-                <div
-                  key={i}
+
+            {fixedCosts.map((fc, i) => (
+              <div key={i} style={{
+                display: "grid", gridTemplateColumns: "1fr 200px 40px",
+                gap: 10, alignItems: "center",
+                background: "#F8FAFC", border: "1px solid #E2E8F0",
+                borderRadius: 12, padding: "10px 12px",
+              }}>
+                <input
+                  type="text"
+                  value={fc.label}
+                  onChange={e => updateFixedCost(i, "label", e.target.value)}
+                  placeholder="pl. Személyzet, Bérleti díj, Rezsi…"
                   style={{
-                    display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 40px",
-                    gap: 10, alignItems: "center",
-                    background: "#F8FAFC",
-                    border: "1px solid #E2E8F0",
-                    borderRadius: 12, padding: "10px 12px",
+                    fontSize: 13, color: "#0F172A", border: "1px solid #E2E8F0",
+                    borderRadius: 8, padding: "7px 10px", outline: "none",
+                    background: "white", width: "100%", boxSizing: "border-box",
+                    fontWeight: 500,
+                  }}
+                  onFocus={e => (e.currentTarget.style.borderColor = "#3B82F6")}
+                  onBlur={e => (e.currentTarget.style.borderColor = "#E2E8F0")}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <NumInput
+                    value={fc.annualAmount}
+                    onChange={v => updateFixedCost(i, "annualAmount", v)}
+                    min={0} step={100000} suffix="Ft" width={120}
+                  />
+                  {fc.annualAmount > 0 && (
+                    <span style={{ fontSize: 10, color: "#64748B", whiteSpace: "nowrap" }}>
+                      ≈ {fmt(fc.annualAmount / 12)}/hó
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => removeFixedCost(i)}
+                  style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    background: "#FEE2E2", border: "none", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
                   }}
                 >
-                  {/* Tól */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <NumInput value={band.fromOccPct} onChange={v => updateBand(i, "fromOccPct", v)} min={0} max={100} step={1} suffix="%" width={60} />
-                  </div>
+                  <Trash2 size={13} color="#EF4444" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
-                  {/* Ig */}
-                  <NumInput value={band.toOccPct} onChange={v => updateBand(i, "toOccPct", v)} min={0} max={100} step={1} suffix="%" width={60} />
-
-                  {/* Kiadás */}
-                  <NumInput value={band.costPerRoom} onChange={v => updateBand(i, "costPerRoom", v)} min={0} step={100} suffix="Ft" width={90} />
-
-                  {/* Megnevezés */}
-                  <input
-                    type="text"
-                    value={band.label}
-                    onChange={e => updateBand(i, "label", e.target.value)}
-                    placeholder="pl. Alacsony szezon"
-                    style={{
-                      fontSize: 12, color: "#0F172A", border: "1px solid #E2E8F0",
-                      borderRadius: 8, padding: "7px 10px", outline: "none",
-                      background: "white", width: "100%", boxSizing: "border-box",
-                    }}
-                    onFocus={e => (e.currentTarget.style.borderColor = "#35BD78")}
-                    onBlur={e => (e.currentTarget.style.borderColor = "#E2E8F0")}
-                  />
-
-                  {/* Törlés */}
-                  <button
-                    onClick={() => removeBand(i)}
-                    style={{
-                      width: 32, height: 32, borderRadius: 8,
-                      background: "#FEE2E2", border: "none", cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                  >
-                    <Trash2 size={13} color="#EF4444" />
-                  </button>
-
-                </div>
-              );
-            })
-          )}
-        </div>
+        {/* Összesítő */}
+        {fixedCosts.length > 0 && totalAnnualFixed > 0 && (
+          <div style={{
+            background: "#EFF6FF", border: "1px solid #BFDBFE",
+            borderRadius: 12, padding: "12px 16px", marginTop: 14,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}>
+            <div>
+              <p style={{ fontSize: 12, color: "#1D4ED8", fontWeight: 700, margin: 0 }}>
+                Összes fix éves teher: {fmt(totalAnnualFixed)} Ft/év
+              </p>
+              <p style={{ fontSize: 11, color: "#3B82F6", margin: "2px 0 0" }}>
+                → {fmt(monthlyFixed)} Ft/hó minden hónapban
+              </p>
+            </div>
+            <span style={{ fontSize: 22 }}>🏢</span>
+          </div>
+        )}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* BLOKK 3 — Vizuális előnézet */}
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-
-      {sortedBands.length > 0 && sortedBands.some(b => b.costPerRoom > 0) && (
-        <div style={{
-          background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
-          padding: "24px", marginBottom: 20,
-        }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: "0 0 20px" }}>
-            Kiadásstruktúra előnézet
-          </h2>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {sortedBands.filter(b => b.costPerRoom > 0).map((band, i) => {
-              const barWidth = maxCost > 0 ? (band.costPerRoom / maxCost) * 100 : 0;
-              // Minél magasabb a kihasználtság, annál alacsonyabb a fajlagos kiadás (általában)
-              // Szín: alacsony occ = magasabb relatív teher (pirosabb), magas occ = alacsonyabb teher (kékebb)
-              const hue = Math.round(220 + (band.fromOccPct / 100) * 40); // 220–260 (kék–lila)
-              const barColor = `hsl(${hue}, 70%, 55%)`;
-
-              return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  {/* Kihasználtság tartomány */}
-                  <div style={{ width: 90, flexShrink: 0, textAlign: "right" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#64748B" }}>
-                      {band.fromOccPct}% – {band.toOccPct}%
-                    </span>
-                  </div>
-
-                  {/* Bar */}
-                  <div style={{ flex: 1, background: "#F1F5F9", borderRadius: 6, height: 22, position: "relative", overflow: "hidden" }}>
-                    <div style={{
-                      height: "100%", borderRadius: 6,
-                      width: `${barWidth}%`,
-                      background: barColor,
-                      transition: "width 0.3s",
-                    }} />
-                  </div>
-
-                  {/* Érték */}
-                  <div style={{ width: 110, flexShrink: 0 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>
-                      {fmt(band.costPerRoom)} Ft/éj
-                    </span>
-                  </div>
-
-                  {/* Label */}
-                  {band.label && (
-                    <span style={{ fontSize: 11, color: "#94A3B8" }}>{band.label}</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* BLOKK 4 — Étkezési bevételek */}
+      {/* BLOKK 2 — Étkezési bevételek (F&B) */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
       <div style={{
@@ -440,7 +408,6 @@ export default function SimplePlannerSettingsPage() {
         borderRadius: 20, padding: "24px", marginBottom: 20,
         transition: "border-color 0.2s",
       }}>
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
@@ -455,45 +422,17 @@ export default function SimplePlannerSettingsPage() {
               Étkezési bevételek (F&amp;B)
             </h2>
           </div>
-
-          {/* Toggle */}
-          <button
-            onClick={() => setFbEnabled(v => !v)}
-            style={{
-              display: "flex", alignItems: "center", gap: 8,
-              background: fbEnabled ? "#F0FDF4" : "#F8FAFC",
-              border: `1px solid ${fbEnabled ? "#BBF7D0" : "#E2E8F0"}`,
-              borderRadius: 10, padding: "7px 14px",
-              cursor: "pointer", transition: "all 0.2s",
-            }}
-          >
-            <div style={{
-              width: 32, height: 18, borderRadius: 9,
-              background: fbEnabled ? "#059669" : "#CBD5E1",
-              position: "relative", transition: "background 0.2s", flexShrink: 0,
-            }}>
-              <div style={{
-                position: "absolute", top: 3, left: fbEnabled ? 17 : 3,
-                width: 12, height: 12, borderRadius: "50%", background: "white",
-                transition: "left 0.15s",
-              }} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: fbEnabled ? "#059669" : "#94A3B8" }}>
-              {fbEnabled ? "Bekapcsolva" : "Kikapcsolva"}
-            </span>
-          </button>
+          <Toggle enabled={fbEnabled} onToggle={() => setFbEnabled(v => !v)} activeColor="#059669" />
         </div>
 
         <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
-          Reggeli és félpanzió árak megadása. A terven beállított vendégmix (hány % reggelis / félpanziós)
-          alapján súlyozott átlagot számol a rendszer, és azt adja az ADR-hez — ebből lesz a szobaárbevétel.
-          A reggeli és a félpanzió <strong>egymást kizáró kategóriák</strong> — egy szoba nem lehet egyszerre mindkettő.
+          Reggeli és félpanzió árak megadása. A tervlapon beállított board mix alapján
+          a rendszer automatikusan adja a felárat az ADR-hez.
         </p>
 
         <div style={{
           display: "flex", flexDirection: "column", gap: 16,
-          opacity: fbEnabled ? 1 : 0.4,
-          transition: "opacity 0.2s",
+          opacity: fbEnabled ? 1 : 0.4, transition: "opacity 0.2s",
           pointerEvents: fbEnabled ? "auto" : "none",
         }}>
           {/* Átlagos vendégek/szoba */}
@@ -512,106 +451,108 @@ export default function SimplePlannerSettingsPage() {
               <NumInput value={avgPaxPerRoom} onChange={setAvgPaxPerRoom} min={1} max={6} step={0.1} suffix="fő/szoba" width={70} />
             </div>
             <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.5, maxWidth: 260 }}>
-              Hány vendéggel számolsz szobánként átlagosan? Ezt az értéket szorozza a rendszer az étkezési felárral.
+              Ez a szám szorzódik az étkezési árral és önköltséggel egyaránt.
             </div>
           </div>
 
-          {/* Két ár egymás mellett */}
+          {/* Bevétel + Önköltség kártyák */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+
             {/* Reggeli */}
-            <div style={{
-              background: "#FFF7ED", border: "1px solid #FED7AA",
-              borderRadius: 14, padding: "16px 20px",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 14, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                 <span style={{ fontSize: 20 }}>🌅</span>
                 <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: 0 }}>Reggeli</p>
               </div>
-              <p style={{ fontSize: 11, color: "#B45309", margin: "0 0 10px" }}>
-                Felár az ADR-re · Ft/fő/éj
-              </p>
-              <NumInput value={breakfastPrice} onChange={setBreakfastPrice} min={0} step={100} suffix="Ft" width={100} />
-              {fbEnabled && breakfastPrice > 0 && avgPaxPerRoom > 0 && (
-                <p style={{ fontSize: 11, color: "#92400E", margin: "8px 0 0", fontWeight: 600 }}>
-                  → {Math.round(breakfastPrice * avgPaxPerRoom).toLocaleString("hu-HU")} Ft/szoba/éj
-                </p>
-              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div>
+                  <p style={{ fontSize: 10, color: "#D97706", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Bevételi ár
+                  </p>
+                  <NumInput value={breakfastPrice} onChange={setBreakfastPrice} min={0} step={100} suffix="Ft/fő/éj" width={100} />
+                  {breakfastPrice > 0 && (
+                    <p style={{ fontSize: 11, color: "#92400E", margin: "4px 0 0", fontWeight: 600 }}>
+                      → +{fmt(breakfastPrice * avgPaxPerRoom)} Ft/szoba/éj (bevétel)
+                    </p>
+                  )}
+                </div>
+                <div style={{ borderTop: "1px solid #FED7AA", paddingTop: 10 }}>
+                  <p style={{ fontSize: 10, color: "#EF4444", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Önköltség
+                  </p>
+                  <NumInput value={breakfastCost} onChange={setBreakfastCost} min={0} step={100} suffix="Ft/fő/éj" width={100} />
+                  {breakfastCost > 0 && (
+                    <p style={{ fontSize: 11, color: "#DC2626", margin: "4px 0 0", fontWeight: 600 }}>
+                      → −{fmt(breakfastCost * avgPaxPerRoom)} Ft/szoba/éj (kiadás)
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Félpanzió */}
-            <div style={{
-              background: "#F0FDF4", border: "1px solid #BBF7D0",
-              borderRadius: 14, padding: "16px 20px",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 14, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                 <span style={{ fontSize: 20 }}>🍽️</span>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#065F46", margin: 0 }}>Félpanzió</p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#065F46", margin: 0 }}>Félpanzió</p>
-                  <p style={{ fontSize: 10, color: "#047857", margin: "1px 0 0", fontWeight: 500 }}>
-                    reggeli + vacsora — teljes ár (nem adódik a reggelihez)
+                  <p style={{ fontSize: 10, color: "#059669", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Bevételi ár
                   </p>
+                  <NumInput value={halfboardPrice} onChange={setHalfboardPrice} min={0} step={100} suffix="Ft/fő/éj" width={100} />
+                  {halfboardPrice > 0 && (
+                    <p style={{ fontSize: 11, color: "#065F46", margin: "4px 0 0", fontWeight: 600 }}>
+                      → +{fmt(halfboardPrice * avgPaxPerRoom)} Ft/szoba/éj (bevétel)
+                    </p>
+                  )}
+                </div>
+                <div style={{ borderTop: "1px solid #BBF7D0", paddingTop: 10 }}>
+                  <p style={{ fontSize: 10, color: "#EF4444", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Önköltség
+                  </p>
+                  <NumInput value={halfboardCost} onChange={setHalfboardCost} min={0} step={100} suffix="Ft/fő/éj" width={100} />
+                  {halfboardCost > 0 && (
+                    <p style={{ fontSize: 11, color: "#DC2626", margin: "4px 0 0", fontWeight: 600 }}>
+                      → −{fmt(halfboardCost * avgPaxPerRoom)} Ft/szoba/éj (kiadás)
+                    </p>
+                  )}
                 </div>
               </div>
-              <p style={{ fontSize: 11, color: "#047857", margin: "0 0 10px" }}>
-                Felár az ADR-re · Ft/fő/éj
-              </p>
-              <NumInput value={halfboardPrice} onChange={setHalfboardPrice} min={0} step={100} suffix="Ft" width={100} />
-              {fbEnabled && halfboardPrice > 0 && avgPaxPerRoom > 0 && (
-                <p style={{ fontSize: 11, color: "#065F46", margin: "8px 0 0", fontWeight: 600 }}>
-                  → {Math.round(halfboardPrice * avgPaxPerRoom).toLocaleString("hu-HU")} Ft/szoba/éj
-                </p>
-              )}
             </div>
           </div>
 
           {/* Alapértelmezett vendégmix */}
           {(() => {
             const roomOnlyPct = Math.max(0, 100 - defaultBreakfastPct - defaultHalfboardPct);
-            const brContrib = avgPaxPerRoom * (defaultBreakfastPct / 100) * breakfastPrice;
-            const hbContrib = avgPaxPerRoom * (defaultHalfboardPct / 100) * halfboardPrice;
-            const totalBoardSuppl = brContrib + hbContrib;
+            const brRev = avgPaxPerRoom * (defaultBreakfastPct / 100) * breakfastPrice;
+            const hbRev = avgPaxPerRoom * (defaultHalfboardPct / 100) * halfboardPrice;
+            const brCost = avgPaxPerRoom * (defaultBreakfastPct / 100) * breakfastCost;
+            const hbCost = avgPaxPerRoom * (defaultHalfboardPct / 100) * halfboardCost;
             return (
-              <div style={{
-                background: "#F8FAFC", border: "1px solid #E2E8F0",
-                borderRadius: 14, padding: "16px 20px",
-              }}>
+              <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 14, padding: "16px 20px" }}>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Alapértelmezett vendégmix
                 </p>
                 <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 14px" }}>
-                  Ezekkel az arányokkal tölt ki a rendszer új terveket. A terveken belül havonta módosítható.
+                  Tervlapon havonként módosítható.
                 </p>
 
-                {/* 3-way split bar */}
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ display: "flex", height: 26, borderRadius: 10, overflow: "hidden", border: "1px solid #E2E8F0" }}>
                     {roomOnlyPct > 0 && (
-                      <div style={{
-                        width: `${roomOnlyPct}%`, background: "#F1F5F9",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 10, fontWeight: 700, color: "#64748B",
-                        transition: "width 0.2s", overflow: "hidden", whiteSpace: "nowrap",
-                      }}>
+                      <div style={{ width: `${roomOnlyPct}%`, background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#64748B", transition: "width 0.2s", overflow: "hidden", whiteSpace: "nowrap" }}>
                         {roomOnlyPct >= 12 ? `🛏️ ${Math.round(roomOnlyPct)}%` : ""}
                       </div>
                     )}
                     {defaultBreakfastPct > 0 && (
-                      <div style={{
-                        width: `${defaultBreakfastPct}%`, background: "#FDE68A",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 10, fontWeight: 700, color: "#92400E",
-                        transition: "width 0.2s", overflow: "hidden", whiteSpace: "nowrap",
-                      }}>
+                      <div style={{ width: `${defaultBreakfastPct}%`, background: "#FDE68A", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#92400E", transition: "width 0.2s", overflow: "hidden", whiteSpace: "nowrap" }}>
                         {defaultBreakfastPct >= 10 ? `🌅 ${Math.round(defaultBreakfastPct)}%` : ""}
                       </div>
                     )}
                     {defaultHalfboardPct > 0 && (
-                      <div style={{
-                        width: `${defaultHalfboardPct}%`, background: "#BBF7D0",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 10, fontWeight: 700, color: "#065F46",
-                        transition: "width 0.2s", overflow: "hidden", whiteSpace: "nowrap",
-                      }}>
+                      <div style={{ width: `${defaultHalfboardPct}%`, background: "#BBF7D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#065F46", transition: "width 0.2s", overflow: "hidden", whiteSpace: "nowrap" }}>
                         {defaultHalfboardPct >= 10 ? `🍽️ ${Math.round(defaultHalfboardPct)}%` : ""}
                       </div>
                     )}
@@ -623,267 +564,196 @@ export default function SimplePlannerSettingsPage() {
                   </div>
                 </div>
 
-                {/* Two sliders side by side */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-
-                  {/* Reggeli slider */}
                   <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "12px 14px" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ fontSize: 16 }}>🌅</span>
                         <p style={{ fontSize: 13, fontWeight: 700, color: "#92400E", margin: 0 }}>Reggeli</p>
                       </div>
-                      <div style={{
-                        minWidth: 48, textAlign: "center",
-                        background: "#FEF3C7", borderRadius: 8, padding: "3px 8px",
-                        fontSize: 16, fontWeight: 800, color: "#D97706",
-                      }}>
+                      <div style={{ minWidth: 48, textAlign: "center", background: "#FEF3C7", borderRadius: 8, padding: "3px 8px", fontSize: 16, fontWeight: 800, color: "#D97706" }}>
                         {Math.round(defaultBreakfastPct)}%
                       </div>
                     </div>
-                    <input
-                      type="range" min={0} max={100} step={1} value={defaultBreakfastPct}
+                    <input type="range" min={0} max={100} step={1} value={defaultBreakfastPct}
                       onChange={e => setDefaultBreakfastPct(Math.min(Number(e.target.value), 100 - defaultHalfboardPct))}
-                      style={{ width: "100%", accentColor: "#D97706", cursor: "pointer", marginBottom: 6 }}
-                    />
+                      style={{ width: "100%", accentColor: "#D97706", cursor: "pointer", marginBottom: 6 }} />
                     <div style={{ display: "flex", gap: 3 }}>
                       {[0, 10, 25, 50, 75, 100].map(v => (
-                        <button key={v}
-                          onClick={() => setDefaultBreakfastPct(Math.min(v, 100 - defaultHalfboardPct))}
-                          style={{
-                            flex: 1, fontSize: 9, fontWeight: 700, padding: "3px 0", borderRadius: 5,
-                            cursor: "pointer", border: "none",
-                            background: Math.round(defaultBreakfastPct) === v ? "#D97706" : "#FEF3C7",
-                            color: Math.round(defaultBreakfastPct) === v ? "white" : "#92400E",
-                          }}
-                        >{v}%</button>
+                        <button key={v} onClick={() => setDefaultBreakfastPct(Math.min(v, 100 - defaultHalfboardPct))}
+                          style={{ flex: 1, fontSize: 9, fontWeight: 700, padding: "3px 0", borderRadius: 5, cursor: "pointer", border: "none", background: Math.round(defaultBreakfastPct) === v ? "#D97706" : "#FEF3C7", color: Math.round(defaultBreakfastPct) === v ? "white" : "#92400E" }}>
+                          {v}%
+                        </button>
                       ))}
                     </div>
-                    {breakfastPrice > 0 && (
-                      <p style={{ fontSize: 11, color: "#B45309", margin: "8px 0 0", fontWeight: 600 }}>
-                        Hozzájárulás: +{fmt(brContrib)} Ft/szoba/éj
-                      </p>
+                    {(brRev > 0 || brCost > 0) && (
+                      <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.6 }}>
+                        {brRev > 0 && <p style={{ color: "#059669", fontWeight: 600, margin: 0 }}>+{fmt(brRev)} Ft/szoba/éj (bev.)</p>}
+                        {brCost > 0 && <p style={{ color: "#DC2626", fontWeight: 600, margin: 0 }}>−{fmt(brCost)} Ft/szoba/éj (kiad.)</p>}
+                      </div>
                     )}
                   </div>
 
-                  {/* Félpanzió slider */}
                   <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "12px 14px" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ fontSize: 16 }}>🍽️</span>
                         <p style={{ fontSize: 13, fontWeight: 700, color: "#065F46", margin: 0 }}>Félpanzió</p>
                       </div>
-                      <div style={{
-                        minWidth: 48, textAlign: "center",
-                        background: "#DCFCE7", borderRadius: 8, padding: "3px 8px",
-                        fontSize: 16, fontWeight: 800, color: "#059669",
-                      }}>
+                      <div style={{ minWidth: 48, textAlign: "center", background: "#DCFCE7", borderRadius: 8, padding: "3px 8px", fontSize: 16, fontWeight: 800, color: "#059669" }}>
                         {Math.round(defaultHalfboardPct)}%
                       </div>
                     </div>
-                    <input
-                      type="range" min={0} max={100} step={1} value={defaultHalfboardPct}
+                    <input type="range" min={0} max={100} step={1} value={defaultHalfboardPct}
                       onChange={e => setDefaultHalfboardPct(Math.min(Number(e.target.value), 100 - defaultBreakfastPct))}
-                      style={{ width: "100%", accentColor: "#059669", cursor: "pointer", marginBottom: 6 }}
-                    />
+                      style={{ width: "100%", accentColor: "#059669", cursor: "pointer", marginBottom: 6 }} />
                     <div style={{ display: "flex", gap: 3 }}>
                       {[0, 10, 25, 50, 75, 100].map(v => (
-                        <button key={v}
-                          onClick={() => setDefaultHalfboardPct(Math.min(v, 100 - defaultBreakfastPct))}
-                          style={{
-                            flex: 1, fontSize: 9, fontWeight: 700, padding: "3px 0", borderRadius: 5,
-                            cursor: "pointer", border: "none",
-                            background: Math.round(defaultHalfboardPct) === v ? "#059669" : "#DCFCE7",
-                            color: Math.round(defaultHalfboardPct) === v ? "white" : "#065F46",
-                          }}
-                        >{v}%</button>
+                        <button key={v} onClick={() => setDefaultHalfboardPct(Math.min(v, 100 - defaultBreakfastPct))}
+                          style={{ flex: 1, fontSize: 9, fontWeight: 700, padding: "3px 0", borderRadius: 5, cursor: "pointer", border: "none", background: Math.round(defaultHalfboardPct) === v ? "#059669" : "#DCFCE7", color: Math.round(defaultHalfboardPct) === v ? "white" : "#065F46" }}>
+                          {v}%
+                        </button>
                       ))}
                     </div>
-                    {halfboardPrice > 0 && (
-                      <p style={{ fontSize: 11, color: "#047857", margin: "8px 0 0", fontWeight: 600 }}>
-                        Hozzájárulás: +{fmt(hbContrib)} Ft/szoba/éj
-                      </p>
+                    {(hbRev > 0 || hbCost > 0) && (
+                      <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.6 }}>
+                        {hbRev > 0 && <p style={{ color: "#059669", fontWeight: 600, margin: 0 }}>+{fmt(hbRev)} Ft/szoba/éj (bev.)</p>}
+                        {hbCost > 0 && <p style={{ color: "#DC2626", fontWeight: 600, margin: 0 }}>−{fmt(hbCost)} Ft/szoba/éj (kiad.)</p>}
+                      </div>
                     )}
                   </div>
                 </div>
-
-                {/* Formula summary */}
-                {(defaultBreakfastPct > 0 || defaultHalfboardPct > 0) && (breakfastPrice > 0 || halfboardPrice > 0) && (
-                  <div style={{
-                    background: "#FBFBFC", border: "1px solid #DDD6FE",
-                    borderRadius: 10, padding: "10px 14px", marginTop: 12,
-                    fontSize: 12, color: "#03915A", lineHeight: 1.7,
-                  }}>
-                    <strong>Átlagos F&amp;B felár:</strong>{" "}
-                    ({Math.round(defaultBreakfastPct)}% × {fmt(breakfastPrice)}
-                    {defaultHalfboardPct > 0 && ` + ${Math.round(defaultHalfboardPct)}% × ${fmt(halfboardPrice)}`})
-                    {" "}× {avgPaxPerRoom} fő = <strong>+{fmt(totalBoardSuppl)} Ft/szoba/éj</strong>
-                  </div>
-                )}
               </div>
             );
           })()}
-
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* BLOKK 4b — Egyéb bevételek (ADR %-a) */}
+      {/* BLOKK 3 — Mosatás (változó kiadás) */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
+      <div style={{
+        background: "white", border: `1px solid ${laundryEnabled ? "#BAE6FD" : "#E2E8F0"}`,
+        borderRadius: 20, padding: "24px", marginBottom: 20,
+        transition: "border-color 0.2s",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: laundryEnabled ? "#E0F2FE" : "#F1F5F9",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.2s",
+            }}>
+              <WashingMachine size={15} color={laundryEnabled ? "#0284C7" : "#94A3B8"} />
+            </div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+              Mosatás — változó kiadás
+            </h2>
+          </div>
+          <Toggle enabled={laundryEnabled} onToggle={() => setLaundryEnabled(v => !v)} activeColor="#0284C7" />
+        </div>
+
+        <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
+          A mosatás a kihasználtsággal arányos: minél több szoba foglalt, annál több a mosatási teher.
+          A megadott összeg szobaeladott éjszakánként kerül a kalkulációba.
+        </p>
+
+        <div style={{
+          display: "flex", alignItems: "center", gap: 16,
+          opacity: laundryEnabled ? 1 : 0.4, transition: "opacity 0.2s",
+          pointerEvents: laundryEnabled ? "auto" : "none",
+        }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: "#F0F9FF", border: "1px solid #BAE6FD",
+            borderRadius: 14, padding: "14px 20px",
+          }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#0284C7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <WashingMachine size={16} color="white" />
+            </div>
+            <div>
+              <p style={{ fontSize: 11, color: "#0284C7", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Mosatási költség
+              </p>
+              <NumInput value={laundryPerRoom} onChange={setLaundryPerRoom} min={0} step={100} suffix="Ft/szoba/éj" width={100} />
+            </div>
+          </div>
+          <div style={{ fontSize: 13, color: "#64748B", lineHeight: 1.6 }}>
+            Változó kiadás — a szobaeladott éjszakák számával arányosan terhelődik.
+            {laundryEnabled && laundryPerRoom > 0 && (
+              <p style={{ margin: "6px 0 0", fontSize: 12, color: "#0284C7", fontWeight: 600 }}>
+                Pl. 50 szoba × 80% occ × 30 nap = 1 200 éj → {fmt(laundryPerRoom * 1200)} Ft/hó
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* BLOKK 4 — Egyéb bevételek */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
       <div style={{
         background: "white", border: "1px solid #E2E8F0",
         borderRadius: 20, padding: "24px", marginBottom: 20,
       }}>
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 9,
-            background: "#F0F9FF",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: "#F0F9FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: 16 }}>💰</span>
           </div>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
-            Egyéb bevételek
-          </h2>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>Egyéb bevételek</h2>
         </div>
-
         <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
           Az ADR meghatározott százalékát ezek a bevételi kategóriák adják hozzá a szobaárbevételhez.
-          Minden aktív kategória bevétele beépül a kalkulációba.
         </p>
 
-        {/* 3 sor — Egyéb F&B / Spa / Egyéb bevétel */}
-        {(
-          [
-            {
-              emoji: "🍻", label: "Egyéb F&B bevétel",
-              desc: "Bár, étterem, room service stb.",
-              enabled: fbOtherEnabled, setEnabled: setFbOtherEnabled,
-              pct: fbOtherPct, setPct: setFbOtherPct,
-              color: "#EA580C", bg: "#FFF7ED", border: "#FED7AA",
-              toggleBg: "#FFEDD5", toggleActive: "#EA580C",
-            },
-            {
-              emoji: "🧖", label: "Spa & wellness bevétel",
-              desc: "Masszázs, medence, szépségápolás stb.",
-              enabled: spaEnabled, setEnabled: setSpaEnabled,
-              pct: spaPct, setPct: setSpaPct,
-              color: "#35BD78", bg: "#FBFBFC", border: "#DDD6FE",
-              toggleBg: "rgba(53,189,120,0.12)", toggleActive: "#35BD78",
-            },
-            {
-              emoji: "📦", label: "Egyéb bevétel",
-              desc: "Parkoló, áruház, konferencia stb.",
-              enabled: otherRevenueEnabled, setEnabled: setOtherRevenueEnabled,
-              pct: otherRevenuePct, setPct: setOtherRevenuePct,
-              color: "#0EA5E9", bg: "#F0F9FF", border: "#BAE6FD",
-              toggleBg: "#E0F2FE", toggleActive: "#0EA5E9",
-            },
-          ] as const
-        ).map(item => (
-          <div
-            key={item.label}
-            style={{
-              background: item.enabled ? item.bg : "#F8FAFC",
-              border: `1px solid ${item.enabled ? item.border : "#E2E8F0"}`,
-              borderRadius: 14, padding: "16px 20px",
-              marginBottom: 10,
-              transition: "all 0.2s",
-              display: "flex", alignItems: "center", gap: 16,
-            }}
-          >
-            {/* Emoji + szöveg */}
+        {([
+          { emoji: "🍻", label: "Egyéb F&B bevétel", desc: "Bár, étterem, room service stb.", enabled: fbOtherEnabled, setEnabled: setFbOtherEnabled, pct: fbOtherPct, setPct: setFbOtherPct, color: "#EA580C", bg: "#FFF7ED", border: "#FED7AA", toggleBg: "#FFEDD5", toggleActive: "#EA580C" },
+          { emoji: "🧖", label: "Spa & wellness bevétel", desc: "Masszázs, medence, szépségápolás stb.", enabled: spaEnabled, setEnabled: setSpaEnabled, pct: spaPct, setPct: setSpaPct, color: "#35BD78", bg: "#FBFBFC", border: "#DDD6FE", toggleBg: "rgba(53,189,120,0.12)", toggleActive: "#35BD78" },
+          { emoji: "📦", label: "Egyéb bevétel", desc: "Parkoló, áruház, konferencia stb.", enabled: otherRevenueEnabled, setEnabled: setOtherRevenueEnabled, pct: otherRevenuePct, setPct: setOtherRevenuePct, color: "#0EA5E9", bg: "#F0F9FF", border: "#BAE6FD", toggleBg: "#E0F2FE", toggleActive: "#0EA5E9" },
+        ] as const).map(item => (
+          <div key={item.label} style={{
+            background: item.enabled ? item.bg : "#F8FAFC",
+            border: `1px solid ${item.enabled ? item.border : "#E2E8F0"}`,
+            borderRadius: 14, padding: "16px 20px", marginBottom: 10,
+            transition: "all 0.2s", display: "flex", alignItems: "center", gap: 16,
+          }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
               <span style={{ fontSize: 22, flexShrink: 0 }}>{item.emoji}</span>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0 }}>
-                  {item.label}
-                </p>
-                <p style={{ fontSize: 11, color: "#94A3B8", margin: "2px 0 0" }}>
-                  {item.desc}
-                </p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0 }}>{item.label}</p>
+                <p style={{ fontSize: 11, color: "#94A3B8", margin: "2px 0 0" }}>{item.desc}</p>
               </div>
             </div>
-
-            {/* Százalék input */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              opacity: item.enabled ? 1 : 0.4,
-              transition: "opacity 0.2s",
-              pointerEvents: item.enabled ? "auto" : "none",
-            }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, opacity: item.enabled ? 1 : 0.4, transition: "opacity 0.2s", pointerEvents: item.enabled ? "auto" : "none" }}>
               <p style={{ fontSize: 11, color: "#64748B", margin: 0, whiteSpace: "nowrap" }}>ADR %-a:</p>
-              <NumInput
-                value={item.pct}
-                onChange={item.setPct as (v: number) => void}
-                min={0} max={100} step={0.5} suffix="%" width={64}
-              />
+              <NumInput value={item.pct} onChange={item.setPct as (v: number) => void} min={0} max={100} step={0.5} suffix="%" width={64} />
               {item.enabled && item.pct > 0 && (
-                <div style={{
-                  background: item.bg, border: `1px solid ${item.border}`,
-                  borderRadius: 8, padding: "4px 10px",
-                  fontSize: 11, fontWeight: 700, color: item.color,
-                  whiteSpace: "nowrap",
-                }}>
-                  pl. 20.000 Ft ADR esetén: +{Math.round(20000 * item.pct / 100).toLocaleString("hu-HU")} Ft
+                <div style={{ background: item.bg, border: `1px solid ${item.border}`, borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: item.color, whiteSpace: "nowrap" }}>
+                  pl. 20 000 Ft ADR → +{Math.round(20000 * item.pct / 100).toLocaleString("hu-HU")} Ft
                 </div>
               )}
             </div>
-
-            {/* Toggle */}
-            <button
-              onClick={() => (item.setEnabled as (v: boolean) => void)(!item.enabled)}
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                background: item.enabled ? item.toggleBg : "#F8FAFC",
-                border: `1px solid ${item.enabled ? item.border : "#E2E8F0"}`,
-                borderRadius: 10, padding: "6px 12px",
-                cursor: "pointer", transition: "all 0.2s", flexShrink: 0,
-              }}
-            >
-              <div style={{
-                width: 28, height: 16, borderRadius: 8,
-                background: item.enabled ? item.toggleActive : "#CBD5E1",
-                position: "relative", transition: "background 0.2s", flexShrink: 0,
-              }}>
-                <div style={{
-                  position: "absolute", top: 2, left: item.enabled ? 14 : 2,
-                  width: 12, height: 12, borderRadius: "50%", background: "white",
-                  transition: "left 0.15s",
-                }} />
+            <button onClick={() => (item.setEnabled as (v: boolean) => void)(!item.enabled)} style={{ display: "flex", alignItems: "center", gap: 6, background: item.enabled ? item.toggleBg : "#F8FAFC", border: `1px solid ${item.enabled ? item.border : "#E2E8F0"}`, borderRadius: 10, padding: "6px 12px", cursor: "pointer", transition: "all 0.2s", flexShrink: 0 }}>
+              <div style={{ width: 28, height: 16, borderRadius: 8, background: item.enabled ? item.toggleActive : "#CBD5E1", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                <div style={{ position: "absolute", top: 2, left: item.enabled ? 14 : 2, width: 12, height: 12, borderRadius: "50%", background: "white", transition: "left 0.15s" }} />
               </div>
-              <span style={{
-                fontSize: 12, fontWeight: 600,
-                color: item.enabled ? item.color : "#94A3B8",
-              }}>
-                {item.enabled ? "Be" : "Ki"}
-              </span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: item.enabled ? item.color : "#94A3B8" }}>{item.enabled ? "Be" : "Ki"}</span>
             </button>
           </div>
         ))}
 
-        {/* Összesítő */}
         {(fbOtherEnabled || spaEnabled || otherRevenueEnabled) && (
-          <div style={{
-            background: "#F8FAFC", border: "1px solid #E2E8F0",
-            borderRadius: 12, padding: "12px 16px", marginTop: 4,
-            display: "flex", alignItems: "center", gap: 12,
-          }}>
+          <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: "12px 16px", marginTop: 4, display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ fontSize: 18 }}>📊</span>
-            <div>
-              <p style={{ fontSize: 12, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                Összes egyéb bevételi szorzó:{" "}
-                <strong style={{ color: "#0F172A" }}>
-                  {((fbOtherEnabled ? fbOtherPct : 0) + (spaEnabled ? spaPct : 0) + (otherRevenueEnabled ? otherRevenuePct : 0)).toFixed(1)}%
-                </strong>
-                {" "}az ADR-ből
-              </p>
-              <p style={{ fontSize: 11, color: "#94A3B8", margin: "2px 0 0" }}>
-                Pl. 20.000 Ft ADR esetén ez +{Math.round(20000 * ((fbOtherEnabled ? fbOtherPct : 0) + (spaEnabled ? spaPct : 0) + (otherRevenueEnabled ? otherRevenuePct : 0)) / 100).toLocaleString("hu-HU")} Ft extra bevétel/szoba/éj
-              </p>
-            </div>
+            <p style={{ fontSize: 12, color: "#64748B", margin: 0, fontWeight: 500 }}>
+              Összes egyéb bevételi szorzó:{" "}
+              <strong style={{ color: "#0F172A" }}>
+                {((fbOtherEnabled ? fbOtherPct : 0) + (spaEnabled ? spaPct : 0) + (otherRevenueEnabled ? otherRevenuePct : 0)).toFixed(1)}%
+              </strong>{" "}az ADR-ből → pl. 20 000 Ft ADR esetén +{Math.round(20000 * ((fbOtherEnabled ? fbOtherPct : 0) + (spaEnabled ? spaPct : 0) + (otherRevenueEnabled ? otherRevenuePct : 0)) / 100).toLocaleString("hu-HU")} Ft/szoba/éj
+            </p>
           </div>
         )}
       </div>
@@ -897,108 +767,54 @@ export default function SimplePlannerSettingsPage() {
         borderRadius: 20, padding: "24px", marginBottom: 20,
         transition: "border-color 0.2s",
       }}>
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 9,
-              background: tfhEnabled ? "#FEE2E2" : "#F1F5F9",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transition: "background 0.2s",
-            }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: tfhEnabled ? "#FEE2E2" : "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}>
               <Landmark size={15} color={tfhEnabled ? "#DC2626" : "#94A3B8"} />
             </div>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>
               Turizmusfejlesztési Hozzájárulás (TFH)
             </h2>
           </div>
-
-          {/* Toggle */}
-          <button
-            onClick={() => setTfhEnabled(v => !v)}
-            style={{
-              display: "flex", alignItems: "center", gap: 8,
-              background: tfhEnabled ? "#FEF2F2" : "#F8FAFC",
-              border: `1px solid ${tfhEnabled ? "#FECACA" : "#E2E8F0"}`,
-              borderRadius: 10, padding: "7px 14px",
-              cursor: "pointer", transition: "all 0.2s",
-            }}
-          >
-            <div style={{
-              width: 32, height: 18, borderRadius: 9,
-              background: tfhEnabled ? "#EF4444" : "#CBD5E1",
-              position: "relative", transition: "background 0.2s", flexShrink: 0,
-            }}>
-              <div style={{
-                position: "absolute", top: 3, left: tfhEnabled ? 17 : 3,
-                width: 12, height: 12, borderRadius: "50%", background: "white",
-                transition: "left 0.15s",
-              }} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: tfhEnabled ? "#DC2626" : "#94A3B8" }}>
-              {tfhEnabled ? "Bekapcsolva" : "Kikapcsolva"}
-            </span>
-          </button>
+          <Toggle enabled={tfhEnabled} onToggle={() => setTfhEnabled(v => !v)} activeColor="#EF4444" />
         </div>
-
         <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 20px" }}>
-          A nettó szobaárbevétel után fizetendő állami hozzájárulás. Bekapcsolt állapotban a Simple Planner
-          levonja a TFH-t a bevételből — a profit és a fedezeti pont is ezzel korrigált értéket mutat.
+          A nettó szobaárbevétel után fizetendő állami hozzájárulás. Profit = bevétel − kiadás − TFH.
         </p>
-
-        {/* Mérték beállítás */}
         <div style={{
           display: "flex", alignItems: "center", gap: 20,
-          opacity: tfhEnabled ? 1 : 0.4,
-          transition: "opacity 0.2s",
+          opacity: tfhEnabled ? 1 : 0.4, transition: "opacity 0.2s",
           pointerEvents: tfhEnabled ? "auto" : "none",
         }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12,
-            background: "#FEF2F2", border: "1px solid #FECACA",
-            borderRadius: 14, padding: "14px 20px",
-          }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 14, padding: "14px 20px" }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EF4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Landmark size={16} color="white" />
             </div>
             <div>
-              <p style={{ fontSize: 11, color: "#DC2626", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                TFH mértéke
-              </p>
-              <NumInput
-                value={tfhRate}
-                onChange={setTfhRate}
-                min={0} max={100} step={0.5}
-                suffix="%"
-                width={70}
-              />
+              <p style={{ fontSize: 11, color: "#DC2626", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>TFH mértéke</p>
+              <NumInput value={tfhRate} onChange={setTfhRate} min={0} max={100} step={0.5} suffix="%" width={70} />
             </div>
           </div>
-
           <div style={{ flex: 1, fontSize: 13, color: "#64748B", lineHeight: 1.6 }}>
-            Alapértelmezés: <strong>4%</strong> — a hatályos magyar jogszabály alapján. Ha eltér a szállodádra
-            vonatkozó mérték, módosítsd itt. A számítás: <em>TFH = szobaárbevétel × {tfhRate}%</em>
+            Alapértelmezés: <strong>4%</strong> — hatályos magyar jogszabály alapján.
+            A számítás: <em>TFH = szobaárbevétel × {tfhRate}%</em>
           </div>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* Hogyan működik */}
+      {/* Kalkuláció összefoglaló */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
-      <div style={{
-        background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 16,
-        padding: "16px 20px", marginBottom: 8,
-      }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: "#64748B", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          Hogyan használja ezt a Simple Planner?
+      <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 16, padding: "16px 20px", marginBottom: 8 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#64748B", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          Hogyan számol a Simple Planner?
         </p>
-        <p style={{ fontSize: 13, color: "#64748B", margin: 0, lineHeight: 1.7 }}>
-          <strong>Kiadás sávok:</strong> ha nincs egyedi kiadás megadva, a kihasználtság alapján automatikusan a megfelelő sávból veszi az értéket.
-          <br />
-          <strong>TFH:</strong> ha be van kapcsolva, a profit = bevétel − kiadás − TFH. A fedezeti pont is
-          a TFH-val korrigált nettó bevételt veszi alapul.
-        </p>
+        <div style={{ fontSize: 13, color: "#64748B", lineHeight: 1.8 }}>
+          <strong style={{ color: "#0F172A" }}>Bevétel/hó</strong> = (ADR + F&amp;B felár + egyéb) × szobaeladott éjszakák<br />
+          <strong style={{ color: "#0F172A" }}>Kiadás/hó</strong> = fix éves / 12 + (F&amp;B önköltség + mosatás) × szobaeladott éjszakák<br />
+          <strong style={{ color: "#0F172A" }}>Profit/hó</strong> = Bevétel − Kiadás − TFH
+        </div>
       </div>
 
     </div>

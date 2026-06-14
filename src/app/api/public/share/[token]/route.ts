@@ -33,10 +33,9 @@ export async function GET(req: Request, { params }: Params) {
     }
   }
 
-  // ── Fetch settings for cost band calculation ───────────────────────────────
   const settings = await prisma.simplePlannerSettings.findUnique({
     where: { hotelId: plan.hotelId },
-    include: { costBands: { orderBy: { sortOrder: "asc" } } },
+    include: { fixedCosts: { orderBy: { sortOrder: "asc" } } },
   });
 
   return NextResponse.json({
@@ -67,11 +66,11 @@ export async function GET(req: Request, { params }: Params) {
       spaPct: settings?.spaPct ?? 0,
       otherRevenueEnabled: settings?.otherRevenueEnabled ?? false,
       otherRevenuePct: settings?.otherRevenuePct ?? 0,
-      costBands: settings?.costBands?.map(b => ({
-        fromOccPct: b.fromOccPct,
-        toOccPct: b.toOccPct,
-        costPerRoom: b.costPerRoom,
-      })) ?? [],
+      annualFixedCost: (settings?.fixedCosts ?? []).reduce((s, fc) => s + fc.annualAmount, 0),
+      breakfastCost: settings?.breakfastCost ?? 0,
+      halfboardCost: settings?.halfboardCost ?? 0,
+      laundryEnabled: settings?.laundryEnabled ?? false,
+      laundryPerRoom: settings?.laundryPerRoom ?? 0,
     },
     // breakfastPct/halfboardPct most a months tömbben van havi szinten
   });

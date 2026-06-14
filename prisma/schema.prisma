@@ -546,7 +546,6 @@ model SimplePlanMonth {
 model SimplePlannerSettings {
   id                  String   @id @default(cuid())
   hotelId             String   @unique
-  optimalOccupancyPct Float    @default(70)   // referencia kihasználtság %
   tfhEnabled          Boolean  @default(true)  // Turizmusfejlesztési Hozzájárulás bekapcsolva?
   tfhRate             Float    @default(4)     // TFH mértéke % (alapértelmezett 4%)
   fbEnabled           Boolean  @default(false) // étkezési bevételek kalkuláció bekapcsolva?
@@ -561,20 +560,22 @@ model SimplePlannerSettings {
   spaPct              Float    @default(0)     // spa ADR %-a
   otherRevenueEnabled Boolean  @default(false) // egyéb bevétel bekapcsolva?
   otherRevenuePct     Float    @default(0)     // egyéb bevétel ADR %-a
+  breakfastCost       Float    @default(0)     // reggeli önköltség Ft/fő/éj (kiadás)
+  halfboardCost       Float    @default(0)     // félpanzió önköltség Ft/fő/éj (kiadás)
+  laundryEnabled      Boolean  @default(false) // mosatás változó költség bekapcsolva?
+  laundryPerRoom      Float    @default(0)     // mosatás Ft/szoba/éj
   hotel               Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  costBands           SimplePlannerCostBand[]
+  fixedCosts          SimplePlannerFixedCost[]
 }
 
-// Kiadás sávok: pl. 0–50% kihasnáltnál X Ft/szoba/éj, 50–75% Y Ft/szoba/éj, stb.
-model SimplePlannerCostBand {
-  id          String                @id @default(cuid())
-  settingsId  String
-  fromOccPct  Float                 // pl. 0
-  toOccPct    Float                 // pl. 50
-  costPerRoom Float                 // Ft/szoba/éjszaka
-  label       String?               // opcionális leírás (pl. "Alacsony szezon")
-  sortOrder   Int       @default(0)
-  settings    SimplePlannerSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+// Fix éves költségtételek: pl. "Személyzet" 24 000 000 Ft/év → ÷12 = havi fix teher
+model SimplePlannerFixedCost {
+  id           String                @id @default(cuid())
+  settingsId   String
+  label        String
+  annualAmount Float
+  sortOrder    Int       @default(0)
+  settings     SimplePlannerSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
 }
 
 // ─── SYSTEM SETTINGS ─────────────────────────────────────────────────────────

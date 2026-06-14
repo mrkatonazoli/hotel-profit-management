@@ -34,23 +34,21 @@ export async function POST(_req: Request, { params }: Params) {
 
   if (!plan) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Fetch TFH settings
   const settings = await prisma.simplePlannerSettings.findUnique({
     where: { hotelId: plan.hotelId },
-    include: { costBands: { orderBy: { sortOrder: "asc" } } },
+    include: { fixedCosts: { orderBy: { sortOrder: "asc" } } },
   });
 
   const tfhEnabled = settings?.tfhEnabled ?? false;
   const tfhRate = settings?.tfhRate ?? 4;
-  const costBands = settings?.costBands ?? [];
   const totalRooms = plan.hotel.totalRooms ?? 0;
   const year = plan.year;
-
-  function getCostFromBands(occupancyPct: number): number | null {
-    if (costBands.length === 0) return null;
-    const band = costBands.find(b => occupancyPct >= b.fromOccPct && occupancyPct <= b.toOccPct);
-    return band ? band.costPerRoom : null;
-  }
+  const annualFixedCost = (settings?.fixedCosts ?? []).reduce((s, fc) => s + fc.annualAmount, 0);
+  const avgPaxPerRoom = settings?.avgPaxPerRoom ?? 1.8;
+  const breakfastCost = settings?.breakfastCost ?? 0;
+  const halfboardCost = settings?.halfboardCost ?? 0;
+  const laundryEnabled = settings?.laundryEnabled ?? false;
+  const laundryPerRoom = settings?.laundryPerRoom ?? 0;
 
   // Build monthly summary lines
   let monthLines = "";
@@ -68,13 +66,19 @@ export async function POST(_req: Request, { params }: Params) {
     const days = getDaysInMonth(m.month, year);
     const availableNights = totalRooms * days;
     const roomNights = (m.occupancyPct / 100) * availableNights;
-    const effectiveCost = m.monthlyCost > 0 ? m.monthlyCost : (getCostFromBands(m.occupancyPct) ?? 0);
     const revenue = m.roomRevenue > 0 ? m.roomRevenue * roomNights : roomNights * m.adr;
-    const cost = effectiveCost * roomNights;
+    const fixedPerMonth = annualFixedCost / 12;
+    const fbCostPerRoomNight = avgPaxPerRoom * (
+      ((m.breakfastPct ?? 0) / 100) * breakfastCost +
+      ((m.halfboardPct ?? 0) / 100) * halfboardCost
+    );
+    const laundryCost = laundryEnabled ? laundryPerRoom : 0;
+    const cost = fixedPerMonth + (fbCostPerRoomNight + laundryCost) * roomNights;
+    const effectiveCostPerRoom = roomNights > 0 ? cost / roomNights : 0;
     const tfh = tfhEnabled ? revenue * (tfhRate / 100) : 0;
     const profit = revenue - cost - tfh;
 
-    const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
+    const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0;
     if (hasData) {
       filledMonths++;
       totalOcc += m.occupancyPct;
@@ -89,7 +93,7 @@ export async function POST(_req: Request, { params }: Params) {
     const unitRate = m.roomRevenue > 0 ? m.roomRevenue : m.adr;
     monthLines += `  ${HU_MONTHS[m.month - 1]}: kihasználtság ${m.occupancyPct}%, ${
       m.roomRevenue > 0 ? `szobaárbevétel ${fmt(m.roomRevenue)} Ft/szoba/éj` : `ADR ${fmt(m.adr)} Ft`
-    }, kiadás ${fmt(effectiveCost)} Ft/szoba/éj, bevétel ${fmt(revenue)} Ft, profit ${fmt(profit)} Ft${unitRate === 0 ? " (nincs adat)" : ""}\n`;
+    }, kiadás ${fmt(effectiveCostPerRoom)} Ft/szoba/éj, bevétel ${fmt(revenue)} Ft, profit ${fmt(profit)} Ft${unitRate === 0 ? " (nincs adat)" : ""}\n`;
   }
 
   const annualProfit = annualRevenue - annualCost - annualTfh;

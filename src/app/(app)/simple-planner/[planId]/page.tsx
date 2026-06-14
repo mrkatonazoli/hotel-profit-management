@@ -75,20 +75,28 @@ function getDaysInMonth(month: number, year: number) {
 
 type FbParams = {
   enabled: boolean;
-  // breakfastPct és halfboardPct most a MonthData-ban van (havonta)
   breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
   fbOtherEnabled: boolean; fbOtherPct: number;
   spaEnabled: boolean; spaPct: number;
   otherRevenueEnabled: boolean; otherRevenuePct: number;
 };
 
-function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate = 0, fb?: FbParams): MonthCalc {
+type CostParams = {
+  annualFixedCost: number;   // összes fix éves költség → ÷12 = havi fix
+  breakfastCost: number;     // reggeli önköltség Ft/fő/éj
+  halfboardCost: number;     // félpanzió önköltség Ft/fő/éj
+  avgPaxPerRoom: number;
+  laundryEnabled: boolean;
+  laundryPerRoom: number;    // mosatás Ft/szoba/éj
+};
+
+function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRate = 0, fb?: FbParams, costs?: CostParams): MonthCalc {
   const days = getDaysInMonth(m.month, year);
   const availableNights = totalRooms * days;
-  const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0 || m.monthlyCost > 0;
+  const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0;
   const roomNights = (m.occupancyPct / 100) * availableNights;
 
-  // Étkezési felár/szoba/éj — a havi mix %-ok alapján, csak ha nincs manuális roomRevenue
+  // Bevétel: ADR + F&B felár + egyéb, vagy manuális roomRevenue ha megadva
   let boardPerRoomNight = 0;
   if (fb?.enabled && m.roomRevenue === 0) {
     boardPerRoomNight = fb.avgPaxPerRoom * (
@@ -96,8 +104,6 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
       (m.halfboardPct / 100) * fb.halfboardPrice
     );
   }
-
-  // Egyéb bevételek: ADR %-a (F&B, Spa, Egyéb) — csak ha nincs manuális roomRevenue
   let extraRevPerRoomNight = 0;
   if (m.roomRevenue === 0 && fb) {
     const extraPct =
@@ -106,23 +112,30 @@ function computeMonthCalc(m: MonthData, totalRooms: number, year: number, tfhRat
       (fb.otherRevenueEnabled ? fb.otherRevenuePct : 0);
     extraRevPerRoomNight = m.adr * (extraPct / 100);
   }
-
-  // Ha van manuális szobaárbevétel → felülírja; különben ADR + étkezési felár + egyéb
   const revenuePerRoomNight = m.roomRevenue > 0
     ? m.roomRevenue
     : m.adr + boardPerRoomNight + extraRevPerRoomNight;
   const revenue = revenuePerRoomNight * roomNights;
 
-  const cost = m.monthlyCost * roomNights;
+  // Kiadás: fix (éves÷12) + változó (F&B önköltség + mosatás) × roomNights
+  let cost = 0;
+  if (costs) {
+    const fixedPerMonth = costs.annualFixedCost / 12;
+    const fbCostPerRoomNight = costs.avgPaxPerRoom * (
+      (m.breakfastPct / 100) * costs.breakfastCost +
+      (m.halfboardPct / 100) * costs.halfboardCost
+    );
+    const laundryCostPerRoomNight = costs.laundryEnabled ? costs.laundryPerRoom : 0;
+    const variablePerRoomNight = fbCostPerRoomNight + laundryCostPerRoomNight;
+    cost = fixedPerMonth + variablePerRoomNight * roomNights;
+  }
+
   const tfh = revenue * (tfhRate / 100);
   const profit = revenue - cost - tfh;
   const margin = revenue > 0 ? (profit / revenue) * 100 : null;
   const netRevenue = revenue - tfh;
-  const unitRate = revenuePerRoomNight;
-  const breakeven = netRevenue > 0 && m.occupancyPct > 0
+  const breakeven = netRevenue > 0 && cost > 0 && m.occupancyPct > 0
     ? (cost / netRevenue) * m.occupancyPct
-    : unitRate > 0 && m.monthlyCost > 0
-    ? (m.monthlyCost / (unitRate * (1 - tfhRate / 100))) * 100
     : null;
   return { month: m.month, daysInMonth: days, roomNights, revenue, cost, tfh, profit, margin, breakeven, hasData };
 }
@@ -589,8 +602,7 @@ export default function SimplePlanDetailPage() {
   const [breakfastPct, setBreakfastPct] = useState(0);
   const [halfboardPct, setHalfboardPct] = useState(0);
 
-  // ─── Cost band + TFH + F&B + egyéb bevétel settings ─────────────────────
-  const [costBands, setCostBands] = useState<{ fromOccPct: number; toOccPct: number; costPerRoom: number }[]>([]);
+  // ─── TFH + F&B bevétel + egyéb bevétel + cost settings ──────────────────
   const [tfhEnabled, setTfhEnabled] = useState(false);
   const [tfhRate, setTfhRate] = useState(4);
   const [fbEnabled, setFbEnabled] = useState(false);
@@ -603,6 +615,12 @@ export default function SimplePlanDetailPage() {
   const [spaPct, setSpaPct] = useState(0);
   const [otherRevenueEnabled, setOtherRevenueEnabled] = useState(false);
   const [otherRevenuePct, setOtherRevenuePct] = useState(0);
+  // Cost settings
+  const [annualFixedCost, setAnnualFixedCost] = useState(0);
+  const [breakfastCost, setBreakfastCost] = useState(0);
+  const [halfboardCost, setHalfboardCost] = useState(0);
+  const [laundryEnabled, setLaundryEnabled] = useState(false);
+  const [laundryPerRoom, setLaundryPerRoom] = useState(0);
   const [savingRevenues, setSavingRevenues] = useState(false);
   const [boardMixDirty, setBoardMixDirty] = useState(false);
 
@@ -610,7 +628,6 @@ export default function SimplePlanDetailPage() {
     fetch("/api/simple-planner-settings")
       .then(r => r.json())
       .then((data: {
-        costBands?: { fromOccPct: number; toOccPct: number; costPerRoom: number }[];
         tfhEnabled?: boolean; tfhRate?: number;
         fbEnabled?: boolean; breakfastPrice?: number;
         halfboardPrice?: number; avgPaxPerRoom?: number;
@@ -618,34 +635,37 @@ export default function SimplePlanDetailPage() {
         fbOtherEnabled?: boolean; fbOtherPct?: number;
         spaEnabled?: boolean; spaPct?: number;
         otherRevenueEnabled?: boolean; otherRevenuePct?: number;
+        breakfastCost?: number; halfboardCost?: number;
+        laundryEnabled?: boolean; laundryPerRoom?: number;
+        fixedCosts?: { annualAmount: number }[];
       } | null) => {
-        if (data?.costBands?.length) setCostBands(data.costBands);
-        if (data?.tfhEnabled !== undefined) setTfhEnabled(data.tfhEnabled);
-        if (data?.tfhRate !== undefined) setTfhRate(data.tfhRate);
-        if (data?.fbEnabled !== undefined) setFbEnabled(data.fbEnabled);
-        if (data?.breakfastPrice !== undefined) setBreakfastPrice(data.breakfastPrice);
-        if (data?.halfboardPrice !== undefined) setHalfboardPrice(data.halfboardPrice);
-        if (data?.avgPaxPerRoom !== undefined) setAvgPaxPerRoom(data.avgPaxPerRoom);
-        if (data?.defaultBreakfastPct !== undefined) setBreakfastPct(data.defaultBreakfastPct);
-        if (data?.defaultHalfboardPct !== undefined) setHalfboardPct(data.defaultHalfboardPct);
-        // Ha be vannak állítva az alapértékek, a gomb rögtön aktív legyen
-        if ((data?.defaultBreakfastPct ?? 0) > 0 || (data?.defaultHalfboardPct ?? 0) > 0) {
+        if (!data) return;
+        if (data.tfhEnabled !== undefined) setTfhEnabled(data.tfhEnabled);
+        if (data.tfhRate !== undefined) setTfhRate(data.tfhRate);
+        if (data.fbEnabled !== undefined) setFbEnabled(data.fbEnabled);
+        if (data.breakfastPrice !== undefined) setBreakfastPrice(data.breakfastPrice);
+        if (data.halfboardPrice !== undefined) setHalfboardPrice(data.halfboardPrice);
+        if (data.avgPaxPerRoom !== undefined) setAvgPaxPerRoom(data.avgPaxPerRoom);
+        if (data.defaultBreakfastPct !== undefined) setBreakfastPct(data.defaultBreakfastPct);
+        if (data.defaultHalfboardPct !== undefined) setHalfboardPct(data.defaultHalfboardPct);
+        if ((data.defaultBreakfastPct ?? 0) > 0 || (data.defaultHalfboardPct ?? 0) > 0) {
           setBoardMixDirty(true);
         }
-        if (data?.fbOtherEnabled !== undefined) setFbOtherEnabled(data.fbOtherEnabled);
-        if (data?.fbOtherPct !== undefined) setFbOtherPct(data.fbOtherPct);
-        if (data?.spaEnabled !== undefined) setSpaEnabled(data.spaEnabled);
-        if (data?.spaPct !== undefined) setSpaPct(data.spaPct);
-        if (data?.otherRevenueEnabled !== undefined) setOtherRevenueEnabled(data.otherRevenueEnabled);
-        if (data?.otherRevenuePct !== undefined) setOtherRevenuePct(data.otherRevenuePct);
+        if (data.fbOtherEnabled !== undefined) setFbOtherEnabled(data.fbOtherEnabled);
+        if (data.fbOtherPct !== undefined) setFbOtherPct(data.fbOtherPct);
+        if (data.spaEnabled !== undefined) setSpaEnabled(data.spaEnabled);
+        if (data.spaPct !== undefined) setSpaPct(data.spaPct);
+        if (data.otherRevenueEnabled !== undefined) setOtherRevenueEnabled(data.otherRevenueEnabled);
+        if (data.otherRevenuePct !== undefined) setOtherRevenuePct(data.otherRevenuePct);
+        if (data.breakfastCost !== undefined) setBreakfastCost(data.breakfastCost);
+        if (data.halfboardCost !== undefined) setHalfboardCost(data.halfboardCost);
+        if (data.laundryEnabled !== undefined) setLaundryEnabled(data.laundryEnabled);
+        if (data.laundryPerRoom !== undefined) setLaundryPerRoom(data.laundryPerRoom);
+        if (data.fixedCosts?.length) {
+          setAnnualFixedCost(data.fixedCosts.reduce((s, fc) => s + fc.annualAmount, 0));
+        }
       });
   }, []);
-
-  function getCostFromBands(occupancyPct: number): number | null {
-    if (costBands.length === 0) return null;
-    const band = costBands.find(b => occupancyPct >= b.fromOccPct && occupancyPct <= b.toOccPct);
-    return band ? band.costPerRoom : null;
-  }
 
   // ─── Simulator state ──────────────────────────────────────────────────────
   const [simOffset, setSimOffset] = useState(0); // global occ % offset
@@ -897,10 +917,28 @@ export default function SimplePlanDetailPage() {
     }
   }
 
-  function updateMonthField(monthNum: number, field: keyof Pick<MonthData, "adr" | "occupancyPct" | "roomRevenue" | "monthlyCost" | "breakfastPct" | "halfboardPct">, value: number) {
-    const updated = months.map(m =>
-      m.month === monthNum ? { ...m, [field]: value } : m
-    );
+  function updateMonthField(monthNum: number, field: keyof Pick<MonthData, "adr" | "occupancyPct" | "roomRevenue" | "breakfastPct" | "halfboardPct">, value: number) {
+    const updated = months.map(m => {
+      if (m.month !== monthNum) return m;
+      const next = { ...m, [field]: value };
+      // Ha ADR változik és van roomRevenue → újraszámítjuk a roomRevenue-t
+      if (field === "adr" && value > 0) {
+        let board = 0;
+        if (fbEnabled) {
+          board = avgPaxPerRoom * (
+            (next.breakfastPct / 100) * breakfastPrice +
+            (next.halfboardPct / 100) * halfboardPrice
+          );
+        }
+        const extraPct =
+          (fbOtherEnabled ? fbOtherPct : 0) +
+          (spaEnabled ? spaPct : 0) +
+          (otherRevenueEnabled ? otherRevenuePct : 0);
+        const extra = value * (extraPct / 100);
+        next.roomRevenue = Math.round(value + board + extra);
+      }
+      return next;
+    });
     setMonths(updated);
     saveMonths(updated);
   }
@@ -932,19 +970,22 @@ export default function SimplePlanDetailPage() {
     return m;
   }
 
-  // Ha nincs egyedi kiadás a hónapban, de van cost band → azt töltjük be; + board mix fallback
-  const monthsWithBands: MonthData[] = months.map(m => {
-    let updated = applyBoardDefaults(m);
-    if (updated.monthlyCost === 0) {
-      const bandCost = getCostFromBands(updated.occupancyPct);
-      if (bandCost !== null) updated = { ...updated, monthlyCost: bandCost };
-    }
-    return updated;
-  });
+  // Board mix alapértékek alkalmazása, ha a hónaphoz nincs egyedi mix megadva
+  const monthsWithBands: MonthData[] = months.map(m => applyBoardDefaults(m));
 
-  // Saved calcs (TFH korrigálva)
+  // Cost params bundle
+  const costs: CostParams = {
+    annualFixedCost,
+    breakfastCost,
+    halfboardCost,
+    avgPaxPerRoom,
+    laundryEnabled,
+    laundryPerRoom,
+  };
+
+  // Saved calcs (TFH + cost params)
   const calcs: MonthCalc[] = monthsWithBands.map(m =>
-    computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb)
+    computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb, costs)
   );
   const filledCalcs = calcs.filter(c => c.hasData);
 
@@ -977,17 +1018,13 @@ export default function SimplePlanDetailPage() {
     ? (annualCost / annualNetRevenue) * avgOcc
     : null;
 
-  // Simulated calcs — sávos kiadás modell:
-  // A szimulált occ-hoz tartozó sáv értékét alkalmazzuk.
-  // Ha nincs sáv (vagy nem fedi le az occ-ot), marad az alap monthlyCost.
-  const simMonths: MonthData[] = monthsWithBands.map(m => {
-    const simOcc = Math.min(100, Math.max(0, m.occupancyPct + simOffset));
-    const bandCost = getCostFromBands(simOcc);
-    const simCost = bandCost !== null ? bandCost : m.monthlyCost;
-    return { ...m, occupancyPct: simOcc, monthlyCost: simCost };
-  });
+  // Simulated calcs — occ offset, fix + változó kiadás automatikusan újraszámolódik
+  const simMonths: MonthData[] = monthsWithBands.map(m => ({
+    ...m,
+    occupancyPct: Math.min(100, Math.max(0, m.occupancyPct + simOffset)),
+  }));
   const simCalcs: MonthCalc[] = simMonths.map(m =>
-    computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb)
+    computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb, costs)
   );
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
 
@@ -1589,27 +1626,6 @@ export default function SimplePlanDetailPage() {
                   />
                 </>
               )}
-              {(() => {
-                const bandCost = m.monthlyCost === 0 ? getCostFromBands(m.occupancyPct) : null;
-                const effectiveCost = m.monthlyCost > 0 ? m.monthlyCost : (bandCost ?? 0);
-                const isFromBand = m.monthlyCost === 0 && bandCost !== null && bandCost > 0;
-                return (
-                  <MonthInput
-                    label="Kiadás"
-                    unit="Ft/szoba/éj"
-                    value={effectiveCost}
-                    step={100}
-                    highlight={m.monthlyCost > 0}
-                    fromBand={isFromBand}
-                    note={
-                      m.monthlyCost > 0 ? "↑ egyedi érték"
-                      : isFromBand ? "⚙ sávból"
-                      : undefined
-                    }
-                    onBlur={v => updateMonthField(m.month, "monthlyCost", v)}
-                  />
-                );
-              })()}
             </div>
           ))}
         </div>
@@ -2376,9 +2392,7 @@ export default function SimplePlanDetailPage() {
             <tbody>
               {(isSimActive ? simCalcs : calcs).map((c, i) => {
                 const m = (isSimActive ? simMonths : months).find(m => m.month === c.month)!;
-                const mWithBand = monthsWithBands.find(mwb => mwb.month === c.month)!;
-                const effectiveCost = mWithBand?.monthlyCost ?? 0;
-                const costIsFromBand = m.monthlyCost === 0 && effectiveCost > 0;
+                const effectiveCostPerRoom = c.roomNights > 0 ? c.cost / c.roomNights : 0;
                 const savedC = calcs[i];
                 const occChanged = isSimActive && m.occupancyPct !== months[i].occupancyPct;
                 return (
@@ -2417,8 +2431,8 @@ export default function SimplePlanDetailPage() {
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isSimActive && c.revenue !== savedC.revenue ? "#35BD78" : "#334155", fontWeight: isSimActive && c.revenue !== savedC.revenue ? 600 : 400 }}>
                       {c.hasData ? fmtM(c.revenue) : "—"}
                     </td>
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: costIsFromBand ? "#0EA5E9" : "#94A3B8" }}>
-                      {c.hasData && effectiveCost > 0 ? `${fmt(effectiveCost)} Ft` : "—"}
+                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
+                      {c.hasData && effectiveCostPerRoom > 0 ? `${fmt(effectiveCostPerRoom)} Ft` : "—"}
                     </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
                       {c.hasData ? fmtM(c.cost) : "—"}

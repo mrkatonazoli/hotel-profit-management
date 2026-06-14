@@ -4,10 +4,9 @@ import { auth } from "@/lib/auth";
 import { getActiveHotel } from "@/lib/get-hotel";
 
 const include = {
-  costBands: { orderBy: { fromOccPct: "asc" as const } },
+  fixedCosts: { orderBy: { sortOrder: "asc" as const } },
 };
 
-// GET — beállítások lekérése (ha nincs, null-t ad vissza)
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,7 +22,6 @@ export async function GET() {
   return NextResponse.json(settings);
 }
 
-// PUT — beállítások mentése (upsert) + cost bands
 export async function PUT(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -33,17 +31,23 @@ export async function PUT(req: Request) {
 
   const body = await req.json();
   const {
-    optimalOccupancyPct, costBands, tfhEnabled, tfhRate,
-    fbEnabled, breakfastPrice, halfboardPrice, avgPaxPerRoom,
+    fixedCosts,
+    tfhEnabled, tfhRate,
+    fbEnabled, breakfastPrice, halfboardPrice,
+    breakfastCost, halfboardCost,
+    avgPaxPerRoom,
     defaultBreakfastPct, defaultHalfboardPct,
     fbOtherEnabled, fbOtherPct, spaEnabled, spaPct, otherRevenueEnabled, otherRevenuePct,
+    laundryEnabled, laundryPerRoom,
   } = body as {
-    optimalOccupancyPct?: number;
+    fixedCosts?: { label: string; annualAmount: number; sortOrder?: number }[];
     tfhEnabled?: boolean;
     tfhRate?: number;
     fbEnabled?: boolean;
     breakfastPrice?: number;
     halfboardPrice?: number;
+    breakfastCost?: number;
+    halfboardCost?: number;
     avgPaxPerRoom?: number;
     defaultBreakfastPct?: number;
     defaultHalfboardPct?: number;
@@ -53,20 +57,21 @@ export async function PUT(req: Request) {
     spaPct?: number;
     otherRevenueEnabled?: boolean;
     otherRevenuePct?: number;
-    costBands?: { fromOccPct: number; toOccPct: number; costPerRoom: number; label?: string; sortOrder?: number }[];
+    laundryEnabled?: boolean;
+    laundryPerRoom?: number;
   };
 
-  // Upsert alap rekord
   let settings = await prisma.simplePlannerSettings.upsert({
     where: { hotelId: hotel.id },
     create: {
       hotelId: hotel.id,
-      optimalOccupancyPct: optimalOccupancyPct ?? 70,
       tfhEnabled: tfhEnabled ?? true,
       tfhRate: tfhRate ?? 4,
       fbEnabled: fbEnabled ?? false,
       breakfastPrice: breakfastPrice ?? 0,
       halfboardPrice: halfboardPrice ?? 0,
+      breakfastCost: breakfastCost ?? 0,
+      halfboardCost: halfboardCost ?? 0,
       avgPaxPerRoom: avgPaxPerRoom ?? 1.8,
       defaultBreakfastPct: defaultBreakfastPct ?? 0,
       defaultHalfboardPct: defaultHalfboardPct ?? 0,
@@ -76,14 +81,17 @@ export async function PUT(req: Request) {
       spaPct: spaPct ?? 0,
       otherRevenueEnabled: otherRevenueEnabled ?? false,
       otherRevenuePct: otherRevenuePct ?? 0,
+      laundryEnabled: laundryEnabled ?? false,
+      laundryPerRoom: laundryPerRoom ?? 0,
     },
     update: {
-      ...(optimalOccupancyPct !== undefined && { optimalOccupancyPct }),
       ...(tfhEnabled !== undefined && { tfhEnabled }),
       ...(tfhRate !== undefined && { tfhRate }),
       ...(fbEnabled !== undefined && { fbEnabled }),
       ...(breakfastPrice !== undefined && { breakfastPrice }),
       ...(halfboardPrice !== undefined && { halfboardPrice }),
+      ...(breakfastCost !== undefined && { breakfastCost }),
+      ...(halfboardCost !== undefined && { halfboardCost }),
       ...(avgPaxPerRoom !== undefined && { avgPaxPerRoom }),
       ...(defaultBreakfastPct !== undefined && { defaultBreakfastPct }),
       ...(defaultHalfboardPct !== undefined && { defaultHalfboardPct }),
@@ -93,32 +101,29 @@ export async function PUT(req: Request) {
       ...(spaPct !== undefined && { spaPct }),
       ...(otherRevenueEnabled !== undefined && { otherRevenueEnabled }),
       ...(otherRevenuePct !== undefined && { otherRevenuePct }),
+      ...(laundryEnabled !== undefined && { laundryEnabled }),
+      ...(laundryPerRoom !== undefined && { laundryPerRoom }),
     },
     include,
   });
 
-  // Ha jöttek cost band-ek → teljes csere
-  if (Array.isArray(costBands)) {
-    await prisma.simplePlannerCostBand.deleteMany({ where: { settingsId: settings.id } });
-    if (costBands.length > 0) {
-      await prisma.simplePlannerCostBand.createMany({
-        data: costBands.map((b, i) => ({
+  if (Array.isArray(fixedCosts)) {
+    await prisma.simplePlannerFixedCost.deleteMany({ where: { settingsId: settings.id } });
+    if (fixedCosts.length > 0) {
+      await prisma.simplePlannerFixedCost.createMany({
+        data: fixedCosts.map((fc, i) => ({
           settingsId: settings.id,
-          fromOccPct: b.fromOccPct,
-          toOccPct: b.toOccPct,
-          costPerRoom: b.costPerRoom,
-          label: b.label ?? null,
-          sortOrder: b.sortOrder ?? i,
+          label: fc.label,
+          annualAmount: fc.annualAmount,
+          sortOrder: fc.sortOrder ?? i,
         })),
       });
     }
+    settings = await prisma.simplePlannerSettings.findUnique({
+      where: { id: settings.id },
+      include,
+    }) as typeof settings;
   }
-
-  // Refetch friss adatokkal
-  settings = await prisma.simplePlannerSettings.findUnique({
-    where: { id: settings.id },
-    include,
-  }) as typeof settings;
 
   return NextResponse.json(settings);
 }
