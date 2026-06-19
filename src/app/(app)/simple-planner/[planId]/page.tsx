@@ -1064,10 +1064,20 @@ export default function SimplePlanDetailPage() {
     : 0;
   const simAvgMargin = simAnnualRevenue > 0 ? (simAnnualProfit / simAnnualRevenue) * 100 : 0;
 
-  // RevPAR = éves bevétel / összes elérhető szobaejtszaka (sztenderd hotelmutató)
-  const totalAvailableNights = calcs.reduce((s, c) => s + totalRooms * c.daysInMonth, 0);
-  const revPAR = totalAvailableNights > 0 ? annualRevenue / totalAvailableNights : 0;
-  const simRevPAR = totalAvailableNights > 0 ? simAnnualRevenue / totalAvailableNights : 0;
+  // RevPAR = tiszta szobabevétel (ADR × eladott szobaejtszakák) / (totalRooms × 365)
+  // Csak az ADR számít — F&B, spa, egyéb bevétel NEM szerepel benne
+  const annualRoomRevenue = monthsWithBands.reduce((s, m) => {
+    const c = calcs.find(cc => cc.month === m.month);
+    if (!c || !c.hasData) return s;
+    return s + m.adr * c.roomNights;
+  }, 0);
+  const simAnnualRoomRevenue = simMonths.reduce((s, m) => {
+    const c = simCalcs.find(cc => cc.month === m.month);
+    if (!c || !c.hasData) return s;
+    return s + m.adr * c.roomNights;
+  }, 0);
+  const revPAR = totalRooms > 0 ? annualRoomRevenue / (totalRooms * 365) : 0;
+  const simRevPAR = totalRooms > 0 ? simAnnualRoomRevenue / (totalRooms * 365) : 0;
 
   // Szimulált break-even: a szimulált adatokból újraszámolva, hogy konzisztens legyen a sim profittal
   // (ha a kihasználtság változik, a break-even occ is arányosan változik — nem az alap marad érvényes)
