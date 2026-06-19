@@ -1034,11 +1034,6 @@ export default function SimplePlanDetailPage() {
     ? annualRevenue / totalFilledRoomNights
     : 0;
 
-  // RevPAR = éves bevétel / összes elérhető szobaejtszaka (sztenderd hotelmutató)
-  const totalAvailableNights = calcs.reduce((s, c) => s + totalRooms * c.daysInMonth, 0);
-  const revPAR = totalAvailableNights > 0 ? annualRevenue / totalAvailableNights : 0;
-  const simRevPAR = totalAvailableNights > 0 ? simAnnualRevenue / totalAvailableNights : 0;
-
   // Éves fedezeti pont: cost / (revenue − tfh) × avgOcc
   const annualNetRevenue = annualRevenue - annualTfh;
   const annualBreakeven = (annualNetRevenue > 0 && avgOcc > 0)
@@ -1068,6 +1063,11 @@ export default function SimplePlanDetailPage() {
     ? simFilledCalcs.reduce((s, c) => s + (simMonths.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / simFilledCalcs.length
     : 0;
   const simAvgMargin = simAnnualRevenue > 0 ? (simAnnualProfit / simAnnualRevenue) * 100 : 0;
+
+  // RevPAR = éves bevétel / összes elérhető szobaejtszaka (sztenderd hotelmutató)
+  const totalAvailableNights = calcs.reduce((s, c) => s + totalRooms * c.daysInMonth, 0);
+  const revPAR = totalAvailableNights > 0 ? annualRevenue / totalAvailableNights : 0;
+  const simRevPAR = totalAvailableNights > 0 ? simAnnualRevenue / totalAvailableNights : 0;
 
   // Szimulált break-even: a szimulált adatokból újraszámolva, hogy konzisztens legyen a sim profittal
   // (ha a kihasználtság változik, a break-even occ is arányosan változik — nem az alap marad érvényes)
