@@ -1034,6 +1034,11 @@ export default function SimplePlanDetailPage() {
     ? annualRevenue / totalFilledRoomNights
     : 0;
 
+  // RevPAR = éves bevétel / összes elérhető szobaejtszaka (sztenderd hotelmutató)
+  const totalAvailableNights = calcs.reduce((s, c) => s + totalRooms * c.daysInMonth, 0);
+  const revPAR = totalAvailableNights > 0 ? annualRevenue / totalAvailableNights : 0;
+  const simRevPAR = totalAvailableNights > 0 ? simAnnualRevenue / totalAvailableNights : 0;
+
   // Éves fedezeti pont: cost / (revenue − tfh) × avgOcc
   const annualNetRevenue = annualRevenue - annualTfh;
   const annualBreakeven = (annualNetRevenue > 0 && avgOcc > 0)
@@ -2047,6 +2052,14 @@ export default function SimplePlanDetailPage() {
           color="#35BD78"
           icon={<TrendingUp size={16} />}
           sub={fbEnabled ? "ADR + F&B + egyéb" : "ADR alapján"}
+        />
+        <KpiCard
+          label="RevPAR"
+          value={revPAR > 0 ? `${fmt(Math.round(isSimActive ? simRevPAR : revPAR))} Ft` : "—"}
+          color="#8B5CF6"
+          icon={<Bed size={16} />}
+          delta={isSimActive && simRevPAR !== revPAR ? `${simRevPAR > revPAR ? "+" : ""}${fmt(Math.round(simRevPAR - revPAR))} Ft a tervhez képest` : undefined}
+          sub="bevétel / összes elérhető szoba/éj"
         />
       </div>
 
