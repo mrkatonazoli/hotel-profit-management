@@ -1064,20 +1064,16 @@ export default function SimplePlanDetailPage() {
     : 0;
   const simAvgMargin = simAnnualRevenue > 0 ? (simAnnualProfit / simAnnualRevenue) * 100 : 0;
 
-  // RevPAR = tiszta szobabevétel (ADR × eladott szobaejtszakák) / (totalRooms × 365)
-  // Csak az ADR számít — F&B, spa, egyéb bevétel NEM szerepel benne
-  const annualRoomRevenue = monthsWithBands.reduce((s, m) => {
-    const c = calcs.find(cc => cc.month === m.month);
-    if (!c || !c.hasData) return s;
-    return s + m.adr * c.roomNights;
-  }, 0);
-  const simAnnualRoomRevenue = simMonths.reduce((s, m) => {
-    const c = simCalcs.find(cc => cc.month === m.month);
-    if (!c || !c.hasData) return s;
-    return s + m.adr * c.roomNights;
-  }, 0);
-  const revPAR = totalRooms > 0 ? annualRoomRevenue / (totalRooms * 365) : 0;
-  const simRevPAR = totalRooms > 0 ? simAnnualRoomRevenue / (totalRooms * 365) : 0;
+  // RevPAR = ADR × Occupancy Rate (sztenderd képlet)
+  const simTotalFilledRoomNights = simFilledCalcs.reduce((s, c) => s + c.roomNights, 0);
+  const simWeightedAvgAdr = simTotalFilledRoomNights > 0
+    ? simFilledCalcs.reduce((s, c) => {
+        const m = simMonths.find(mm => mm.month === c.month);
+        return s + (m?.adr ?? 0) * c.roomNights;
+      }, 0) / simTotalFilledRoomNights
+    : 0;
+  const revPAR = weightedAvgAdr > 0 ? weightedAvgAdr * (avgOcc / 100) : 0;
+  const simRevPAR = simWeightedAvgAdr > 0 ? simWeightedAvgAdr * (simAvgOcc / 100) : 0;
 
   // Szimulált break-even: a szimulált adatokból újraszámolva, hogy konzisztens legyen a sim profittal
   // (ha a kihasználtság változik, a break-even occ is arányosan változik — nem az alap marad érvényes)
