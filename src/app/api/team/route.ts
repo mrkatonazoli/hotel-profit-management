@@ -53,18 +53,29 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const hotel = await getActiveHotel();
+  const { email, role, modules, hotelId: bodyHotelId } = await req.json() as {
+    email: string; role: "MANAGER" | "PROFESSIONAL"; modules?: string[]; hotelId?: string;
+  };
+
+  // Ha a request tartalmaz hotelId-t, azt használjuk; különben az aktív szállodát
+  let hotel: { id: string; name: string; city: string } | null = null;
+  if (bodyHotelId) {
+    hotel = await prisma.hotel.findUnique({
+      where: { id: bodyHotelId },
+      select: { id: true, name: true, city: true },
+    });
+  } else {
+    hotel = await getActiveHotel();
+  }
   if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 404 });
 
-  // Check caller is manager/admin
+  // Check caller is manager/admin for this specific hotel
   const caller = await prisma.hotelUser.findUnique({
     where: { hotelId_userId: { hotelId: hotel.id, userId: session.user.id } },
   });
   const callerUser = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } });
   const canInvite = callerUser?.role === "SUPER_ADMIN" || caller?.role === "MANAGER";
   if (!canInvite) return NextResponse.json({ error: "Nincs jogosultságod meghívóhoz" }, { status: 403 });
-
-  const { email, role, modules } = await req.json() as { email: string; role: "MANAGER" | "PROFESSIONAL"; modules?: string[] };
   if (!email) return NextResponse.json({ error: "Email kötelező" }, { status: 400 });
 
   const normalizedEmail = email.toLowerCase().trim();

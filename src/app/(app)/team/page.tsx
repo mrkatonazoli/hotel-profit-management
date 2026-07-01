@@ -126,6 +126,8 @@ function ModuleSelector({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+type HotelOption = { id: string; name: string };
+
 export default function TeamPage() {
   const [data, setData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,12 +143,22 @@ export default function TeamPage() {
   const [editingModulesFor, setEditingModulesFor] = useState<string | null>(null);
   const [editModulesDraft, setEditModulesDraft] = useState<string[]>([]);
   const [savingModules, setSavingModules] = useState(false);
+  const [hotels, setHotels] = useState<HotelOption[]>([]);
+  const [inviteHotelId, setInviteHotelId] = useState("");
 
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch("/api/team");
-      if (res.ok) setData(await res.json());
+      const [teamRes, hotelsRes] = await Promise.all([
+        fetch("/api/team"),
+        fetch("/api/hotels/list"),
+      ]);
+      if (teamRes.ok) setData(await teamRes.json());
+      if (hotelsRes.ok) {
+        const list: HotelOption[] = await hotelsRes.json();
+        setHotels(list);
+        if (list.length > 0) setInviteHotelId(list[0].id);
+      }
     } finally {
       setLoading(false);
     }
@@ -156,14 +168,14 @@ export default function TeamPage() {
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
-    if (!inviteEmail.trim()) return;
+    if (!inviteEmail.trim() || !inviteHotelId) return;
     setInviting(true); setInviteResult(null);
     try {
       const modules = (moduleRestrict && inviteRole !== "MANAGER") ? inviteModules : [];
       const res = await fetch("/api/team", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole, modules }),
+        body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole, modules, hotelId: inviteHotelId }),
       });
       const json = await res.json();
       if (!res.ok) { setInviteResult({ type: "error", msg: json.error }); return; }
@@ -263,6 +275,18 @@ export default function TeamPage() {
           </div>
 
           <form onSubmit={handleInvite} className="flex flex-col gap-3">
+            {/* Szálloda választó */}
+            {hotels.length > 1 && (
+              <select
+                value={inviteHotelId}
+                onChange={e => setInviteHotelId(e.target.value)}
+                className="rounded-xl px-3 py-2.5 text-sm font-medium"
+                style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#334155", outline: "none", width: "100%" }}>
+                {hotels.map(h => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
+            )}
             <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="email" required
@@ -280,7 +304,7 @@ export default function TeamPage() {
                 <option value="PROFESSIONAL">Professional</option>
                 <option value="MANAGER">Manager</option>
               </select>
-              <button type="submit" disabled={inviting}
+              <button type="submit" disabled={inviting || !inviteHotelId}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold"
                 style={{ background: "#35BD78", color: "white", border: "none", cursor: "pointer" }}>
                 {inviting ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
