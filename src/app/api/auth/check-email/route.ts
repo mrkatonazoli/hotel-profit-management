@@ -12,12 +12,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Hiányzó e-mail cím." }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
-      select: { id: true },
-    });
+    const normalizedEmail = email.toLowerCase().trim();
 
-    return NextResponse.json({ exists: !!user });
+    const [user, invite] = await Promise.all([
+      prisma.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } }),
+      prisma.invite.findFirst({
+        where: { email: normalizedEmail, expiresAt: { gt: new Date() } },
+        select: { id: true },
+      }),
+    ]);
+
+    return NextResponse.json({ exists: !!(user || invite) });
   } catch {
     return NextResponse.json({ error: "Szerverhiba." }, { status: 500 });
   }
