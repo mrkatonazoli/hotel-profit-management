@@ -69,7 +69,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ token:
     sameSite: "lax",
   });
 
-  return NextResponse.json({ ok: true, hotelId: invite.hotelId });
+  const modules = invite.modules ? invite.modules.split(",").filter(Boolean) : [];
+  return NextResponse.json({ ok: true, hotelId: invite.hotelId, modules });
 }
 
 // DELETE — revoke invite (by token, manager only)

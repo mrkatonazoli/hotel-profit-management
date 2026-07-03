@@ -38,14 +38,11 @@ export default function InvitePage() {
       const res = await fetch(`/api/invites/${token}`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) { setLoadErr(data.error); return; }
-      // Set hotel cookie
-      await fetch("/api/hotels/select", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hotelId: data.hotelId }),
-      });
       setAccepted(true);
-      setTimeout(() => router.push("/dashboard"), 1500);
+      // Ha csak Simple Planner modul van → Simple Plannerre irányítjuk
+      const modules: string[] = data.modules ?? [];
+      const onlySimplePlanner = modules.length > 0 && modules.every(m => m === "SIMPLE_PLANNER");
+      setTimeout(() => router.push(onlySimplePlanner ? "/simple-planner" : "/dashboard"), 1500);
     } finally {
       setAccepting(false);
     }
@@ -100,7 +97,7 @@ export default function InvitePage() {
                   <Check size={28} color="white" />
                 </div>
                 <p className="text-xl font-bold mb-2" style={{ color: "#F8FAFC" }}>Csatlakozás sikeres!</p>
-                <p className="text-sm" style={{ color: "#64748B" }}>Átirányítás a dashboardra…</p>
+                <p className="text-sm" style={{ color: "#64748B" }}>Átirányítás…</p>
               </div>
             )}
 

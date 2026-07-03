@@ -59,6 +59,7 @@ export default function SimplePlannerListPage() {
   const router = useRouter();
   const [plans, setPlans] = useState<SimplePlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hotelReady, setHotelReady] = useState<boolean | null>(null); // null = loading
 
   // New plan form state
   const [showNewForm, setShowNewForm] = useState(false);
@@ -75,8 +76,22 @@ export default function SimplePlannerListPage() {
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch("/api/simple-plans");
-      if (res.ok) setPlans(await res.json());
+      const [plansRes, hotelRes, settingsRes] = await Promise.all([
+        fetch("/api/simple-plans"),
+        fetch("/api/hotels"),
+        fetch("/api/simple-planner-settings"),
+      ]);
+      if (plansRes.ok) setPlans(await plansRes.json());
+      const hotel = hotelRes.ok ? await hotelRes.json() : null;
+      const settings = settingsRes.ok ? await settingsRes.json() : null;
+      // Kész-e a szálloda? Szobaszám megadva VAGY van SimplePlannerSettings
+      const hasRooms = hotel?.totalRooms > 0;
+      const hasSettings = settings && (
+        (settings.fixedCosts?.length > 0) ||
+        settings.fbEnabled ||
+        settings.tfhEnabled
+      );
+      setHotelReady(!!(hasRooms || hasSettings));
     } finally {
       setLoading(false);
     }
@@ -134,6 +149,43 @@ export default function SimplePlannerListPage() {
 
   return (
     <div style={{ maxWidth: 900 }}>
+
+      {/* ── Setup banner — ha még nincs beállítva a szálloda ── */}
+      {hotelReady === false && (
+        <div style={{
+          background: "linear-gradient(135deg, #FFFBEB, #FEF3C7)",
+          border: "1px solid #FDE68A", borderRadius: 16,
+          padding: "20px 24px", marginBottom: 24,
+          display: "flex", alignItems: "flex-start", gap: 16,
+        }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+            background: "#F59E0B", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <span style={{ fontSize: 20 }}>⚙️</span>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: "#92400E", margin: "0 0 4px" }}>
+              A szálloda beállítása szükséges
+            </p>
+            <p style={{ fontSize: 13, color: "#B45309", margin: "0 0 14px", lineHeight: 1.6 }}>
+              A Simple Planner használatához előbb add meg a szálloda alapadatait — szobaszám, fix kiadások, TFH beállítások.
+            </p>
+            <a
+              href="/simple-planner/settings"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: "#F59E0B", color: "white",
+                borderRadius: 10, padding: "8px 16px",
+                fontSize: 13, fontWeight: 700, textDecoration: "none",
+              }}
+            >
+              Beállítások megnyitása →
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
         <div>
