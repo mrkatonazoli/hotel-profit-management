@@ -60,6 +60,13 @@ type MonthCalc = {
   hasData: boolean;
 };
 
+type ActualData = {
+  month: number;
+  occupancyPct: number;
+  adr: number;
+  totalRevenue: number;
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(n: number) { return Math.round(n).toLocaleString("hu-HU"); }
@@ -690,6 +697,12 @@ export default function SimplePlanDetailPage() {
   const [simAdrPct, setSimAdrPct] = useState(0);  // ADR korrekció %
   const isSimActive = simOffset !== 0 || simAdrPct !== 0;
 
+  // ─── Tényadatok state ─────────────────────────────────────────────────────
+  const [actuals, setActuals] = useState<ActualData[]>(
+    Array.from({ length: 12 }, (_, i) => ({ month: i + 1, occupancyPct: 0, adr: 0, totalRevenue: 0 }))
+  );
+  const [showActuals, setShowActuals] = useState(false);
+
   // ─── Import modal state ───────────────────────────────────────────────────
   const [showImport, setShowImport] = useState(false);
 
@@ -841,16 +854,43 @@ export default function SimplePlanDetailPage() {
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/simple-plans/${planId}`);
-      if (res.ok) {
-        const data: Plan = await res.json();
+      const [planRes, actualsRes] = await Promise.all([
+        fetch(`/api/simple-plans/${planId}`),
+        fetch(`/api/simple-plans/${planId}/actuals`),
+      ]);
+      if (planRes.ok) {
+        const data: Plan = await planRes.json();
         setPlan(data);
         setMonths(data.months);
         setYear(data.year);
       }
+      if (actualsRes.ok) {
+        const loaded: ActualData[] = await actualsRes.json();
+        if (loaded.length > 0) {
+          setActuals(prev => prev.map(a => {
+            const found = loaded.find(l => l.month === a.month);
+            return found ? { ...a, ...found } : a;
+          }));
+        }
+      }
     } finally {
       setLoading(false);
     }
+  }
+
+  async function saveActuals(updated: ActualData[]) {
+    await fetch(`/api/simple-plans/${planId}/actuals`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actuals: updated }),
+    });
+    showSaved();
+  }
+
+  function updateActualField(month: number, field: keyof Omit<ActualData, "month">, value: number) {
+    const updated = actuals.map(a => a.month === month ? { ...a, [field]: value } : a);
+    setActuals(updated);
+    saveActuals(updated);
   }
 
   useEffect(() => { load(); }, [planId]);
@@ -2107,6 +2147,178 @@ export default function SimplePlanDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* SECTION B2 — Tényadatok (Terv vs. Tény) */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
+      <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 20, marginBottom: 24, overflow: "hidden" }}>
+        {/* Header — kattintható, nyitja/zárja */}
+        <button
+          onClick={() => setShowActuals(v => !v)}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "16px 24px", background: "none", border: "none", cursor: "pointer", textAlign: "left",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(99,102,241,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <TrendingUp size={16} color="#6366F1" />
+            </div>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Terv vs. Tény</p>
+              <p style={{ fontSize: 12, color: "#94A3B8", margin: 0 }}>
+                {actuals.some(a => a.totalRevenue > 0 || a.occupancyPct > 0)
+                  ? `${actuals.filter(a => a.totalRevenue > 0 || a.occupancyPct > 0).length} hónap tényadattal`
+                  : "Töltsd fel a valós havi adatokat"}
+              </p>
+            </div>
+          </div>
+          <div style={{ fontSize: 18, color: "#94A3B8", transform: showActuals ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</div>
+        </button>
+
+        {showActuals && (
+          <div style={{ borderTop: "1px solid #F1F5F9", padding: "20px 24px" }}>
+
+            {/* Input grid */}
+            <h3 style={{ fontSize: 13, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 12px" }}>
+              Valós havi adatok
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 8, overflowX: "auto", minWidth: 700, marginBottom: 28 }}>
+              {actuals.map(a => {
+                const hasData = a.occupancyPct > 0 || a.adr > 0 || a.totalRevenue > 0;
+                return (
+                  <div key={a.month} style={{
+                    background: hasData ? "#F0FDF4" : "#F8FAFC",
+                    border: `1px solid ${hasData ? "#BBF7D0" : "#E2E8F0"}`,
+                    borderRadius: 10, padding: "8px 8px 6px",
+                  }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: hasData ? "#059669" : "#94A3B8", margin: "0 0 8px", textAlign: "center" }}>
+                      {HU_MONTHS_SHORT[a.month - 1]}
+                    </p>
+                    <MonthInput label="Kihas." unit="%" value={a.occupancyPct} step={1}
+                      onBlur={v => updateActualField(a.month, "occupancyPct", Math.min(100, Math.max(0, v)))} />
+                    <MonthInput label="ADR" unit="Ft" value={a.adr} step={100}
+                      onBlur={v => updateActualField(a.month, "adr", v)} />
+                    <MonthInput label="Össz. bev." unit="Ft" value={a.totalRevenue} step={10000}
+                      onBlur={v => updateActualField(a.month, "totalRevenue", v)} />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Összehasonlítás — csak ha van tényadat */}
+            {actuals.some(a => a.totalRevenue > 0 || a.occupancyPct > 0) && (() => {
+              const filledActuals = actuals.filter(a => a.totalRevenue > 0 || a.occupancyPct > 0);
+              const actualTotalRevenue = filledActuals.reduce((s, a) => s + a.totalRevenue, 0);
+              const actualAvgOcc = filledActuals.reduce((s, a) => s + a.occupancyPct, 0) / filledActuals.length;
+              const actualAvgAdr = filledActuals.reduce((s, a) => s + a.adr, 0) / filledActuals.filter(a => a.adr > 0).length || 0;
+
+              // Terv adatok ugyanennyi hónapra
+              const planForSameMonths = calcs.filter(c => filledActuals.some(a => a.month === c.month));
+              const planRevenue = planForSameMonths.reduce((s, c) => s + c.revenue, 0);
+              const planAvgOcc = planForSameMonths.length > 0
+                ? planForSameMonths.reduce((s, c) => s + (months.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / planForSameMonths.length
+                : 0;
+              const planAvgAdr = planForSameMonths.length > 0
+                ? planForSameMonths.reduce((s, c) => s + (monthsWithBands.find(m => m.month === c.month)?.adr ?? 0), 0) / planForSameMonths.length
+                : 0;
+
+              function DeltaBadge({ value, unit = "Ft" }: { value: number; unit?: string }) {
+                const pos = value >= 0;
+                return (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700,
+                    color: pos ? "#059669" : "#DC2626",
+                    background: pos ? "#D1FAE5" : "#FEE2E2",
+                    padding: "2px 7px", borderRadius: 6,
+                  }}>
+                    {pos ? "+" : ""}{unit === "%" ? `${Math.round(value)} pp` : `${fmtM(Math.round(value))} Ft`}
+                  </span>
+                );
+              }
+
+              return (
+                <div>
+                  <h3 style={{ fontSize: 13, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 14px" }}>
+                    Összehasonlítás — {filledActuals.length} hónap
+                  </h3>
+
+                  {/* 3 összesítő kártya */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
+                    {[
+                      { label: "Teljes bevétel", plan: planRevenue, actual: actualTotalRevenue, unit: "Ft" as const },
+                      { label: "Átl. kihasználtság", plan: planAvgOcc, actual: actualAvgOcc, unit: "%" as const },
+                      { label: "Átlag ADR", plan: planAvgAdr, actual: actualAvgAdr, unit: "Ft" as const },
+                    ].map(({ label, plan, actual, unit }) => (
+                      <div key={label} style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 14, padding: "14px 16px" }}>
+                        <p style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 10px" }}>{label}</p>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
+                          <div>
+                            <p style={{ fontSize: 10, color: "#94A3B8", margin: "0 0 2px" }}>Terv</p>
+                            <p style={{ fontSize: 16, fontWeight: 700, color: "#64748B", margin: 0 }}>
+                              {unit === "%" ? `${Math.round(plan)}%` : `${fmtM(Math.round(plan))} Ft`}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <p style={{ fontSize: 10, color: "#059669", margin: "0 0 2px" }}>Tény</p>
+                            <p style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                              {unit === "%" ? `${Math.round(actual)}%` : `${fmtM(Math.round(actual))} Ft`}
+                            </p>
+                          </div>
+                        </div>
+                        <DeltaBadge value={actual - plan} unit={unit} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Havi bontás táblázat */}
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ borderBottom: "2px solid #E2E8F0" }}>
+                          <th style={{ textAlign: "left", padding: "6px 10px", color: "#64748B", fontWeight: 600 }}>Hónap</th>
+                          <th style={{ textAlign: "right", padding: "6px 10px", color: "#64748B", fontWeight: 600 }}>Terv occ%</th>
+                          <th style={{ textAlign: "right", padding: "6px 10px", color: "#059669", fontWeight: 600 }}>Tény occ%</th>
+                          <th style={{ textAlign: "right", padding: "6px 10px", color: "#64748B", fontWeight: 600 }}>Terv ADR</th>
+                          <th style={{ textAlign: "right", padding: "6px 10px", color: "#059669", fontWeight: 600 }}>Tény ADR</th>
+                          <th style={{ textAlign: "right", padding: "6px 10px", color: "#64748B", fontWeight: 600 }}>Terv bev.</th>
+                          <th style={{ textAlign: "right", padding: "6px 10px", color: "#059669", fontWeight: 600 }}>Tény bev.</th>
+                          <th style={{ textAlign: "right", padding: "6px 10px", color: "#0F172A", fontWeight: 600 }}>Δ bevétel</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filledActuals.map(a => {
+                          const pc = calcs.find(c => c.month === a.month);
+                          const pm = months.find(m => m.month === a.month);
+                          const planRev = pc?.revenue ?? 0;
+                          const delta = a.totalRevenue - planRev;
+                          return (
+                            <tr key={a.month} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                              <td style={{ padding: "7px 10px", fontWeight: 600, color: "#0F172A" }}>{HU_MONTHS_SHORT[a.month - 1]}</td>
+                              <td style={{ textAlign: "right", padding: "7px 10px", color: "#94A3B8" }}>{Math.round(pm?.occupancyPct ?? 0)}%</td>
+                              <td style={{ textAlign: "right", padding: "7px 10px", fontWeight: 600, color: "#059669" }}>{Math.round(a.occupancyPct)}%</td>
+                              <td style={{ textAlign: "right", padding: "7px 10px", color: "#94A3B8" }}>{fmt(Math.round(pm?.adr ?? 0))} Ft</td>
+                              <td style={{ textAlign: "right", padding: "7px 10px", fontWeight: 600, color: "#059669" }}>{fmt(Math.round(a.adr))} Ft</td>
+                              <td style={{ textAlign: "right", padding: "7px 10px", color: "#94A3B8" }}>{fmtM(Math.round(planRev))} Ft</td>
+                              <td style={{ textAlign: "right", padding: "7px 10px", fontWeight: 600, color: "#059669" }}>{fmtM(Math.round(a.totalRevenue))} Ft</td>
+                              <td style={{ textAlign: "right", padding: "7px 10px" }}>
+                                <span style={{ fontWeight: 700, color: delta >= 0 ? "#059669" : "#DC2626" }}>
+                                  {delta >= 0 ? "+" : ""}{fmtM(Math.round(delta))} Ft
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+      </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* SECTION C — Live Simulator */}

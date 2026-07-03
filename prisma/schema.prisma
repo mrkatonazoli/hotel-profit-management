@@ -524,6 +524,19 @@ model SimplePlan {
   halfboardPct   Float     @default(0)   // % of room nights with half board
   hotel          Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   months         SimplePlanMonth[]
+  actuals        SimplePlanActual[]
+}
+
+model SimplePlanActual {
+  id           String     @id @default(cuid())
+  planId       String
+  month        Int        // 1–12
+  occupancyPct Float      @default(0)   // tényleges kihasználtság %
+  adr          Float      @default(0)   // tényleges átlagár Ft
+  totalRevenue Float      @default(0)   // tényleges teljes bevétel Ft (szoba+F&B+spa+egyéb)
+  plan         SimplePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, month])
 }
 
 model SimplePlanMonth {
