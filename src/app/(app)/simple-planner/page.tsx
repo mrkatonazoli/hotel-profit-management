@@ -76,22 +76,19 @@ export default function SimplePlannerListPage() {
   async function load() {
     setLoading(true);
     try {
-      const [plansRes, hotelRes, settingsRes] = await Promise.all([
+      const [plansRes, settingsRes] = await Promise.all([
         fetch("/api/simple-plans"),
-        fetch("/api/hotels"),
         fetch("/api/simple-planner-settings"),
       ]);
       if (plansRes.ok) setPlans(await plansRes.json());
-      const hotel = hotelRes.ok ? await hotelRes.json() : null;
       const settings = settingsRes.ok ? await settingsRes.json() : null;
-      // Kész-e a szálloda? Szobaszám megadva VAGY van SimplePlannerSettings
-      const hasRooms = hotel?.totalRooms > 0;
-      const hasSettings = settings && (
+      // Kész-e a Simple Planner? Van-e bármilyen beállítás
+      const hasSettings = !!(settings && (
         (settings.fixedCosts?.length > 0) ||
         settings.fbEnabled ||
         settings.tfhEnabled
-      );
-      setHotelReady(!!(hasRooms || hasSettings));
+      ));
+      setHotelReady(hasSettings);
     } finally {
       setLoading(false);
     }
