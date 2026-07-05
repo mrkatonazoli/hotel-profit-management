@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useHotelChange } from "@/lib/use-hotel-change";
+import { useHotelChange } from "@/lib/hotel-context";
 import { Calculator, Plus, Loader2, ArrowRight, Calendar, Check, Pencil, X } from "lucide-react";
 
 type SimplePlanMonth = {

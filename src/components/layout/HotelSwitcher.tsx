@@ -54,11 +54,9 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
     });
     setOpen(false);
     setSwitching(false);
-    // 1. Értesítjük a kliensoldali lapokat hogy töltsenek újra adatot
-    window.dispatchEvent(new CustomEvent("hotel-changed", { detail: { hotelId } }));
-    // 2. Frissítjük a server componenteket (layout header, hotel név)
+    // 1. Frissítjük a server componenteket (layout, hotel név) — AppShell továbbítja az új hotelId-t context-en
     router.refresh();
-    // 3. Ha részoldalon vagyunk (pl. /simple-planner/[id]), navigáljunk a szekció gyökerére
+    // 2. Ha részoldalon vagyunk (pl. /simple-planner/[id]), navigáljunk a szekció gyökerére
     const sectionRoots = [
       "/simple-planner", "/revenue-planner", "/scenarios",
       "/weighting", "/costs", "/reporting", "/analysis",
