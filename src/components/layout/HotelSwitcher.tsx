@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Building2, Check, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 type HotelOption = {
   id: string;
@@ -22,6 +22,7 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
   const [switching, setSwitching] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Close on outside click
   useEffect(() => {
@@ -52,8 +53,26 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
       body: JSON.stringify({ hotelId }),
     });
     setOpen(false);
-    router.refresh();
     setSwitching(false);
+    // Ha egy konkrét terven/részoldalon vagyunk, menjünk vissza a szekció gyökerére
+    const sectionRoots = [
+      "/simple-planner",
+      "/revenue-planner",
+      "/scenarios",
+      "/weighting",
+      "/costs",
+      "/reporting",
+      "/analysis",
+      "/historical-import",
+      "/hotel-config",
+      "/team",
+    ];
+    const matchedRoot = sectionRoots.find(root => pathname.startsWith(root + "/"));
+    if (matchedRoot) {
+      router.push(matchedRoot);
+    } else {
+      router.refresh();
+    }
   }
 
   return (
