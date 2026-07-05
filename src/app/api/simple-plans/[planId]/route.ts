@@ -9,6 +9,8 @@ export async function GET(_req: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { planId } = await params;
+  const hotel = await getActiveHotel();
+  if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
 
   const plan = await prisma.simplePlan.findUnique({
     where: { id: planId },
@@ -19,6 +21,7 @@ export async function GET(_req: Request, { params }: Params) {
   });
 
   if (!plan) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (plan.hotelId !== hotel.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   return NextResponse.json(plan);
 }
 
@@ -30,6 +33,10 @@ export async function PUT(req: Request, { params }: Params) {
 
   const { planId } = await params;
   const body = await req.json();
+
+  const existing = await prisma.simplePlan.findUnique({ where: { id: planId }, select: { hotelId: true } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (existing.hotelId !== hotel.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const plan = await prisma.simplePlan.update({
     where: { id: planId },
@@ -48,7 +55,13 @@ export async function PUT(req: Request, { params }: Params) {
 export async function DELETE(_req: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const hotel = await getActiveHotel();
+  if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
   const { planId } = await params;
+
+  const existing = await prisma.simplePlan.findUnique({ where: { id: planId }, select: { hotelId: true } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (existing.hotelId !== hotel.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await prisma.simplePlan.delete({ where: { id: planId } });
   return new NextResponse(null, { status: 204 });

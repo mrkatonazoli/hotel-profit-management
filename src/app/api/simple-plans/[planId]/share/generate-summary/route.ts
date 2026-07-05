@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getActiveHotel } from "@/lib/get-hotel";
+import { computeMonthCalc } from "@/lib/simple-planner-calc";
 import Anthropic from "@anthropic-ai/sdk";
 import { ANTHROPIC_API_KEY } from "@/lib/anthropic";
 import { logTokenUsage } from "@/lib/token-log";
@@ -12,10 +14,6 @@ const HU_MONTHS = [
   "Július","Augusztus","Szeptember","Október","November","December",
 ];
 
-function getDaysInMonth(month: number, year: number) {
-  return new Date(year, month, 0).getDate();
-}
-
 function fmt(n: number) { return Math.round(n).toLocaleString("hu-HU"); }
 
 export async function POST(_req: Request, { params }: Params) {
@@ -23,6 +21,8 @@ export async function POST(_req: Request, { params }: Params) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = session.user.id;
   const { planId } = await params;
+  const hotel = await getActiveHotel();
+  if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
 
   const plan = await prisma.simplePlan.findUnique({
     where: { id: planId },
@@ -33,6 +33,7 @@ export async function POST(_req: Request, { params }: Params) {
   });
 
   if (!plan) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (plan.hotelId !== hotel.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const settings = await prisma.simplePlannerSettings.findUnique({
     where: { hotelId: plan.hotelId },
@@ -41,6 +42,7 @@ export async function POST(_req: Request, { params }: Params) {
 
   const tfhEnabled = settings?.tfhEnabled ?? false;
   const tfhRate = settings?.tfhRate ?? 4;
+  const fbEnabled = settings?.fbEnabled ?? false;
   const totalRooms = plan.hotel.totalRooms ?? 0;
   const year = plan.year;
   const annualFixedCost = (settings?.fixedCosts ?? []).reduce((s, fc) => s + fc.annualAmount, 0);
@@ -55,6 +57,30 @@ export async function POST(_req: Request, { params }: Params) {
   const commissionPct = settings?.commissionPct ?? 0;
   const commissionBookingsPct = settings?.commissionBookingsPct ?? 100;
 
+  const fb = {
+    enabled: fbEnabled,
+    breakfastPrice,
+    halfboardPrice,
+    avgPaxPerRoom,
+    fbOtherEnabled: false,
+    fbOtherPct: 0,
+    spaEnabled: false,
+    spaPct: 0,
+    otherRevenueEnabled: false,
+    otherRevenuePct: 0,
+  };
+  const costs = {
+    annualFixedCost,
+    breakfastCost,
+    halfboardCost,
+    avgPaxPerRoom,
+    laundryEnabled,
+    laundryPerRoom,
+    commissionEnabled,
+    commissionPct,
+    commissionBookingsPct,
+  };
+
   // Build monthly summary lines
   let monthLines = "";
   let annualRevenue = 0;
@@ -68,49 +94,27 @@ export async function POST(_req: Request, { params }: Params) {
   let worstProfit = Infinity;
 
   for (const m of plan.months) {
-    const days = getDaysInMonth(m.month, year);
-    const availableNights = totalRooms * days;
-    const roomNights = (m.occupancyPct / 100) * availableNights;
-    const boardRevPerRoomNight = avgPaxPerRoom * (
-      ((m.breakfastPct ?? 0) / 100) * breakfastPrice +
-      ((m.halfboardPct ?? 0) / 100) * halfboardPrice
+    const c = computeMonthCalc(
+      { ...m, breakfastPct: m.breakfastPct ?? 0, halfboardPct: m.halfboardPct ?? 0 },
+      totalRooms, year, tfhEnabled ? tfhRate : 0, fb, costs
     );
-    const revenuePerRoomNight = m.roomRevenue > 0 ? m.roomRevenue : m.adr + boardRevPerRoomNight;
-    const revenue = revenuePerRoomNight * roomNights;
-    // Jutalék alapja: ADR + ellátás ára — egyéb bevételek (spa, parkoló stb.) nem jutalékosak
-    const commissionableRevPerRoomNight = m.roomRevenue > 0
-      ? m.roomRevenue
-      : m.adr + boardRevPerRoomNight;
-    const fixedPerMonth = annualFixedCost / 12;
-    const fbCostPerRoomNight = avgPaxPerRoom * (
-      ((m.breakfastPct ?? 0) / 100) * breakfastCost +
-      ((m.halfboardPct ?? 0) / 100) * halfboardCost
-    );
-    const laundryCost = laundryEnabled ? laundryPerRoom : 0;
-    const commissionCost = commissionEnabled
-      ? commissionableRevPerRoomNight * (commissionPct / 100) * (commissionBookingsPct / 100)
-      : 0;
-    const cost = fixedPerMonth + (fbCostPerRoomNight + laundryCost + commissionCost) * roomNights;
-    const effectiveCostPerRoom = roomNights > 0 ? cost / roomNights : 0;
-    const tfh = tfhEnabled ? revenue * (tfhRate / 100) : 0;
-    const profit = revenue - cost - tfh;
+    const effectiveCostPerRoom = c.roomNights > 0 ? c.cost / c.roomNights : 0;
 
-    const hasData = m.adr > 0 || m.occupancyPct > 0 || m.roomRevenue > 0;
-    if (hasData) {
+    if (c.hasData) {
       filledMonths++;
       totalOcc += m.occupancyPct;
-      if (profit > bestProfit) { bestProfit = profit; bestMonth = HU_MONTHS[m.month - 1]; }
-      if (profit < worstProfit) { worstProfit = profit; worstMonth = HU_MONTHS[m.month - 1]; }
+      if (c.profit > bestProfit) { bestProfit = c.profit; bestMonth = HU_MONTHS[m.month - 1]; }
+      if (c.profit < worstProfit) { worstProfit = c.profit; worstMonth = HU_MONTHS[m.month - 1]; }
     }
 
-    annualRevenue += revenue;
-    annualCost += cost;
-    annualTfh += tfh;
+    annualRevenue += c.revenue;
+    annualCost += c.cost;
+    annualTfh += c.tfh;
 
     const unitRate = m.roomRevenue > 0 ? m.roomRevenue : m.adr;
     monthLines += `  ${HU_MONTHS[m.month - 1]}: kihasználtság ${m.occupancyPct}%, ${
       m.roomRevenue > 0 ? `szobaárbevétel ${fmt(m.roomRevenue)} Ft/szoba/éj` : `ADR ${fmt(m.adr)} Ft`
-    }, kiadás ${fmt(effectiveCostPerRoom)} Ft/szoba/éj, bevétel ${fmt(revenue)} Ft, profit ${fmt(profit)} Ft${unitRate === 0 ? " (nincs adat)" : ""}\n`;
+    }, kiadás ${fmt(effectiveCostPerRoom)} Ft/szoba/éj, bevétel ${fmt(c.revenue)} Ft, profit ${fmt(c.profit)} Ft${unitRate === 0 ? " (nincs adat)" : ""}\n`;
   }
 
   const annualProfit = annualRevenue - annualCost - annualTfh;

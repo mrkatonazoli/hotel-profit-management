@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { getActiveHotel } from "@/lib/get-hotel";
 import { prisma } from "@/lib/prisma";
 
 type Params = { params: Promise<{ planId: string }> };
@@ -22,31 +23,18 @@ export async function PUT(req: Request, { params }: Params) {
   const body = await req.json();
   const months: MonthInput[] = body.months ?? [];
 
-  // Verify plan exists
-  const plan = await prisma.simplePlan.findUnique({ where: { id: planId } });
+  const hotel = await getActiveHotel();
+  if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
+
+  const plan = await prisma.simplePlan.findUnique({ where: { id: planId }, select: { hotelId: true } });
   if (!plan) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (plan.hotelId !== hotel.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  // Use findFirst + update/create pattern (avoid prisma upsert with unique constraints)
-  for (const m of months) {
-    const existing = await prisma.simplePlanMonth.findFirst({
-      where: { planId, month: m.month },
-    });
-
-    if (existing) {
-      await prisma.simplePlanMonth.update({
-        where: { id: existing.id },
-        data: {
-          adr: m.adr,
-          occupancyPct: m.occupancyPct,
-          roomRevenue: m.roomRevenue,
-          monthlyCost: m.monthlyCost,
-          breakfastPct: m.breakfastPct ?? 0,
-          halfboardPct: m.halfboardPct ?? 0,
-        },
-      });
-    } else {
-      await prisma.simplePlanMonth.create({
-        data: {
+  await prisma.$transaction(
+    months.map(m =>
+      prisma.simplePlanMonth.upsert({
+        where: { planId_month: { planId, month: m.month } },
+        create: {
           planId,
           month: m.month,
           adr: m.adr,
@@ -56,9 +44,17 @@ export async function PUT(req: Request, { params }: Params) {
           breakfastPct: m.breakfastPct ?? 0,
           halfboardPct: m.halfboardPct ?? 0,
         },
-      });
-    }
-  }
+        update: {
+          adr: m.adr,
+          occupancyPct: m.occupancyPct,
+          roomRevenue: m.roomRevenue,
+          monthlyCost: m.monthlyCost,
+          breakfastPct: m.breakfastPct ?? 0,
+          halfboardPct: m.halfboardPct ?? 0,
+        },
+      })
+    )
+  );
 
   const updated = await prisma.simplePlan.findUnique({
     where: { id: planId },

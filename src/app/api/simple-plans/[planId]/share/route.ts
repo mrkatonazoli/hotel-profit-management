@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getActiveHotel } from "@/lib/get-hotel";
 import { createHash } from "crypto";
 
 type Params = { params: Promise<{ planId: string }> };
@@ -33,13 +34,16 @@ export async function GET(_req: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { planId } = await params;
+  const hotel = await getActiveHotel();
+  if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
 
   const plan = await prisma.simplePlan.findUnique({
     where: { id: planId },
-    select: { shareToken: true, shareEnabled: true, shareSummary: true, shareExpiresAt: true, sharePassword: true },
+    select: { hotelId: true, shareToken: true, shareEnabled: true, shareSummary: true, shareExpiresAt: true, sharePassword: true },
   });
 
   if (!plan) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (plan.hotelId !== hotel.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   return NextResponse.json(planToResponse(plan));
 }
@@ -48,6 +52,8 @@ export async function POST(req: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { planId } = await params;
+  const hotel = await getActiveHotel();
+  if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
 
   const body = await req.json() as {
     enabled?: boolean;
@@ -58,9 +64,10 @@ export async function POST(req: Request, { params }: Params) {
 
   const existing = await prisma.simplePlan.findUnique({
     where: { id: planId },
-    select: { shareToken: true },
+    select: { hotelId: true, shareToken: true },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (existing.hotelId !== hotel.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const token = existing.shareToken ?? generateToken();
 
@@ -93,6 +100,12 @@ export async function DELETE(_req: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { planId } = await params;
+  const hotel = await getActiveHotel();
+  if (!hotel) return NextResponse.json({ error: "No hotel" }, { status: 400 });
+
+  const existing = await prisma.simplePlan.findUnique({ where: { id: planId }, select: { hotelId: true } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (existing.hotelId !== hotel.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const updated = await prisma.simplePlan.update({
     where: { id: planId },

@@ -123,7 +123,9 @@ export default function SimplePlannerSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasLoaded = useRef(false);
 
   // Revenue settings
   const [tfhEnabled, setTfhEnabled] = useState(true);
@@ -182,8 +184,29 @@ export default function SimplePlannerSettingsPage() {
           setFixedCosts(data.fixedCosts ?? []);
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        hasLoaded.current = true;
+      });
   }, []);
+
+  useEffect(() => {
+    if (!hasLoaded.current) return;
+    setIsDirty(true);
+  }, [tfhEnabled, tfhRate, fbEnabled, breakfastPrice, halfboardPrice, avgPaxPerRoom,
+      defaultBreakfastPct, defaultHalfboardPct, fbOtherEnabled, fbOtherPct,
+      spaEnabled, spaPct, otherRevenueEnabled, otherRevenuePct,
+      breakfastCost, halfboardCost, fixedCosts, laundryEnabled, laundryPerRoom,
+      commissionEnabled, commissionPct, commissionBookingsPct]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
 
   // ─── Save ──────────────────────────────────────────────────────────────────
 
@@ -206,6 +229,7 @@ export default function SimplePlannerSettingsPage() {
         }),
       });
       setSaved(true);
+      setIsDirty(false);
       if (savedTimer.current) clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSaved(false), 2500);
     } finally {
@@ -269,20 +293,27 @@ export default function SimplePlannerSettingsPage() {
             <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>Bevételek, kiadások és TFH konfigurálása</p>
           </div>
         </div>
-        <button
-          onClick={save}
-          disabled={saving}
-          style={{
-            display: "flex", alignItems: "center", gap: 7,
-            background: saved ? "#10B981" : "#35BD78",
-            border: "none", borderRadius: 12, padding: "10px 20px",
-            color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer",
-            transition: "background 0.2s",
-          }}
-        >
-          {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} /> : <Save size={14} />}
-          {saved ? "Mentve" : "Mentés"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {isDirty && !saved && (
+            <span style={{ fontSize: 12, color: "#F59E0B", fontWeight: 600 }}>
+              Nem mentett változások
+            </span>
+          )}
+          <button
+            onClick={save}
+            disabled={saving}
+            style={{
+              display: "flex", alignItems: "center", gap: 7,
+              background: saved ? "#10B981" : "#35BD78",
+              border: "none", borderRadius: 12, padding: "10px 20px",
+              color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              transition: "background 0.2s",
+            }}
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} /> : <Save size={14} />}
+            {saved ? "Mentve" : "Mentés"}
+          </button>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
