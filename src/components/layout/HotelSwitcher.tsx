@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Building2, Check, Loader2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import { useSetHotelId } from "@/lib/hotel-context";
 
 type HotelOption = {
   id: string;
@@ -23,6 +24,7 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const setHotelId = useSetHotelId();
 
   // Close on outside click
   useEffect(() => {
@@ -54,9 +56,11 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
     });
     setOpen(false);
     setSwitching(false);
-    // 1. Frissítjük a server componenteket (layout, hotel név) — AppShell továbbítja az új hotelId-t context-en
+    // 1. Azonnal frissítjük a context-et → useHotelChange hook triggerel a lapokban
+    setHotelId(hotelId);
+    // 2. Frissítjük a server componenteket (hotel név a headerben, stb.)
     router.refresh();
-    // 2. Ha részoldalon vagyunk (pl. /simple-planner/[id]), navigáljunk a szekció gyökerére
+    // 3. Ha részoldalon vagyunk (pl. /simple-planner/[id]), navigáljunk a szekció gyökerére
     const sectionRoots = [
       "/simple-planner", "/revenue-planner", "/scenarios",
       "/weighting", "/costs", "/reporting", "/analysis",

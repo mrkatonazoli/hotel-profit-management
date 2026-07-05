@@ -25,6 +25,7 @@ export default function AppShell({
   userEmail,
   allowedModules,
 }: AppShellProps) {
+  const [activeHotelId, setActiveHotelId] = useState(hotelId);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
@@ -44,7 +45,7 @@ export default function AppShell({
   }, [sidebarOpen]);
 
   return (
-    <HotelContext.Provider value={hotelId}>
+    <HotelContext.Provider value={{ hotelId: activeHotelId, setHotelId: setActiveHotelId }}>
       <div className="flex h-screen overflow-hidden" style={{ background: "#F1F5F9" }}>
         <Sidebar
           isSuperAdmin={isSuperAdmin}
@@ -54,7 +55,7 @@ export default function AppShell({
         />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <Topbar
-            hotelId={hotelId}
+            hotelId={activeHotelId}
             hotelName={hotelName}
             userName={userName}
             userEmail={userEmail}
