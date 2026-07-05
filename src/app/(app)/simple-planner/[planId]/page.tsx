@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { computeMonthCalc } from "@/lib/simple-planner-calc";
 import type { FbParams, CostParams, MonthCalc } from "@/lib/simple-planner-calc";
+import { useHotelChange } from "@/lib/use-hotel-change";
 import { ArrowLeft, Loader2, AlertTriangle, Check, TrendingUp, TrendingDown, Percent, Bed, Sliders, RotateCcw, Download, X, GitBranch, ChevronRight, Landmark, Share2, Sparkles, Copy, ExternalLink, Trash2, Lock, Eye, EyeOff, ShieldCheck, ShieldOff, DollarSign } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -795,6 +796,7 @@ export default function SimplePlanDetailPage() {
   }
 
   useEffect(() => { load(); }, [planId]);
+  useHotelChange(useCallback(() => router.push("/simple-planner"), [router]));
 
   function showSaved() {
     setSaved(true);

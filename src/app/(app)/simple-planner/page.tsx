@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useHotelChange } from "@/lib/use-hotel-change";
 import { Calculator, Plus, Loader2, ArrowRight, Calendar, Check, Pencil, X } from "lucide-react";
 
 type SimplePlanMonth = {
@@ -73,7 +74,7 @@ export default function SimplePlannerListPage() {
   const [renameDraft, setRenameDraft] = useState("");
   const renameRef = useRef<HTMLInputElement>(null);
 
-  async function load() {
+  const load = useCallback(async function load() {
     setLoading(true);
     try {
       const [plansRes, settingsRes] = await Promise.all([
@@ -92,7 +93,9 @@ export default function SimplePlannerListPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useHotelChange(load);
 
   function openNewForm() {
     setNewName(`Terv ${new Date().getFullYear()}`);

@@ -54,27 +54,18 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
     });
     setOpen(false);
     setSwitching(false);
-    // Ha egy konkrét terven/részoldalon vagyunk, menjünk vissza a szekció gyökerére
+    // 1. Értesítjük a kliensoldali lapokat hogy töltsenek újra adatot
+    window.dispatchEvent(new CustomEvent("hotel-changed", { detail: { hotelId } }));
+    // 2. Frissítjük a server componenteket (layout header, hotel név)
+    router.refresh();
+    // 3. Ha részoldalon vagyunk (pl. /simple-planner/[id]), navigáljunk a szekció gyökerére
     const sectionRoots = [
-      "/simple-planner",
-      "/revenue-planner",
-      "/scenarios",
-      "/weighting",
-      "/costs",
-      "/reporting",
-      "/analysis",
-      "/historical-import",
-      "/hotel-config",
-      "/team",
+      "/simple-planner", "/revenue-planner", "/scenarios",
+      "/weighting", "/costs", "/reporting", "/analysis",
+      "/historical-import", "/hotel-config", "/team",
     ];
     const matchedRoot = sectionRoots.find(root => pathname.startsWith(root + "/"));
-    if (matchedRoot) {
-      // Részoldalról navigálunk a szekció gyökerére (más URL → biztosan remount)
-      window.location.href = matchedRoot;
-    } else {
-      // Már a gyökéroldalon vagyunk — window.location.reload() garantálja a frissítést
-      window.location.reload();
-    }
+    if (matchedRoot) router.push(matchedRoot);
   }
 
   return (
