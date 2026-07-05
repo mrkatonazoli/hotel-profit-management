@@ -67,12 +67,10 @@ export default function HotelSwitcher({ currentHotelId, currentHotelName }: {
       "/hotel-config",
       "/team",
     ];
+    // router.refresh() csak server componenteket frissít, kliens useEffect-eket nem futtatja újra.
+    // window.location.href garantálja a teljes újramountot minden esetben.
     const matchedRoot = sectionRoots.find(root => pathname.startsWith(root + "/"));
-    if (matchedRoot) {
-      router.push(matchedRoot);
-    } else {
-      router.refresh();
-    }
+    window.location.href = matchedRoot ?? pathname;
   }
 
   return (
