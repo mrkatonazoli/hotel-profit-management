@@ -183,6 +183,59 @@ export default function Sidebar({ isSuperAdmin = false, isOpen = false, onClose,
           })()}
         </div>}
 
+        {/* ── DataHeaven — élő PMS-riportok (data.katonazoli.hu) ── */}
+        {isModuleAllowed("DATAHEAVEN") && (() => {
+          const active = pathname === "/dataheaven" || pathname.startsWith("/dataheaven/");
+          return (
+            <div style={{ paddingTop: 6 }}>
+              <Link
+                href="/dataheaven"
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative overflow-hidden"
+                style={{
+                  background: active
+                    ? "linear-gradient(135deg, #4F46E5 0%, #818CF8 100%)"
+                    : "linear-gradient(135deg, #131A33 0%, #1E293B 100%)",
+                  color: active ? "#FBFBFC" : "#A5B4FC",
+                  border: `1px solid ${active ? "#818CF8" : "#26314F"}`,
+                  boxShadow: active ? "0 0 16px #818CF844" : "none",
+                }}
+              >
+                <div style={{
+                  width: 22, height: 22, borderRadius: 7,
+                  background: active ? "rgba(255,255,255,0.2)" : "#1B2440",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  {/* DataHeaven D-lépcső mark */}
+                  <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="dh-side" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stopColor="#22D3EE" />
+                        <stop offset="0.52" stopColor="#818CF8" />
+                        <stop offset="1" stopColor="#C084FC" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M12 2 A10 10 0 0 1 12 22 L12 17.5 A5.5 5.5 0 0 0 12 6.5 Z" fill={active ? "#fff" : "url(#dh-side)"} />
+                    <rect x="2" y="16" width="3.6" height="6" rx="1.1" fill={active ? "#fff" : "url(#dh-side)"} />
+                    <rect x="5.4" y="11" width="3.6" height="11" rx="1.1" fill={active ? "#fff" : "url(#dh-side)"} opacity="0.85" />
+                    <rect x="8.8" y="6" width="3.6" height="16" rx="1.1" fill={active ? "#fff" : "url(#dh-side)"} opacity="0.7" />
+                  </svg>
+                </div>
+                <span style={{ flex: 1 }}>DataHeaven</span>
+                <span style={{
+                  fontSize: 9, fontWeight: 800, letterSpacing: "0.06em",
+                  background: active ? "rgba(255,255,255,0.25)" : "#1B2440",
+                  color: active ? "white" : "#A5B4FC",
+                  padding: "2px 6px", borderRadius: 5,
+                  textTransform: "uppercase",
+                }}>
+                  LIVE
+                </span>
+              </Link>
+            </div>
+          );
+        })()}
+
         {/* ── Új szálloda igény — csak restricted (professional) usereknél ── */}
         {allowedModules !== null && allowedModules !== undefined && (() => {
           const active = pathname === "/request-hotel";

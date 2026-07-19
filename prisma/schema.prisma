@@ -60,6 +60,7 @@ model Hotel {
   billingAddress String?
   billingTaxNumber String?
   isOnboarded   Boolean      @default(false)
+  dataheavenHotelId String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 

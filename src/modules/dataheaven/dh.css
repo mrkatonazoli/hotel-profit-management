@@ -1,0 +1,30 @@
+/* DataHeaven brand scope inside HeyMax — Aurora light tokens + card. */
+.dh-scope {
+  --background: #F6F7FB;
+  --surface: #FFFFFF;
+  --surface-2: #EEF1F7;
+  --border: rgba(15, 23, 42, 0.09);
+  --text: #10152A;
+  --text-muted: #5B6274;
+  --accent: #6366F1;
+  --accent-2: #0891B2;
+  --grad: linear-gradient(120deg, #22D3EE 0%, #818CF8 52%, #C084FC 100%);
+  --positive: #059669;
+  --negative: #E11D48;
+  --shadow: 0 12px 34px -16px rgba(15, 23, 42, 0.2);
+  --radius: 14px;
+  color: var(--text);
+}
+.dh-scope .card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.dh-scope .grad-text {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
