@@ -110,6 +110,7 @@ export type MetricsBundle = {
   segmentsCompare?: DatasetCompare | null;
   salesChannelsCompare?: DatasetCompare | null;
   nationalityCompare?: NationalityCompare | null;
+  isAdmin?: boolean;
 };
 
 export const avgBasket = (r: ChannelRow) => (r.booking ? r.revenue / r.booking : 0);

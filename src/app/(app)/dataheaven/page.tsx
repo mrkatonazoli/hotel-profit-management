@@ -23,6 +23,7 @@ const TAB_LABEL: Record<Tab, string> = {
 export default function DataHeavenPage() {
   const [bundle, setBundle] = useState<MetricsBundle | null>(null);
   const [notPaired, setNotPaired] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [dhHotels, setDhHotels] = useState<DhHotel[]>([]);
   const [selectedDh, setSelectedDh] = useState("");
   const [year, setYear] = useState<number | null>(null);
@@ -44,17 +45,23 @@ export default function DataHeavenPage() {
       if (c) qs.set("cmp", "1");
       const res = await fetch(`/api/dataheaven/metrics${qs.size ? `?${qs.toString()}` : ""}`);
       if (res.status === 412) {
+        const info = await res.json().catch(() => ({}));
+        const admin = !!info.isAdmin;
+        setIsAdmin(admin);
         setNotPaired(true);
         setBundle(null);
-        const hres = await fetch("/api/dataheaven/hotels");
-        const hdata = await hres.json().catch(() => ({}));
-        if (hres.ok) setDhHotels(hdata.hotels ?? []);
-        else setError(hdata.error ?? "Nem érhető el a DataHeaven hotel-lista.");
+        if (admin) {
+          const hres = await fetch("/api/dataheaven/hotels");
+          const hdata = await hres.json().catch(() => ({}));
+          if (hres.ok) setDhHotels(hdata.hotels ?? []);
+          else setError(hdata.error ?? "Nem érhető el a DataHeaven hotel-lista.");
+        }
         return;
       }
       if (!res.ok) throw new Error("Nem sikerült lekérni az adatokat.");
       const data: MetricsBundle = await res.json();
       setNotPaired(false);
+      setIsAdmin(!!data.isAdmin);
       setBundle(data);
       setYear(data.year);
       const first: Tab | undefined = data.segments ? "segments" : data.salesChannels ? "sales_channels" : data.nationality ? "nationality" : data.channel ? "channel" : undefined;
@@ -144,21 +151,32 @@ export default function DataHeavenPage() {
               {bundle.years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           )}
-          <a
-            href="https://data.katonazoli.hu/admin"
-            target="_blank"
-            rel="noreferrer"
-            style={{ fontSize: 13, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}
-          >
-            Kezelés: DataHeaven Admin →
-          </a>
+          {isAdmin && (
+            <a
+              href="https://data.katonazoli.hu/admin"
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: 13, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}
+            >
+              Kezelés: DataHeaven Admin →
+            </a>
+          )}
         </span>
       </div>
 
       {loading && <div className="card" style={{ padding: 32, textAlign: "center", color: "var(--text-muted)" }}>Betöltés…</div>}
       {error && <div className="card" style={{ padding: 20, color: "var(--negative)" }}>{error}</div>}
 
-      {!loading && notPaired && (
+      {!loading && notPaired && !isAdmin && (
+        <div className="card" style={{ padding: 28, display: "grid", gap: 10, maxWidth: 560 }}>
+          <h2 style={{ fontSize: 18, margin: 0 }}>Ez a hotel még nincs összekötve a DataHeavennel</h2>
+          <p style={{ fontSize: 13.5, color: "var(--text-muted)", margin: 0 }}>
+            A párosítást a rendszergazda végzi el. Amint megtörtént, itt jelennek meg az élő PMS-riportok.
+          </p>
+        </div>
+      )}
+
+      {!loading && notPaired && isAdmin && (
         <div className="card" style={{ padding: 28, display: "grid", gap: 14, maxWidth: 560 }}>
           <h2 style={{ fontSize: 18, margin: 0 }}>Hotel párosítása a DataHeavennel</h2>
           <p style={{ fontSize: 13.5, color: "var(--text-muted)", margin: 0 }}>
