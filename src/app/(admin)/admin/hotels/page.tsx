@@ -38,6 +38,7 @@ const COUNTRIES = [
 
 const ALL_MODULES = [
   { id: "SIMPLE_PLANNER",    label: "Simple Planner" },
+  { id: "DATAHEAVEN",        label: "DataHeaven" },
   { id: "REVENUE_PLANNER",   label: "Bevételtervező" },
   { id: "SCENARIOS",         label: "Szcenáriók" },
   { id: "WEIGHTING",         label: "Súlyozás" },

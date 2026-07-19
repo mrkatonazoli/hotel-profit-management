@@ -488,6 +488,7 @@ model AiTokenLog {
 
 enum ModuleType {
   SIMPLE_PLANNER
+  DATAHEAVEN
   REVENUE_PLANNER
   SCENARIOS
   WEIGHTING
