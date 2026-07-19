@@ -26,15 +26,23 @@ export default function DataHeavenPage() {
   const [dhHotels, setDhHotels] = useState<DhHotel[]>([]);
   const [selectedDh, setSelectedDh] = useState("");
   const [year, setYear] = useState<number | null>(null);
+  const [mFrom, setMFrom] = useState<number | null>(null);
+  const [mTo, setMTo] = useState<number | null>(null);
+  const [cmp, setCmp] = useState(false);
   const [tab, setTab] = useState<Tab>("segments");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (y?: number | null) => {
+  const load = useCallback(async (y?: number | null, f?: number | null, t?: number | null, c?: boolean) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/dataheaven/metrics${y ? `?year=${y}` : ""}`);
+      const qs = new URLSearchParams();
+      if (y) qs.set("year", String(y));
+      if (f) qs.set("mfrom", String(f));
+      if (t) qs.set("mto", String(t));
+      if (c) qs.set("cmp", "1");
+      const res = await fetch(`/api/dataheaven/metrics${qs.size ? `?${qs.toString()}` : ""}`);
       if (res.status === 412) {
         setNotPaired(true);
         setBundle(null);
@@ -64,7 +72,19 @@ export default function DataHeavenPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  useHotelChange(() => { setBundle(null); setYear(null); load(); });
+  useHotelChange(() => { setBundle(null); setYear(null); setMFrom(null); setMTo(null); setCmp(false); load(); });
+
+  const monthsAvailable = (() => {
+    if (!bundle) return [] as number[];
+    const set = new Set<number>();
+    bundle.segments?.months.forEach((m) => set.add(Number(m.slice(5))));
+    bundle.salesChannels?.months.forEach((m) => set.add(Number(m.slice(5))));
+    bundle.nationality?.months.forEach((m) => set.add(m));
+    bundle.channel?.months.forEach((m) => set.add(m));
+    return Array.from(set).sort((a, b) => a - b);
+  })();
+  const MONTH_NAMES = ["Jan", "Feb", "Már", "Ápr", "Máj", "Jún", "Júl", "Aug", "Szep", "Okt", "Nov", "Dec"];
+  const selStyle: React.CSSProperties = { padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13.5 };
 
   async function pair() {
     if (!selectedDh) return;
@@ -90,12 +110,36 @@ export default function DataHeavenPage() {
       <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <Wordmark size={26} />
         {bundle && <span style={{ fontSize: 15, fontWeight: 600 }}>· {bundle.hotel.name}</span>}
-        <span style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
+        <span style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          {bundle && monthsAvailable.length > 0 && (
+            <>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Időszak:</span>
+              <select
+                value={mFrom ?? monthsAvailable[0]}
+                onChange={(e) => { const f = Number(e.target.value); const t = Math.max(f, mTo ?? monthsAvailable[monthsAvailable.length - 1]); setMFrom(f); setMTo(t); load(year, f, t, cmp); }}
+                style={selStyle}
+              >
+                {monthsAvailable.map((m) => <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>)}
+              </select>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>–</span>
+              <select
+                value={mTo ?? monthsAvailable[monthsAvailable.length - 1]}
+                onChange={(e) => { const t = Number(e.target.value); const f = Math.min(t, mFrom ?? monthsAvailable[0]); setMFrom(f); setMTo(t); load(year, f, t, cmp); }}
+                style={selStyle}
+              >
+                {monthsAvailable.filter((m) => m >= (mFrom ?? monthsAvailable[0])).map((m) => <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>)}
+              </select>
+              <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13.5, cursor: "pointer" }}>
+                <input type="checkbox" checked={cmp} onChange={(e) => { setCmp(e.target.checked); load(year, mFrom, mTo, e.target.checked); }} />
+                vs előző év
+              </label>
+            </>
+          )}
           {bundle && bundle.years.length > 0 && (
             <select
               value={year ?? bundle.year}
-              onChange={(e) => { const y = Number(e.target.value); setYear(y); load(y); }}
-              style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13.5 }}
+              onChange={(e) => { const y = Number(e.target.value); setYear(y); setMFrom(null); setMTo(null); load(y, null, null, cmp); }}
+              style={selStyle}
             >
               {bundle.years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
@@ -162,9 +206,9 @@ export default function DataHeavenPage() {
             ))}
           </div>
 
-          {tab === "segments" && bundle.segments && <Dashboard data={bundle.segments} />}
-          {tab === "sales_channels" && bundle.salesChannels && <Dashboard data={bundle.salesChannels} />}
-          {tab === "nationality" && bundle.nationality && <NationalityView data={bundle.nationality} />}
+          {tab === "segments" && bundle.segments && <Dashboard data={bundle.segments} compare={bundle.segmentsCompare} />}
+          {tab === "sales_channels" && bundle.salesChannels && <Dashboard data={bundle.salesChannels} compare={bundle.salesChannelsCompare} />}
+          {tab === "nationality" && bundle.nationality && <NationalityView data={bundle.nationality} compare={bundle.nationalityCompare} />}
           {tab === "channel" && bundle.channel && (
             <div style={{ display: "grid", gap: 14 }}>
               <div style={{ fontSize: 13, color: "var(--text-muted)" }}>

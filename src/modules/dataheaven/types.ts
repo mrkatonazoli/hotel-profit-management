@@ -107,6 +107,9 @@ export type MetricsBundle = {
   salesChannels: Dataset | null;
   nationality: NationalityYear | null;
   channel: ChannelData | null;
+  segmentsCompare?: DatasetCompare | null;
+  salesChannelsCompare?: DatasetCompare | null;
+  nationalityCompare?: NationalityCompare | null;
 };
 
 export const avgBasket = (r: ChannelRow) => (r.booking ? r.revenue / r.booking : 0);
