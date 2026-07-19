@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { dhFetch } from "@/lib/dataheaven";
 
-/** DataHeaven hotel list for the pairing UI (proxied; key stays server-side). */
+/** DataHeaven hotel list for the pairing UI (proxied; key stays server-side). Super admin only. */
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } });
+  if (user?.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "A párosítást csak szuperadmin végezheti el." }, { status: 403 });
+  }
   if (!process.env.DATAHEAVEN_API_KEY) {
     return NextResponse.json({ error: "A DATAHEAVEN_API_KEY környezeti változó nincs beállítva (Vercel → Environment Variables), vagy a beállítás után nem futott redeploy." }, { status: 500 });
   }

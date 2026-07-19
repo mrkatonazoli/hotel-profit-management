@@ -9,7 +9,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 A Simple Planner alatti „DataHeaven" menü élő PMS-riportokat jelenít meg a
 data.katonazoli.hu API-jából. Részletek és kontraktus:
-. A  nézet-komponensek
+`docs/dataheaven-integracio.md`. A `src/modules/dataheaven/` nézet-komponensek
 forrása a DataHeaven repo — ott a source of truth.
 
 ## Dokumentációs fegyelem
