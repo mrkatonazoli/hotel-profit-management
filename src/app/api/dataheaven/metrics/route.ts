@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const qs = new URLSearchParams();
-  for (const k of ["year", "mfrom", "mto"]) {
+  for (const k of ["year", "mfrom", "mto", "cmp"]) {
     const v = url.searchParams.get(k);
     if (v) qs.set(k, v);
   }
