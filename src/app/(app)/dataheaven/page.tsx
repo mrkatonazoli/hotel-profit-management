@@ -39,7 +39,9 @@ export default function DataHeavenPage() {
         setNotPaired(true);
         setBundle(null);
         const hres = await fetch("/api/dataheaven/hotels");
-        if (hres.ok) setDhHotels((await hres.json()).hotels ?? []);
+        const hdata = await hres.json().catch(() => ({}));
+        if (hres.ok) setDhHotels(hdata.hotels ?? []);
+        else setError(hdata.error ?? "Nem érhető el a DataHeaven hotel-lista.");
         return;
       }
       if (!res.ok) throw new Error("Nem sikerült lekérni az adatokat.");
