@@ -231,12 +231,13 @@ export default function DataHeavenPage() {
           </div>
 
           {tab === "manager" && bundle.manager && (
-            <div style={{ display: "grid", gap: 14 }}>
-              <ManagerView data={bundle.manager} compare={cmp} />
-              {bundle.manager.trend.months.length > 1 && (
+            <ManagerView
+              data={bundle.manager}
+              compare={cmp}
+              chart={bundle.manager.trend.months.length > 1 && (
                 <ManagerTrend trend={bundle.manager.trend} year={bundle.manager.year} prevYear={bundle.manager.prevYear} compare={cmp} />
               )}
-            </div>
+            />
           )}
           {tab === "segments" && bundle.segments && <Dashboard data={bundle.segments} compare={bundle.segmentsCompare} />}
           {tab === "sales_channels" && bundle.salesChannels && <Dashboard data={bundle.salesChannels} compare={bundle.salesChannelsCompare} />}

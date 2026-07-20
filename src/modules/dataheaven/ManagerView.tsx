@@ -37,7 +37,7 @@ function delta(def: ManagerDef, cur: number | null, prev: number | null): { text
 const MONTHS_HU = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
 const MONTHS_HU_SHORT = ["jan", "feb", "már", "ápr", "máj", "jún", "júl", "aug", "szep", "okt", "nov", "dec"];
 
-export default function ManagerView({ data, compare }: { data: ManagerData; compare: boolean }) {
+export default function ManagerView({ data, compare, chart }: { data: ManagerData; compare: boolean; chart?: React.ReactNode }) {
   const cmp = compare && data.prev ? data.prev : null;
   const val = (k: string): ManagerMetricVal | undefined => data.values[k];
   const single = data.mFrom === data.mTo;
@@ -70,6 +70,9 @@ export default function ManagerView({ data, compare }: { data: ManagerData; comp
           );
         })}
       </div>
+
+      {/* metric-picker trend right under the KPI cards */}
+      {chart}
 
       {/* grouped table — Havi + Éves halmozott */}
       <div className="card" style={{ padding: 18 }}>
