@@ -234,7 +234,7 @@ export default function DataHeavenPage() {
             <div style={{ display: "grid", gap: 14 }}>
               <ManagerView data={bundle.manager} compare={cmp} />
               {bundle.manager.trend.months.length > 1 && (
-                <ManagerTrend trend={bundle.manager.trend} year={bundle.manager.year} prevYear={bundle.manager.prevYear} />
+                <ManagerTrend trend={bundle.manager.trend} year={bundle.manager.year} prevYear={bundle.manager.prevYear} compare={cmp} />
               )}
             </div>
           )}

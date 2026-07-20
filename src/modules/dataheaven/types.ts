@@ -115,9 +115,8 @@ export type ManagerData = {
   trend: {
     months: number[];
     labels: string[];
-    revenue: (number | null)[];
-    prevRevenue: (number | null)[];
-    occ: (number | null)[];
+    series: Record<string, (number | null)[]>;
+    prevSeries: Record<string, (number | null)[]>;
   };
 };
 

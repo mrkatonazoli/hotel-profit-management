@@ -1,55 +1,93 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Chart, BarController, BarElement, LineController, LineElement, PointElement,
   CategoryScale, LinearScale, Tooltip, Legend,
-  type ChartConfiguration,
+  type ChartConfiguration, type ChartDataset,
 } from "chart.js";
+import { MANAGER_CATALOG, managerDefByKey } from "./managerCatalog";
 import type { ManagerData } from "./types";
 
 Chart.register(BarController, BarElement, LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-const fHuf = (n: number) => new Intl.NumberFormat("hu-HU", { maximumFractionDigits: 0 }).format(n) + " Ft";
+/** Metric-picker trend: chips toggle the headline metrics, any further catalog
+ * metric can be added from the select. Money / count / % each get their own
+ * axis; with compare on, the previous year is drawn dashed. */
+
+const MAIN_KEYS = ["rev_total", "rooms_sold", "occ_ooo", "trevpar", "acc_adr", "total_nights"];
+const PALETTE = ["#818CF8", "#34D399", "#FBBF24", "#22D3EE", "#C084FC", "#FB7185", "#F97316", "#A3E635", "#38BDF8", "#E879F9"];
+
+const fNum = (n: number, frac = 0) => new Intl.NumberFormat("hu-HU", { maximumFractionDigits: frac }).format(n);
 const fCompact = (v: number | string) => new Intl.NumberFormat("hu-HU", { notation: "compact" }).format(Number(v));
 
-export default function ManagerTrend({ trend, year, prevYear }: { trend: ManagerData["trend"]; year: number; prevYear: number }) {
+function fmtVal(kind: string, n: number): string {
+  if (kind === "money") return fNum(n) + " Ft";
+  if (kind === "pct") return fNum(n, 1) + " %";
+  return fNum(n);
+}
+
+export default function ManagerTrend({
+  trend, year, prevYear, compare,
+}: {
+  trend: ManagerData["trend"]; year: number; prevYear: number; compare: boolean;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const [selected, setSelected] = useState<string[]>(["rev_total"]);
+
+  const available = useMemo(() => new Set(Object.keys(trend.series)), [trend]);
+  const chips = MAIN_KEYS.filter((k) => available.has(k));
+  const extraSelected = selected.filter((k) => !MAIN_KEYS.includes(k));
+  const extraOptions = MANAGER_CATALOG.filter((d) => available.has(d.key) && !MAIN_KEYS.includes(d.key) && !selected.includes(d.key));
+
+  function toggle(key: string) {
+    setSelected((s) => (s.includes(key) ? (s.length > 1 ? s.filter((k) => k !== key) : s) : [...s, key]));
+  }
 
   useEffect(() => {
     if (!ref.current) return;
-    const hasPrev = trend.prevRevenue.some((v) => v != null);
-    const config: ChartConfiguration = {
-      type: "bar",
-      data: {
-        labels: trend.labels,
-        datasets: [
-          { label: `${year} összes nettó forgalom`, data: trend.revenue, backgroundColor: "#818CF8", borderRadius: 4, order: 3, yAxisID: "y" },
-          ...(hasPrev ? [{
-            type: "line" as const,
-            label: `${prevYear} összes nettó forgalom`,
-            data: trend.prevRevenue,
-            borderColor: "#FB7185",
-            backgroundColor: "#FB7185",
-            borderDash: [6, 5],
-            tension: 0.3,
-            pointRadius: 3,
-            order: 1,
-            yAxisID: "y" as const,
-          }] : []),
-          {
-            type: "line",
-            label: "Foglaltság % (kiadhatóra)",
-            data: trend.occ,
-            borderColor: "#34D399",
-            backgroundColor: "#34D399",
-            tension: 0.3,
-            pointRadius: 3,
-            order: 2,
-            yAxisID: "y1",
-          },
-        ],
-      },
+    const axisOf = (kind: string) => (kind === "pct" ? "yPct" : kind === "count" ? "yCount" : "yMoney");
+    const kinds = new Set(selected.map((k) => managerDefByKey.get(k)?.kind ?? "count"));
+
+    const datasets: ChartDataset<"line">[] = [];
+    const kindByDataset: string[] = [];
+    selected.forEach((key, i) => {
+      const def = managerDefByKey.get(key);
+      if (!def) return;
+      const color = PALETTE[i % PALETTE.length];
+      kindByDataset.push(def.kind);
+      datasets.push({
+        label: `${year} · ${def.label}`,
+        data: trend.series[key] ?? [],
+        borderColor: color,
+        backgroundColor: color,
+        tension: 0.3,
+        pointRadius: 3,
+        yAxisID: axisOf(def.kind),
+      });
+      if (compare && trend.prevSeries[key]?.some((v) => v != null)) {
+        kindByDataset.push(def.kind);
+        datasets.push({
+          label: `${prevYear} · ${def.label}`,
+          data: trend.prevSeries[key],
+          borderColor: color + "88",
+          backgroundColor: color + "88",
+          borderDash: [6, 5],
+          tension: 0.3,
+          pointRadius: 2,
+          yAxisID: axisOf(def.kind),
+        });
+      }
+    });
+
+    const scales: NonNullable<ChartConfiguration<"line">["options"]>["scales"] = {};
+    if (kinds.has("money")) scales.yMoney = { position: "left", ticks: { callback: (v) => fCompact(v as number) } };
+    if (kinds.has("count")) scales.yCount = { position: kinds.has("money") ? "right" : "left", grid: { drawOnChartArea: !kinds.has("money") }, ticks: { callback: (v) => fCompact(v as number) } };
+    if (kinds.has("pct")) scales.yPct = { position: "right", min: 0, max: 100, grid: { drawOnChartArea: kinds.size === 1 }, ticks: { callback: (v) => `${v} %` } };
+
+    const config: ChartConfiguration<"line"> = {
+      type: "line",
+      data: { labels: trend.labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -57,29 +95,66 @@ export default function ManagerTrend({ trend, year, prevYear }: { trend: Manager
           legend: { position: "bottom" },
           tooltip: {
             callbacks: {
-              label: (c) => c.dataset.yAxisID === "y1"
-                ? `${c.dataset.label}: ${new Intl.NumberFormat("hu-HU", { maximumFractionDigits: 1 }).format(c.parsed.y ?? 0)} %`
-                : `${c.dataset.label}: ${fHuf(c.parsed.y ?? 0)}`,
+              label: (c) => `${c.dataset.label}: ${fmtVal(kindByDataset[c.datasetIndex] ?? "count", c.parsed.y ?? 0)}`,
             },
           },
         },
-        scales: {
-          y: { ticks: { callback: (v) => fCompact(v as number) } },
-          y1: { position: "right", min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { callback: (v) => `${v} %` } },
-        },
+        scales,
       },
     };
     const chart = new Chart(ref.current, config);
     return () => chart.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trend]);
+  }, [trend, selected, compare]);
 
   return (
     <div className="card" style={{ padding: 18 }}>
       <h3 style={{ margin: "0 0 4px", fontSize: 15 }}>Havi trend — teljes év</h3>
       <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "var(--text-muted)" }}>
-        Havi összes nettó forgalom és foglaltság; a szaggatott vonal a {prevYear}-ös azonos havi forgalom.
+        Jelöld be, mely mutatók kerüljenek a grafikonra{compare ? `; a szaggatott vonal a ${prevYear}-ös azonos havi érték` : ""}.
       </p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+        {chips.map((k) => {
+          const on = selected.includes(k);
+          return (
+            <button
+              key={k}
+              onClick={() => toggle(k)}
+              style={{
+                border: `1px solid ${on ? "var(--accent)" : "var(--border)"}`,
+                background: on ? "var(--accent)" : "var(--surface-2)",
+                color: on ? "#fff" : "var(--text-muted)",
+                padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              {managerDefByKey.get(k)?.label}
+            </button>
+          );
+        })}
+        {extraSelected.map((k) => (
+          <button
+            key={k}
+            onClick={() => toggle(k)}
+            title="Eltávolítás"
+            style={{
+              border: "1px solid var(--accent)", background: "var(--accent)", color: "#fff",
+              padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+            }}
+          >
+            {managerDefByKey.get(k)?.label} ✕
+          </button>
+        ))}
+        {extraOptions.length > 0 && (
+          <select
+            value=""
+            onChange={(e) => e.target.value && setSelected((s) => [...s, e.target.value])}
+            style={{ padding: "6px 10px", borderRadius: 999, border: "1px dashed var(--border)", background: "var(--surface-2)", color: "var(--text-muted)", fontSize: 12.5 }}
+          >
+            <option value="">+ további mutató…</option>
+            {extraOptions.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
+          </select>
+        )}
+      </div>
       <div style={{ height: 340 }}><canvas ref={ref} /></div>
     </div>
   );
