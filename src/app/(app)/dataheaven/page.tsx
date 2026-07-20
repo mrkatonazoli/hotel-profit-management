@@ -96,6 +96,12 @@ export default function DataHeavenPage() {
     return Array.from(set).sort((a, b) => a - b);
   })();
   const MONTH_NAMES = ["Jan", "Feb", "Már", "Ápr", "Máj", "Jún", "Júl", "Aug", "Szep", "Okt", "Nov", "Dec"];
+  // The manager and channel bundles default to the LAST month server-side when
+  // no range was sent — the pickers must display that resolved range, not a
+  // fake full-year default.
+  const resolvedRange = tab === "manager" ? bundle?.manager : tab === "channel" ? bundle?.channel : null;
+  const dispFrom = mFrom ?? resolvedRange?.mFrom ?? monthsAvailable[0];
+  const dispTo = mTo ?? resolvedRange?.mTo ?? monthsAvailable[monthsAvailable.length - 1];
   const selStyle: React.CSSProperties = { padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13.5 };
 
   async function pair() {
@@ -128,19 +134,19 @@ export default function DataHeavenPage() {
             <>
               <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Időszak:</span>
               <select
-                value={mFrom ?? monthsAvailable[0]}
-                onChange={(e) => { const f = Number(e.target.value); const t = Math.max(f, mTo ?? monthsAvailable[monthsAvailable.length - 1]); setMFrom(f); setMTo(t); load(year, f, t, cmp); }}
+                value={dispFrom}
+                onChange={(e) => { const f = Number(e.target.value); const t = Math.max(f, dispTo); setMFrom(f); setMTo(t); load(year, f, t, cmp); }}
                 style={selStyle}
               >
                 {monthsAvailable.map((m) => <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>)}
               </select>
               <span style={{ fontSize: 13, color: "var(--text-muted)" }}>–</span>
               <select
-                value={mTo ?? monthsAvailable[monthsAvailable.length - 1]}
-                onChange={(e) => { const t = Number(e.target.value); const f = Math.min(t, mFrom ?? monthsAvailable[0]); setMFrom(f); setMTo(t); load(year, f, t, cmp); }}
+                value={dispTo}
+                onChange={(e) => { const t = Number(e.target.value); const f = Math.min(t, dispFrom); setMFrom(f); setMTo(t); load(year, f, t, cmp); }}
                 style={selStyle}
               >
-                {monthsAvailable.filter((m) => m >= (mFrom ?? monthsAvailable[0])).map((m) => <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>)}
+                {monthsAvailable.filter((m) => m >= dispFrom).map((m) => <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>)}
               </select>
               <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13.5, cursor: "pointer" }}>
                 <input type="checkbox" checked={cmp} onChange={(e) => { setCmp(e.target.checked); load(year, mFrom, mTo, e.target.checked); }} />
