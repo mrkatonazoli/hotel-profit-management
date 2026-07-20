@@ -99,10 +99,30 @@ export type ChannelData = {
   monthly: ChannelMonthly;
 };
 
+export type ManagerMetricVal = { monthly: number | null; ytd: number | null };
+
+export type ManagerData = {
+  hotelName: string;
+  year: number;
+  months: number[];
+  month: number;
+  values: Record<string, ManagerMetricVal>;
+  prev: Record<string, ManagerMetricVal> | null;
+  prevYear: number;
+  trend: {
+    months: number[];
+    labels: string[];
+    revenue: (number | null)[];
+    prevRevenue: (number | null)[];
+    occ: (number | null)[];
+  };
+};
+
 export type MetricsBundle = {
   hotel: { id: string; name: string; pms: string; roomCount: number | null };
   years: number[];
   year: number;
+  manager?: ManagerData | null;
   segments: Dataset | null;
   salesChannels: Dataset | null;
   nationality: NationalityYear | null;

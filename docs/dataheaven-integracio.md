@@ -32,23 +32,27 @@ A `/dataheaven` oldal párosító UI-t mutat, amíg nincs beállítva; a
 ## Fájlok
 
 - `src/app/(app)/dataheaven/page.tsx` — oldal: párosítás + tabok
-  (Szegmensek / Értékesítési csatornák / Nemzetiség / Channel Manager),
-  évválasztó, Tól–Ig hónapszűrő, „vs előző év" összehasonlítás
+  (Manager riport / Szegmensek / Értékesítési csatornák / Nemzetiség /
+  Channel Manager), évválasztó, Tól–Ig hónapszűrő (Manager tabon egy-hónapos
+  választó), „vs előző év" összehasonlítás
 - `src/app/api/dataheaven/{hotels,pair,metrics}/route.ts` — proxy végpontok
 - `src/lib/dataheaven.ts` — szerver-oldali fetch-kliens
 - `src/modules/dataheaven/` — DataHeaven-arculatú nézetek (types, dh.css
-  scoped tokenek, Wordmark, Dashboard, NationalityView, ChannelPerformance,
-  ChannelTrend) — **a DataHeaven repóból másolt, ott a forrás-igazság**
+  scoped tokenek, Wordmark, Dashboard, ManagerView, ManagerTrend,
+  managerCatalog, NationalityView, ChannelPerformance, ChannelTrend) —
+  **a DataHeaven repóból másolt, ott a forrás-igazság**
 - `src/lib/module-access.ts` — `DATAHEAVEN` modul (jogosultság-kapcsoló)
 - `src/components/layout/Sidebar.tsx` — menüpont a Simple Planner alatt
 
 ## DataHeaven API-kontraktus (amit fogyasztunk)
 
 - `GET /api/v1/hotels` → `{hotels:[{id,name,pms,roomCount,domains,coverage}]}`
-- `GET /api/v1/hotels/:id/metrics?year=&mfrom=&mto=&cmp=1` →
-  `{hotel,years,year,segments,salesChannels,nationality,channel,
+- `GET /api/v1/hotels/:id/metrics?year=&mfrom=&mto=&cmp=1&month=` →
+  `{hotel,years,year,manager,segments,salesChannels,nationality,channel,
     segmentsCompare,salesChannelsCompare,nationalityCompare}`
-  (a mezők null-ozhatók; `channel.period.summary` a pontos YoY-összesítő)
+  (a mezők null-ozhatók; `channel.period.summary` a pontos YoY-összesítő;
+  a `month` a Manager riport hónapja, a `manager` csomag mindig hozza a saját
+  előző-éves bázisát a `prev` mezőben)
 
 A kontraktus gazdája a DataHeaven repo — változásnál ott indul a munka, és ez
 a doksi + a `src/modules/dataheaven/types.ts` frissítendő.

@@ -4,16 +4,19 @@ import { useCallback, useEffect, useState } from "react";
 import { useHotelChange } from "@/lib/hotel-context";
 import Wordmark from "@/modules/dataheaven/Wordmark";
 import Dashboard from "@/modules/dataheaven/Dashboard";
+import ManagerView from "@/modules/dataheaven/ManagerView";
+import ManagerTrend from "@/modules/dataheaven/ManagerTrend";
 import NationalityView from "@/modules/dataheaven/NationalityView";
 import ChannelPerformance from "@/modules/dataheaven/ChannelPerformance";
 import ChannelTrend from "@/modules/dataheaven/ChannelTrend";
 import type { MetricsBundle } from "@/modules/dataheaven/types";
 import "@/modules/dataheaven/dh.css";
 
-type Tab = "segments" | "sales_channels" | "nationality" | "channel";
+type Tab = "manager" | "segments" | "sales_channels" | "nationality" | "channel";
 type DhHotel = { id: string; name: string; pms: string; domains: string[] };
 
 const TAB_LABEL: Record<Tab, string> = {
+  manager: "Manager riport",
   segments: "Szegmensek",
   sales_channels: "Értékesítési csatornák",
   nationality: "Nemzetiség",
@@ -30,11 +33,12 @@ export default function DataHeavenPage() {
   const [mFrom, setMFrom] = useState<number | null>(null);
   const [mTo, setMTo] = useState<number | null>(null);
   const [cmp, setCmp] = useState(false);
-  const [tab, setTab] = useState<Tab>("segments");
+  const [month, setMonth] = useState<number | null>(null);
+  const [tab, setTab] = useState<Tab>("manager");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (y?: number | null, f?: number | null, t?: number | null, c?: boolean) => {
+  const load = useCallback(async (y?: number | null, f?: number | null, t?: number | null, c?: boolean, m?: number | null) => {
     setLoading(true);
     setError(null);
     try {
@@ -43,6 +47,7 @@ export default function DataHeavenPage() {
       if (f) qs.set("mfrom", String(f));
       if (t) qs.set("mto", String(t));
       if (c) qs.set("cmp", "1");
+      if (m) qs.set("month", String(m));
       const res = await fetch(`/api/dataheaven/metrics${qs.size ? `?${qs.toString()}` : ""}`);
       if (res.status === 412) {
         const info = await res.json().catch(() => ({}));
@@ -64,12 +69,13 @@ export default function DataHeavenPage() {
       setIsAdmin(!!data.isAdmin);
       setBundle(data);
       setYear(data.year);
-      const first: Tab | undefined = data.segments ? "segments" : data.salesChannels ? "sales_channels" : data.nationality ? "nationality" : data.channel ? "channel" : undefined;
+      const first: Tab | undefined = data.manager ? "manager" : data.segments ? "segments" : data.salesChannels ? "sales_channels" : data.nationality ? "nationality" : data.channel ? "channel" : undefined;
       setTab((t) => {
         const has = (x: Tab) =>
-          (x === "segments" && data.segments) || (x === "sales_channels" && data.salesChannels) ||
+          (x === "manager" && data.manager) || (x === "segments" && data.segments) ||
+          (x === "sales_channels" && data.salesChannels) ||
           (x === "nationality" && data.nationality) || (x === "channel" && data.channel);
-        return has(t) ? t : first ?? "segments";
+        return has(t) ? t : first ?? "manager";
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ismeretlen hiba");
@@ -79,7 +85,7 @@ export default function DataHeavenPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  useHotelChange(() => { setBundle(null); setYear(null); setMFrom(null); setMTo(null); setCmp(false); load(); });
+  useHotelChange(() => { setBundle(null); setYear(null); setMFrom(null); setMTo(null); setMonth(null); setCmp(false); load(); });
 
   const monthsAvailable = (() => {
     if (!bundle) return [] as number[];
@@ -105,6 +111,7 @@ export default function DataHeavenPage() {
 
   const tabs = bundle
     ? ([
+        bundle.manager && "manager",
         bundle.segments && "segments",
         bundle.salesChannels && "sales_channels",
         bundle.nationality && "nationality",
@@ -118,7 +125,23 @@ export default function DataHeavenPage() {
         <Wordmark size={26} />
         {bundle && <span style={{ fontSize: 15, fontWeight: 600 }}>· {bundle.hotel.name}</span>}
         <span style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          {bundle && monthsAvailable.length > 0 && (
+          {bundle && tab === "manager" && bundle.manager && (
+            <>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Hónap:</span>
+              <select
+                value={month ?? bundle.manager.month}
+                onChange={(e) => { const m = Number(e.target.value); setMonth(m); load(year, mFrom, mTo, cmp, m); }}
+                style={selStyle}
+              >
+                {bundle.manager.months.map((m) => <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>)}
+              </select>
+              <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13.5, cursor: "pointer" }}>
+                <input type="checkbox" checked={cmp} onChange={(e) => { setCmp(e.target.checked); load(year, mFrom, mTo, e.target.checked, month); }} />
+                vs előző év
+              </label>
+            </>
+          )}
+          {bundle && tab !== "manager" && monthsAvailable.length > 0 && (
             <>
               <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Időszak:</span>
               <select
@@ -145,7 +168,7 @@ export default function DataHeavenPage() {
           {bundle && bundle.years.length > 0 && (
             <select
               value={year ?? bundle.year}
-              onChange={(e) => { const y = Number(e.target.value); setYear(y); setMFrom(null); setMTo(null); load(y, null, null, cmp); }}
+              onChange={(e) => { const y = Number(e.target.value); setYear(y); setMFrom(null); setMTo(null); setMonth(null); load(y, null, null, cmp, null); }}
               style={selStyle}
             >
               {bundle.years.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -224,6 +247,14 @@ export default function DataHeavenPage() {
             ))}
           </div>
 
+          {tab === "manager" && bundle.manager && (
+            <div style={{ display: "grid", gap: 14 }}>
+              <ManagerView data={bundle.manager} compare={cmp} />
+              {bundle.manager.trend.months.length > 1 && (
+                <ManagerTrend trend={bundle.manager.trend} year={bundle.manager.year} prevYear={bundle.manager.prevYear} />
+              )}
+            </div>
+          )}
           {tab === "segments" && bundle.segments && <Dashboard data={bundle.segments} compare={bundle.segmentsCompare} />}
           {tab === "sales_channels" && bundle.salesChannels && <Dashboard data={bundle.salesChannels} compare={bundle.salesChannelsCompare} />}
           {tab === "nationality" && bundle.nationality && <NationalityView data={bundle.nationality} compare={bundle.nationalityCompare} />}
