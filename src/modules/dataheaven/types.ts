@@ -105,9 +105,12 @@ export type ManagerData = {
   hotelName: string;
   year: number;
   months: number[];
-  month: number;
+  mFrom: number;
+  mTo: number;
+  ytdMonth: number;
   values: Record<string, ManagerMetricVal>;
   prev: Record<string, ManagerMetricVal> | null;
+  prevMonths: number[];
   prevYear: number;
   trend: {
     months: number[];

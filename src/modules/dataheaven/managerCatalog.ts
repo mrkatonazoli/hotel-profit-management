@@ -89,3 +89,28 @@ export const MANAGER_CATALOG: ManagerDef[] = [
 
 export const managerDefByKey = new Map(MANAGER_CATALOG.map((d) => [d.key, d]));
 export const managerDefByNo = new Map(MANAGER_CATALOG.filter((d) => d.no != null).map((d) => [d.no!, d]));
+
+/**
+ * Non-additive metrics: over a multi-month range they must be RE-DERIVED from
+ * the summed components (num/den), never summed. Every formula is validated
+ * against the report's own stored single-month values (0% deviation on live
+ * data; note bf_adr is per SOLD ROOM night, not per guest night).
+ * `pct: true` → multiply by 100. Metrics not listed here are additive sums.
+ */
+export const MANAGER_DERIVED: Record<string, { num: string; den: string; pct?: boolean }> = {
+  occ_sum: { num: "rooms_sold", den: "rooms_total", pct: true },
+  occ_ooo: { num: "rooms_sold", den: "rooms_available", pct: true },
+  single_share: { num: "single_sold", den: "rooms_sold", pct: true },
+  multi_share: { num: "multi_sold", den: "rooms_sold", pct: true },
+  ref_per_sold: { num: "ref_rev", den: "rooms_sold" },
+  ref_revpar: { num: "ref_rev", den: "rooms_available" },
+  trevpar: { num: "rev_total", den: "rooms_available" },
+  ref_per_guest: { num: "ref_rev", den: "total_nights" },
+  rate_adr: { num: "rate_rev", den: "rooms_sold" },
+  rate_revpar: { num: "rate_rev", den: "rooms_available" },
+  acc_adr: { num: "acc_rev", den: "rooms_sold" },
+  acc_revpar: { num: "acc_rev", den: "rooms_available" },
+  bf_adr: { num: "bf_rev", den: "rooms_sold" },
+  szr_adr: { num: "szr_rev", den: "rooms_sold" },
+  szr_revpar: { num: "szr_rev", den: "rooms_available" },
+};

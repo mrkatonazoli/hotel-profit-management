@@ -4,10 +4,10 @@ import { MANAGER_CATALOG, MANAGER_GROUPS, type ManagerDef } from "./managerCatal
 import type { ManagerData, ManagerMetricVal } from "./types";
 
 /**
- * Manager riport (FRO-501a) — copy of the DataHeaven view (dh-scope tokens).
- * KPI cards from the selected month's headline metrics, then the full catalog
- * grouped, with Havi + Éves halmozott columns. With compare on, deltas are vs
- * the same month of the previous year (pct metrics → percentage points).
+ * Manager riport (FRO-501a) — KPI cards from the selected month's headline
+ * metrics, then the full catalog grouped, with Havi + Éves halmozott columns.
+ * With compare on, deltas are vs the same month of the previous year
+ * (pct metrics show percentage-point diffs, everything else % change).
  */
 
 const KPI_KEYS = ["rev_total", "rooms_sold", "occ_ooo", "trevpar", "acc_adr", "total_nights"] as const;
@@ -22,6 +22,7 @@ function fmt(def: ManagerDef, n: number | null): string {
   return fInt(n);
 }
 
+/** Delta vs baseline: pct metrics → percentage points, others → % change. */
 function delta(def: ManagerDef, cur: number | null, prev: number | null): { text: string; up: boolean } | null {
   if (cur == null || prev == null) return null;
   if (def.kind === "pct") {
@@ -34,16 +35,23 @@ function delta(def: ManagerDef, cur: number | null, prev: number | null): { text
 }
 
 const MONTHS_HU = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
+const MONTHS_HU_SHORT = ["jan", "feb", "már", "ápr", "máj", "jún", "júl", "aug", "szep", "okt", "nov", "dec"];
 
 export default function ManagerView({ data, compare }: { data: ManagerData; compare: boolean }) {
   const cmp = compare && data.prev ? data.prev : null;
   const val = (k: string): ManagerMetricVal | undefined => data.values[k];
+  const single = data.mFrom === data.mTo;
+  const rangeLabel = single
+    ? `${data.year}. ${MONTHS_HU[data.mFrom - 1]}`
+    : `${data.year}. ${MONTHS_HU_SHORT[data.mFrom - 1]}–${MONTHS_HU_SHORT[data.mTo - 1]}`;
+  const monthlyHead = single ? "Havi halmozott" : `Időszak összesen (${MONTHS_HU_SHORT[data.mFrom - 1]}–${MONTHS_HU_SHORT[data.mTo - 1]})`;
 
   const present = MANAGER_CATALOG.filter((d) => data.values[d.key] != null);
   const groups = MANAGER_GROUPS.map((g) => ({ name: g, defs: present.filter((d) => d.group === g) })).filter((g) => g.defs.length);
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
+      {/* KPI cards — selected month */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12 }}>
         {KPI_KEYS.map((k) => {
           const def = MANAGER_CATALOG.find((d) => d.key === k)!;
@@ -55,7 +63,7 @@ export default function ManagerView({ data, compare }: { data: ManagerData; comp
               <div style={{ fontSize: 21, fontWeight: 700, lineHeight: 1.15 }}>{fmt(def, v?.monthly ?? null)}</div>
               {d && (
                 <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 5, color: d.up ? "var(--positive)" : "var(--negative)" }}>
-                  {d.text} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>vs {data.prevYear}. {MONTHS_HU[data.month - 1]}</span>
+                  {d.text} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>vs {data.prevYear}</span>
                 </div>
               )}
             </div>
@@ -63,22 +71,25 @@ export default function ManagerView({ data, compare }: { data: ManagerData; comp
         })}
       </div>
 
+      {/* grouped table — Havi + Éves halmozott */}
       <div className="card" style={{ padding: 18 }}>
         <h3 style={{ margin: "0 0 4px", fontSize: 15 }}>
-          Manager jelentés — {data.year}. {MONTHS_HU[data.month - 1]}
+          Manager jelentés — {rangeLabel}
         </h3>
         <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "var(--text-muted)" }}>
-          Havi halmozott érték a kiválasztott hónapra, éves halmozott január 1-től.
-          {compare && !data.prev && ` Nincs ${data.prevYear}-es adat ehhez a hónaphoz.`}
+          {single
+            ? "Havi halmozott érték a kiválasztott hónapra, éves halmozott január 1-től."
+            : `Több hónap összesítve: az összegezhető értékek összeadva, a fajlagos mutatók (átlagár, RevPAR, foglaltság…) a komponenseikből újraszámolva; az éves halmozott a ${MONTHS_HU[data.ytdMonth - 1]} végi állapot.`}
+          {compare && !data.prev && ` Nincs ${data.prevYear}-es adat ehhez az időszakhoz.`}
         </p>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ color: "var(--text-muted)" }}>
                 <th style={thL}>Megnevezés</th>
-                <th style={thR}>Havi halmozott</th>
-                {cmp && <th style={thR}>Havi Δ</th>}
-                <th style={thR}>Éves halmozott</th>
+                <th style={thR}>{monthlyHead}</th>
+                {cmp && <th style={thR}>Δ</th>}
+                <th style={thR}>Éves halmozott ({MONTHS_HU_SHORT[data.ytdMonth - 1]})</th>
                 {cmp && <th style={thR}>Éves Δ</th>}
               </tr>
             </thead>
