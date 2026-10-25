@@ -50,7 +50,7 @@ const ALL_MODULES = [
   { id: "TEAM",              label: "Csapat" },
 ] as const;
 
-const defaultForm = { name: "", city: "", country: "HU", baseCurrency: "HUF", totalRooms: "" };
+const defaultForm = { name: "", city: "", country: "HU", baseCurrency: "HUF", totalRooms: "", costsEnabled: true };
 
 function initials(name: string | null, email: string) {
   if (name) return name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
@@ -495,6 +495,7 @@ export default function AdminHotelsPage() {
           baseCurrency: form.baseCurrency,
           totalRooms: form.totalRooms ? Number(form.totalRooms) : null,
           isOnboarded: true,
+          costsEnabled: form.costsEnabled,
         }),
       });
       if (!res.ok) {
@@ -575,6 +576,30 @@ export default function AdminHotelsPage() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500" />
               </div>
             </div>
+
+            {/* Tervezési mód — Simple Planner */}
+            <div className="border border-slate-200 rounded-xl p-4">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Tervezési mód (Simple Planner)</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button type="button" onClick={() => setForm(f => ({ ...f, costsEnabled: true }))}
+                  className="text-left px-4 py-3 rounded-lg border text-sm"
+                  style={form.costsEnabled
+                    ? { borderColor: "#35BD78", background: "#ECFDF5" }
+                    : { borderColor: "#E2E8F0", background: "white" }}>
+                  <span className="font-semibold text-slate-800">Költségekkel</span>
+                  <span className="block text-xs text-slate-500 mt-0.5">Bevétel + kiadások, profit, TFH, fedezeti pont</span>
+                </button>
+                <button type="button" onClick={() => setForm(f => ({ ...f, costsEnabled: false }))}
+                  className="text-left px-4 py-3 rounded-lg border text-sm"
+                  style={!form.costsEnabled
+                    ? { borderColor: "#35BD78", background: "#ECFDF5" }
+                    : { borderColor: "#E2E8F0", background: "white" }}>
+                  <span className="font-semibold text-slate-800">Csak bevétel</span>
+                  <span className="block text-xs text-slate-500 mt-0.5">ADR + kihasználtság + bevétel, szimulátorral — költségek és adók nélkül</span>
+                </button>
+              </div>
+            </div>
+
             {error && <p className="text-sm text-red-500">{error}</p>}
             <div className="flex gap-3 pt-2">
               <button type="submit" disabled={saving}

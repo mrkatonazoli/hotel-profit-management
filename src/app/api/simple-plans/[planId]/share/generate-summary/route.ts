@@ -40,7 +40,8 @@ export async function POST(_req: Request, { params }: Params) {
     include: { fixedCosts: { orderBy: { sortOrder: "asc" } } },
   });
 
-  const tfhEnabled = settings?.tfhEnabled ?? false;
+  const costsEnabled = settings?.costsEnabled ?? true;
+  const tfhEnabled = costsEnabled && (settings?.tfhEnabled ?? false);
   const tfhRate = settings?.tfhRate ?? 4;
   const fbEnabled = settings?.fbEnabled ?? false;
   const totalRooms = plan.hotel.totalRooms ?? 0;
@@ -96,15 +97,16 @@ export async function POST(_req: Request, { params }: Params) {
   for (const m of plan.months) {
     const c = computeMonthCalc(
       { ...m, breakfastPct: m.breakfastPct ?? 0, halfboardPct: m.halfboardPct ?? 0 },
-      totalRooms, year, tfhEnabled ? tfhRate : 0, fb, costs
+      totalRooms, year, tfhEnabled ? tfhRate : 0, fb, costsEnabled ? costs : undefined
     );
     const effectiveCostPerRoom = c.roomNights > 0 ? c.cost / c.roomNights : 0;
 
     if (c.hasData) {
       filledMonths++;
       totalOcc += m.occupancyPct;
-      if (c.profit > bestProfit) { bestProfit = c.profit; bestMonth = HU_MONTHS[m.month - 1]; }
-      if (c.profit < worstProfit) { worstProfit = c.profit; worstMonth = HU_MONTHS[m.month - 1]; }
+      const score = costsEnabled ? c.profit : c.revenue;
+      if (score > bestProfit) { bestProfit = score; bestMonth = HU_MONTHS[m.month - 1]; }
+      if (score < worstProfit) { worstProfit = score; worstMonth = HU_MONTHS[m.month - 1]; }
     }
 
     annualRevenue += c.revenue;
@@ -114,13 +116,20 @@ export async function POST(_req: Request, { params }: Params) {
     const unitRate = m.roomRevenue > 0 ? m.roomRevenue : m.adr;
     monthLines += `  ${HU_MONTHS[m.month - 1]}: kihasználtság ${m.occupancyPct}%, ${
       m.roomRevenue > 0 ? `szobaárbevétel ${fmt(m.roomRevenue)} Ft/szoba/éj` : `ADR ${fmt(m.adr)} Ft`
-    }, kiadás ${fmt(effectiveCostPerRoom)} Ft/szoba/éj, bevétel ${fmt(c.revenue)} Ft, profit ${fmt(c.profit)} Ft${unitRate === 0 ? " (nincs adat)" : ""}\n`;
+    }${costsEnabled ? `, kiadás ${fmt(effectiveCostPerRoom)} Ft/szoba/éj` : ""}, bevétel ${fmt(c.revenue)} Ft${costsEnabled ? `, profit ${fmt(c.profit)} Ft` : ""}${unitRate === 0 ? " (nincs adat)" : ""}\n`;
   }
 
   const annualProfit = annualRevenue - annualCost - annualTfh;
   const avgOcc = filledMonths > 0 ? totalOcc / filledMonths : 0;
 
-  const prompt = `Te egy szállodai profit-tervező rendszer összefoglaló generátora vagy.
+  const metric = costsEnabled ? "profit" : "bevétel";
+  const annualLines = costsEnabled
+    ? `- Összes bevétel: ${fmt(annualRevenue)} Ft
+- Összes kiadás: ${fmt(annualCost)} Ft
+${tfhEnabled ? `- TFH (${tfhRate}%): ${fmt(annualTfh)} Ft\n` : ""}- Profit: ${fmt(annualProfit)} Ft`
+    : `- Összes bevétel: ${fmt(annualRevenue)} Ft`;
+
+  const prompt = `Te egy szállodai ${costsEnabled ? "profit" : "bevétel"}-tervező rendszer összefoglaló generátora vagy.
 
 Az alábbi Simple Planner terv adatai alapján írj egy rövid, professzionális, ügyfél-barát összefoglalót.
 Ez az összefoglaló a tervhez tartozó megosztott prezentáción fog megjelenni.
@@ -132,14 +141,12 @@ Szobák: ${totalRooms}
 Havi adatok:
 ${monthLines}
 Éves összesítő:
-- Összes bevétel: ${fmt(annualRevenue)} Ft
-- Összes kiadás: ${fmt(annualCost)} Ft
-${tfhEnabled ? `- TFH (${tfhRate}%): ${fmt(annualTfh)} Ft\n` : ""}- Profit: ${fmt(annualProfit)} Ft
+${annualLines}
 - Átlag kihasználtság: ${Math.round(avgOcc)}%
-${bestMonth ? `- Legjobb hónap: ${bestMonth} (${fmt(bestProfit)} Ft profit)` : ""}
-${worstMonth && worstMonth !== bestMonth ? `- Leggyengébb hónap: ${worstMonth} (${fmt(worstProfit)} Ft profit)` : ""}
+${bestMonth ? `- Legjobb hónap: ${bestMonth} (${fmt(bestProfit)} Ft ${metric})` : ""}
+${worstMonth && worstMonth !== bestMonth ? `- Leggyengébb hónap: ${worstMonth} (${fmt(worstProfit)} Ft ${metric})` : ""}
 
-Írj 2-3 bekezdéses, tömör, pozitív hangvételű összefoglalót magyarul. Emeld ki a főbb eredményeket (éves bevétel, profit, kihasználtság). Megemlítheted a legjobb és leggyengébb hónapokat. Legyen professzionális, de olvasható egy nem szakember ügyfélnek is. Ne adj tanácsot, csak ismertesd a terv főbb számait és trendjeit.`;
+Írj 2-3 bekezdéses, tömör, pozitív hangvételű összefoglalót magyarul. Emeld ki a főbb eredményeket (${costsEnabled ? "éves bevétel, profit, kihasználtság" : "éves bevétel, ADR, kihasználtság — ez a terv csak a bevételi oldalt tartalmazza, költségekről és profitról ne írj"}). Megemlítheted a legjobb és leggyengébb hónapokat. Legyen professzionális, de olvasható egy nem szakember ügyfélnek is. Ne adj tanácsot, csak ismertesd a terv főbb számait és trendjeit.`;
 
   const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 

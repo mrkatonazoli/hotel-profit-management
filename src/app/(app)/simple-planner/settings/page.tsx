@@ -17,6 +17,7 @@ type FixedCost = {
 
 type Settings = {
   id: string;
+  costsEnabled?: boolean;
   tfhEnabled: boolean;
   tfhRate: number;
   fbEnabled: boolean;
@@ -128,6 +129,7 @@ export default function SimplePlannerSettingsPage() {
   const hasLoaded = useRef(false);
 
   // Revenue settings
+  const [costsEnabled, setCostsEnabled] = useState(true);
   const [tfhEnabled, setTfhEnabled] = useState(true);
   const [tfhRate, setTfhRate] = useState(4);
   const [fbEnabled, setFbEnabled] = useState(false);
@@ -160,6 +162,7 @@ export default function SimplePlannerSettingsPage() {
       .then(r => r.json())
       .then((data: Settings | null) => {
         if (data) {
+          setCostsEnabled(data.costsEnabled ?? true);
           setTfhEnabled(data.tfhEnabled ?? true);
           setTfhRate(data.tfhRate ?? 4);
           setFbEnabled(data.fbEnabled ?? false);
@@ -193,7 +196,7 @@ export default function SimplePlannerSettingsPage() {
   useEffect(() => {
     if (!hasLoaded.current) return;
     setIsDirty(true);
-  }, [tfhEnabled, tfhRate, fbEnabled, breakfastPrice, halfboardPrice, avgPaxPerRoom,
+  }, [costsEnabled, tfhEnabled, tfhRate, fbEnabled, breakfastPrice, halfboardPrice, avgPaxPerRoom,
       defaultBreakfastPct, defaultHalfboardPct, fbOtherEnabled, fbOtherPct,
       spaEnabled, spaPct, otherRevenueEnabled, otherRevenuePct,
       breakfastCost, halfboardCost, fixedCosts, laundryEnabled, laundryPerRoom,
@@ -217,6 +220,7 @@ export default function SimplePlannerSettingsPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          costsEnabled,
           tfhEnabled, tfhRate,
           fbEnabled, breakfastPrice, halfboardPrice,
           breakfastCost, halfboardCost,
@@ -317,9 +321,51 @@ export default function SimplePlannerSettingsPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* BLOKK 0 — Tervezési mód */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+
+      <div style={{
+        background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
+        padding: "24px", marginBottom: 20,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 16 }}>🎛️</span>
+          </div>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", margin: 0 }}>Tervezési mód</h2>
+        </div>
+        <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 16px" }}>
+          Költségekkel együtt terveztek, vagy csak a bevételi oldalt (ADR, kihasználtság, bevétel)?
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <button onClick={() => setCostsEnabled(true)} style={{
+            textAlign: "left", padding: "14px 18px", borderRadius: 14, cursor: "pointer",
+            border: `2px solid ${costsEnabled ? "#35BD78" : "#E2E8F0"}`,
+            background: costsEnabled ? "#ECFDF5" : "white",
+          }}>
+            <p style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A", margin: 0 }}>Költségekkel</p>
+            <p style={{ fontSize: 12, color: "#64748B", margin: "3px 0 0" }}>
+              Bevétel + kiadások, profit, TFH, fedezeti pont
+            </p>
+          </button>
+          <button onClick={() => setCostsEnabled(false)} style={{
+            textAlign: "left", padding: "14px 18px", borderRadius: 14, cursor: "pointer",
+            border: `2px solid ${!costsEnabled ? "#35BD78" : "#E2E8F0"}`,
+            background: !costsEnabled ? "#ECFDF5" : "white",
+          }}>
+            <p style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A", margin: 0 }}>Csak bevétel</p>
+            <p style={{ fontSize: 12, color: "#64748B", margin: "3px 0 0" }}>
+              ADR + kihasználtság + bevétel, szimulátorral — költségek és adók nélkül
+            </p>
+          </button>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* BLOKK 1 — Fix éves költségek */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
+      {costsEnabled && (
       <div style={{
         background: "white", border: "1px solid #E2E8F0", borderRadius: 20,
         padding: "24px", marginBottom: 20,
@@ -439,6 +485,7 @@ export default function SimplePlannerSettingsPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* BLOKK 2 — Étkezési bevételek (F&B) */}
@@ -674,6 +721,7 @@ export default function SimplePlannerSettingsPage() {
       {/* BLOKK 3 — Mosatás (változó kiadás) */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
+      {costsEnabled && (
       <div style={{
         background: "white", border: `1px solid ${laundryEnabled ? "#BAE6FD" : "#E2E8F0"}`,
         borderRadius: 20, padding: "24px", marginBottom: 20,
@@ -731,11 +779,13 @@ export default function SimplePlannerSettingsPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* BLOKK 3b — Jutalék (változó kiadás) */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
+      {costsEnabled && (
       <div style={{
         background: "white", border: `1px solid ${commissionEnabled ? "#DDD6FE" : "#E2E8F0"}`,
         borderRadius: 20, padding: "24px", marginBottom: 20,
@@ -826,6 +876,7 @@ export default function SimplePlannerSettingsPage() {
           )}
         </div>
       </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* BLOKK 4 — Egyéb bevételek */}
@@ -898,6 +949,7 @@ export default function SimplePlannerSettingsPage() {
       {/* BLOKK 5 — TFH */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
+      {costsEnabled && (
       <div style={{
         background: "white", border: `1px solid ${tfhEnabled ? "#FECACA" : "#E2E8F0"}`,
         borderRadius: 20, padding: "24px", marginBottom: 20,
@@ -937,6 +989,7 @@ export default function SimplePlannerSettingsPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
       {/* Kalkuláció összefoglaló */}
@@ -947,9 +1000,14 @@ export default function SimplePlannerSettingsPage() {
           Hogyan számol a Simple Planner?
         </p>
         <div style={{ fontSize: 13, color: "#64748B", lineHeight: 1.8 }}>
-          <strong style={{ color: "#0F172A" }}>Bevétel/hó</strong> = (ADR + F&amp;B felár + egyéb) × szobaeladott éjszakák<br />
-          <strong style={{ color: "#0F172A" }}>Kiadás/hó</strong> = fix éves / 12 + (F&amp;B önköltség + mosatás + jutalék) × szobaeladott éjszakák<br />
-          <strong style={{ color: "#0F172A" }}>Profit/hó</strong> = Bevétel − Kiadás − TFH
+          <strong style={{ color: "#0F172A" }}>Bevétel/hó</strong> = (ADR + F&amp;B felár + egyéb) × szobaeladott éjszakák
+          {costsEnabled && (
+            <>
+              <br />
+              <strong style={{ color: "#0F172A" }}>Kiadás/hó</strong> = fix éves / 12 + (F&amp;B önköltség + mosatás + jutalék) × szobaeladott éjszakák<br />
+              <strong style={{ color: "#0F172A" }}>Profit/hó</strong> = Bevétel − Kiadás − TFH
+            </>
+          )}
         </div>
       </div>
 

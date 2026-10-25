@@ -37,6 +37,7 @@ export async function GET(req: Request, { params }: Params) {
     where: { hotelId: plan.hotelId },
     include: { fixedCosts: { orderBy: { sortOrder: "asc" } } },
   });
+  const costsEnabled = settings?.costsEnabled ?? true;
 
   return NextResponse.json({
     plan: {
@@ -52,7 +53,8 @@ export async function GET(req: Request, { params }: Params) {
     },
     months: plan.months,
     settings: {
-      tfhEnabled: settings?.tfhEnabled ?? false,
+      costsEnabled,
+      tfhEnabled: costsEnabled && (settings?.tfhEnabled ?? false),
       tfhRate: settings?.tfhRate ?? 4,
       fbEnabled: settings?.fbEnabled ?? false,
       breakfastPrice: settings?.breakfastPrice ?? 0,
@@ -66,13 +68,13 @@ export async function GET(req: Request, { params }: Params) {
       spaPct: settings?.spaPct ?? 0,
       otherRevenueEnabled: settings?.otherRevenueEnabled ?? false,
       otherRevenuePct: settings?.otherRevenuePct ?? 0,
-      annualFixedCost: (settings?.fixedCosts ?? []).reduce((s, fc) => s + fc.annualAmount, 0),
-      breakfastCost: settings?.breakfastCost ?? 0,
-      halfboardCost: settings?.halfboardCost ?? 0,
-      laundryEnabled: settings?.laundryEnabled ?? false,
-      laundryPerRoom: settings?.laundryPerRoom ?? 0,
-      commissionEnabled: settings?.commissionEnabled ?? false,
-      commissionPct: settings?.commissionPct ?? 0,
+      annualFixedCost: costsEnabled ? (settings?.fixedCosts ?? []).reduce((s, fc) => s + fc.annualAmount, 0) : 0,
+      breakfastCost: costsEnabled ? settings?.breakfastCost ?? 0 : 0,
+      halfboardCost: costsEnabled ? settings?.halfboardCost ?? 0 : 0,
+      laundryEnabled: costsEnabled && (settings?.laundryEnabled ?? false),
+      laundryPerRoom: costsEnabled ? settings?.laundryPerRoom ?? 0 : 0,
+      commissionEnabled: costsEnabled && (settings?.commissionEnabled ?? false),
+      commissionPct: costsEnabled ? settings?.commissionPct ?? 0 : 0,
       commissionBookingsPct: settings?.commissionBookingsPct ?? 100,
     },
     // breakfastPct/halfboardPct most a months tömbben van havi szinten

@@ -32,6 +32,7 @@ type ShareData = {
   hotel: { name: string; totalRooms: number | null };
   months: MonthData[];
   settings: {
+    costsEnabled?: boolean;
     tfhEnabled: boolean; tfhRate: number;
     fbEnabled: boolean; breakfastPrice: number; halfboardPrice: number; avgPaxPerRoom: number;
     defaultBreakfastPct: number; defaultHalfboardPct: number;
@@ -408,6 +409,7 @@ export default function SharePage() {
 
   const { plan, hotel, months, settings } = data;
   const totalRooms = hotel.totalRooms ?? 0;
+  const costsEnabled = settings.costsEnabled ?? true;
   const effectiveTfhRate = settings.tfhEnabled ? settings.tfhRate : 0;
 
   const fb: FbParams = {
@@ -462,7 +464,7 @@ export default function SharePage() {
     ? filledCalcs.reduce((s, c) => s + (months.find(m => m.month === c.month)?.occupancyPct ?? 0), 0) / filledCalcs.length
     : 0;
   const annualNetRevenue = annualRevenue - annualTfh;
-  const annualBreakeven = annualNetRevenue > 0 && avgOcc > 0
+  const annualBreakeven = costsEnabled && annualNetRevenue > 0 && avgOcc > 0
     ? (annualCost / annualNetRevenue) * avgOcc : null;
 
   // Átlag ADR és szobaárbevétel/szoba/éj (szobaeladott éjszakával súlyozva)
@@ -604,7 +606,7 @@ export default function SharePage() {
 
           <div style={{ position: "relative" }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", margin: "0 0 6px", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              Profit előrejelzés
+              {costsEnabled ? "Profit előrejelzés" : "Bevétel előrejelzés"}
             </p>
             <h2 style={{ fontSize: 28, fontWeight: 900, color: "white", margin: "0 0 6px", letterSpacing: "-0.03em" }}>
               {plan.year}. évi terv
@@ -614,12 +616,16 @@ export default function SharePage() {
             </p>
           </div>
           <div style={{ textAlign: "right", position: "relative" }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", margin: "0 0 4px" }}>Tervezett éves profit</p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", margin: "0 0 4px" }}>
+              {costsEnabled ? "Tervezett éves profit" : "Tervezett éves bevétel"}
+            </p>
             <p style={{
               fontSize: 36, fontWeight: 900, color: "white", margin: 0,
               letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums",
             }}>
-              {annualProfit >= 0 ? "+" : ""}{fmtM(annualProfit)} Ft
+              {costsEnabled
+                ? `${annualProfit >= 0 ? "+" : ""}${fmtM(annualProfit)} Ft`
+                : `${fmtM(annualRevenue)} Ft`}
             </p>
           </div>
         </div>
@@ -806,7 +812,7 @@ export default function SharePage() {
           {/* ── KPI sor ── */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: settings.tfhEnabled ? "repeat(6, 1fr)" : "repeat(5, 1fr)",
+            gridTemplateColumns: `repeat(${4 + (costsEnabled ? 1 : 0) + (settings.tfhEnabled ? 1 : 0)}, 1fr)`,
           }}>
             {/* Bevétel */}
             {(() => {
@@ -881,7 +887,7 @@ export default function SharePage() {
             })()}
 
             {/* Profit */}
-            {(() => {
+            {costsEnabled && (() => {
               const base = annualProfit;
               const sim = simAnnualProfit;
               const delta = sim - base;
@@ -1233,7 +1239,7 @@ export default function SharePage() {
             padding: "22px 20px 16px",
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Bevétel &amp; Profit</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>{costsEnabled ? "Bevétel & Profit" : "Bevétel"}</h3>
               {isSimActive && (
                 <span style={{
                   fontSize: 10, fontWeight: 700, color: "#35BD78",
@@ -1254,11 +1260,13 @@ export default function SharePage() {
                     <Cell key={i} fill={entry.hasData ? (isSimActive ? "#6366F1" : "#3B82F6") : "#F1F5F9"} />
                   ))}
                 </Bar>
+                {costsEnabled && (
                 <Bar dataKey="profit" radius={[5, 5, 0, 0]} opacity={0.85}>
                   {chartData.map((entry, i) => (
                     <Cell key={i} fill={entry.hasData ? (entry.profit >= 0 ? "#059669" : "#DC2626") : "#F1F5F9"} />
                   ))}
                 </Bar>
+                )}
               </BarChart>
             </ResponsiveContainer>
             <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 10 }}>
@@ -1266,10 +1274,12 @@ export default function SharePage() {
                 <div style={{ width: 10, height: 10, borderRadius: 3, background: isSimActive ? "#6366F1" : "#3B82F6" }} />
                 <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Bevétel</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 3, background: "#059669" }} />
-                <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Profit</span>
-              </div>
+              {costsEnabled && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "#059669" }} />
+                  <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Profit</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1281,7 +1291,7 @@ export default function SharePage() {
             padding: "22px 20px 16px",
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Kihasználtság &amp; Fedezeti pont</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>{costsEnabled ? "Kihasználtság & Fedezeti pont" : "Kihasználtság"}</h3>
               {isSimActive && (
                 <span style={{
                   fontSize: 10, fontWeight: 700, color: "#35BD78",
@@ -1321,10 +1331,12 @@ export default function SharePage() {
                 <div style={{ width: 10, height: 10, borderRadius: 3, background: "#35BD78" }} />
                 <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Kihasználtság %</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 16, height: 2.5, background: "#DC2626", borderRadius: 2 }} />
-                <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Fedezeti pont</span>
-              </div>
+              {costsEnabled && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 16, height: 2.5, background: "#DC2626", borderRadius: 2 }} />
+                  <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Fedezeti pont</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1360,11 +1372,13 @@ export default function SharePage() {
                     { label: "Kihasználtság", align: "right" },
                     { label: "Szobaéj", align: "right" },
                     { label: "Bevétel", align: "right" },
-                    { label: "Összes kiadás", align: "right" },
-                    ...(settings.tfhEnabled ? [{ label: `TFH (${settings.tfhRate}%)`, align: "right" }] : []),
-                    { label: "Profit", align: "right" },
-                    { label: "Margin", align: "right" },
-                    { label: "Fedezeti pont", align: "right" },
+                    ...(costsEnabled ? [
+                      { label: "Összes kiadás", align: "right" },
+                      ...(settings.tfhEnabled ? [{ label: `TFH (${settings.tfhRate}%)`, align: "right" }] : []),
+                      { label: "Profit", align: "right" },
+                      { label: "Margin", align: "right" },
+                      { label: "Fedezeti pont", align: "right" },
+                    ] : []),
                   ].map((h, i) => (
                     <th key={h.label} style={{
                       padding: i === 0 ? "10px 24px" : "10px 16px",
@@ -1401,33 +1415,37 @@ export default function SharePage() {
                       <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#0F172A", fontWeight: 600 }}>
                         {c.hasData ? `${fmtM(c.revenue)} Ft` : "—"}
                       </td>
-                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
-                        {c.hasData ? `${fmtM(c.cost)} Ft` : "—"}
-                      </td>
-                      {settings.tfhEnabled && (
-                        <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.hasData && c.tfh > 0 ? "#D97706" : "#CBD5E1", fontWeight: c.hasData && c.tfh > 0 ? 600 : 400 }}>
-                          {c.hasData && c.tfh > 0 ? `−${fmtM(c.tfh)} Ft` : "—"}
-                        </td>
+                      {costsEnabled && (
+                        <>
+                          <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
+                            {c.hasData ? `${fmtM(c.cost)} Ft` : "—"}
+                          </td>
+                          {settings.tfhEnabled && (
+                            <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.hasData && c.tfh > 0 ? "#D97706" : "#CBD5E1", fontWeight: c.hasData && c.tfh > 0 ? 600 : 400 }}>
+                              {c.hasData && c.tfh > 0 ? `−${fmtM(c.tfh)} Ft` : "—"}
+                            </td>
+                          )}
+                          <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                            {c.hasData ? (
+                              <span style={{
+                                display: "inline-block",
+                                padding: "2px 10px", borderRadius: 8,
+                                fontSize: 12, fontWeight: 700,
+                                background: profitBg(c.profit),
+                                color: profitColor(c.profit),
+                              }}>
+                                {c.profit >= 0 ? "+" : ""}{fmtM(c.profit)} Ft
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: c.margin !== null ? (c.margin >= 0 ? "#059669" : "#DC2626") : "#CBD5E1" }}>
+                            {c.margin !== null ? `${Math.round(c.margin)}%` : "—"}
+                          </td>
+                          <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.breakeven !== null ? "#64748B" : "#CBD5E1" }}>
+                            {c.breakeven !== null ? `${Math.round(c.breakeven)}%` : "—"}
+                          </td>
+                        </>
                       )}
-                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                        {c.hasData ? (
-                          <span style={{
-                            display: "inline-block",
-                            padding: "2px 10px", borderRadius: 8,
-                            fontSize: 12, fontWeight: 700,
-                            background: profitBg(c.profit),
-                            color: profitColor(c.profit),
-                          }}>
-                            {c.profit >= 0 ? "+" : ""}{fmtM(c.profit)} Ft
-                          </span>
-                        ) : "—"}
-                      </td>
-                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: c.margin !== null ? (c.margin >= 0 ? "#059669" : "#DC2626") : "#CBD5E1" }}>
-                        {c.margin !== null ? `${Math.round(c.margin)}%` : "—"}
-                      </td>
-                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.breakeven !== null ? "#64748B" : "#CBD5E1" }}>
-                        {c.breakeven !== null ? `${Math.round(c.breakeven)}%` : "—"}
-                      </td>
                     </tr>
                   );
                 })}
@@ -1446,33 +1464,37 @@ export default function SharePage() {
                   <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800, color: "#0F172A", fontVariantNumeric: "tabular-nums" }}>
                     {fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft
                   </td>
-                  <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600, color: "#64748B", fontVariantNumeric: "tabular-nums" }}>
-                    {fmtM(isSimActive ? simAnnualCost : annualCost)} Ft
-                  </td>
-                  {settings.tfhEnabled && (
-                    <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#D97706", fontVariantNumeric: "tabular-nums" }}>
-                      −{fmtM(isSimActive ? simAnnualTfh : annualTfh)} Ft
-                    </td>
+                  {costsEnabled && (
+                    <>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600, color: "#64748B", fontVariantNumeric: "tabular-nums" }}>
+                        {fmtM(isSimActive ? simAnnualCost : annualCost)} Ft
+                      </td>
+                      {settings.tfhEnabled && (
+                        <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#D97706", fontVariantNumeric: "tabular-nums" }}>
+                          −{fmtM(isSimActive ? simAnnualTfh : annualTfh)} Ft
+                        </td>
+                      )}
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                        <span style={{
+                          display: "inline-block",
+                          padding: "3px 12px", borderRadius: 8,
+                          fontWeight: 800, fontSize: 13,
+                          background: profitBg(isSimActive ? simAnnualProfit : annualProfit),
+                          color: profitColor(isSimActive ? simAnnualProfit : annualProfit),
+                        }}>
+                          {(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}{fmtM(isSimActive ? simAnnualProfit : annualProfit)} Ft
+                        </span>
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
+                        {(isSimActive ? simAnnualRevenue : annualRevenue) > 0
+                          ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}%`
+                          : "—"}
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right", color: "#94A3B8", fontWeight: 600 }}>
+                        {annualBreakeven !== null ? `${Math.round(annualBreakeven)}%` : "—"}
+                      </td>
+                    </>
                   )}
-                  <td style={{ padding: "12px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                    <span style={{
-                      display: "inline-block",
-                      padding: "3px 12px", borderRadius: 8,
-                      fontWeight: 800, fontSize: 13,
-                      background: profitBg(isSimActive ? simAnnualProfit : annualProfit),
-                      color: profitColor(isSimActive ? simAnnualProfit : annualProfit),
-                    }}>
-                      {(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}{fmtM(isSimActive ? simAnnualProfit : annualProfit)} Ft
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
-                    {(isSimActive ? simAnnualRevenue : annualRevenue) > 0
-                      ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}%`
-                      : "—"}
-                  </td>
-                  <td style={{ padding: "12px 16px", textAlign: "right", color: "#94A3B8", fontWeight: 600 }}>
-                    {annualBreakeven !== null ? `${Math.round(annualBreakeven)}%` : "—"}
-                  </td>
                 </tr>
               </tfoot>
             </table>

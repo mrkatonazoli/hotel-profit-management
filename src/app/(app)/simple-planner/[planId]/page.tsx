@@ -514,6 +514,7 @@ export default function SimplePlanDetailPage() {
   const [halfboardPct, setHalfboardPct] = useState(0);
 
   // ─── TFH + F&B bevétel + egyéb bevétel + cost settings ──────────────────
+  const [costsEnabled, setCostsEnabled] = useState(true);
   const [tfhEnabled, setTfhEnabled] = useState(false);
   const [tfhRate, setTfhRate] = useState(4);
   const [fbEnabled, setFbEnabled] = useState(false);
@@ -542,6 +543,7 @@ export default function SimplePlanDetailPage() {
     fetch("/api/simple-planner-settings")
       .then(r => r.json())
       .then((data: {
+        costsEnabled?: boolean;
         tfhEnabled?: boolean; tfhRate?: number;
         fbEnabled?: boolean; breakfastPrice?: number;
         halfboardPrice?: number; avgPaxPerRoom?: number;
@@ -555,6 +557,7 @@ export default function SimplePlanDetailPage() {
         fixedCosts?: { annualAmount: number }[];
       } | null) => {
         if (!data) return;
+        if (data.costsEnabled !== undefined) setCostsEnabled(data.costsEnabled);
         if (data.tfhEnabled !== undefined) setTfhEnabled(data.tfhEnabled);
         if (data.tfhRate !== undefined) setTfhRate(data.tfhRate);
         if (data.fbEnabled !== undefined) setFbEnabled(data.fbEnabled);
@@ -925,7 +928,8 @@ export default function SimplePlanDetailPage() {
   // ─── Calculations ─────────────────────────────────────────────────────────
 
   const totalRooms = plan?.hotel?.totalRooms ?? 0;
-  const effectiveTfhRate = tfhEnabled ? tfhRate : 0;
+  const effectiveTfhRate = costsEnabled && tfhEnabled ? tfhRate : 0;
+  const showTfh = costsEnabled && tfhEnabled;
 
   const fb: FbParams = useMemo(() => ({
     enabled: fbEnabled,
@@ -961,9 +965,11 @@ export default function SimplePlanDetailPage() {
     }),
   [months, fbEnabled, breakfastPct, halfboardPct]);
 
+  const effectiveCosts = costsEnabled ? costs : undefined;
+
   const calcs: MonthCalc[] = useMemo(() =>
-    monthsWithBands.map(m => computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb, costs)),
-  [monthsWithBands, totalRooms, year, effectiveTfhRate, fb, costs]);
+    monthsWithBands.map(m => computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb, effectiveCosts)),
+  [monthsWithBands, totalRooms, year, effectiveTfhRate, fb, effectiveCosts]);
 
   const filledCalcs = calcs.filter(c => c.hasData);
 
@@ -1004,8 +1010,8 @@ export default function SimplePlanDetailPage() {
   })), [monthsWithBands, simOffset, simAdrPct]);
 
   const simCalcs: MonthCalc[] = useMemo(() =>
-    simMonths.map(m => computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb, costs)),
-  [simMonths, totalRooms, year, effectiveTfhRate, fb, costs]);
+    simMonths.map(m => computeMonthCalc(m, totalRooms, year, effectiveTfhRate, fb, effectiveCosts)),
+  [simMonths, totalRooms, year, effectiveTfhRate, fb, effectiveCosts]);
 
   const simFilledCalcs = simCalcs.filter(c => c.hasData);
 
@@ -1605,6 +1611,7 @@ export default function SimplePlanDetailPage() {
                 />
 
                 {/* Kalkulált kiadás/szoba/éj — read-only, settings-ből számolt */}
+                {costsEnabled && (
                 <div style={{ marginBottom: 4 }}>
                   <p style={{
                     fontSize: 9, margin: "0 0 2px", textTransform: "uppercase",
@@ -1627,6 +1634,7 @@ export default function SimplePlanDetailPage() {
                       : "—"}
                   </div>
                 </div>
+                )}
 
                 {fbEnabled && (
                   <>
@@ -1961,7 +1969,7 @@ export default function SimplePlanDetailPage() {
           delta={isSimActive && deltaRevenue !== 0 ? `${deltaRevenue > 0 ? "+" : ""}${fmtM(deltaRevenue)} Ft a tervhez képest` : undefined}
           sub={totalRooms ? `${totalRooms} szoba alapján` : "szobaszám hiányzik"}
         />
-        {tfhEnabled && (
+        {showTfh && (
           <KpiCard
             label={`TFH (${tfhRate}%)`}
             value={`−${fmtM(isSimActive ? simAnnualTfh : annualTfh)} Ft`}
@@ -1970,6 +1978,7 @@ export default function SimplePlanDetailPage() {
             sub={`${fmtM(isSimActive ? simAnnualRevenue : annualRevenue)} Ft × ${tfhRate}%`}
           />
         )}
+        {costsEnabled && (
         <KpiCard
           label="Éves profit"
           value={`${(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}${fmtM(isSimActive ? simAnnualProfit : annualProfit)} Ft`}
@@ -1977,9 +1986,10 @@ export default function SimplePlanDetailPage() {
           icon={(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
           delta={isSimActive && deltaProfit !== 0 ? `${deltaProfit > 0 ? "+" : ""}${fmtM(deltaProfit)} Ft a tervhez képest` : undefined}
           sub={(isSimActive ? simAnnualRevenue : annualRevenue) > 0
-            ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}% margin${tfhEnabled ? " (TFH után)" : ""}`
+            ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}% margin${showTfh ? " (TFH után)" : ""}`
             : undefined}
         />
+        )}
         <KpiCard
           label="Átl. kihasználtság"
           value={`${Math.round(isSimActive ? simAvgOcc : avgOcc)}%`}
@@ -1991,6 +2001,7 @@ export default function SimplePlanDetailPage() {
           ].filter(Boolean).join(" · ") || undefined : undefined}
           sub={filledCalcs.length > 0 ? `${filledCalcs.length} hónap alapján` : "nincs adat"}
         />
+        {costsEnabled && (
         <KpiCard
           label="Átl. margin"
           value={`${Math.round(isSimActive ? simAvgMargin : avgMargin)}%`}
@@ -1999,6 +2010,7 @@ export default function SimplePlanDetailPage() {
           delta={isSimActive ? `szimuláció aktív` : undefined}
           sub={filledCalcs.length > 0 ? `${filledCalcs.filter(c => c.margin !== null).length} hónap alapján` : "nincs adat"}
         />
+        )}
         <KpiCard
           label="Átlag ADR"
           value={weightedAvgAdr > 0 ? `${fmt(Math.round(weightedAvgAdr))} Ft` : "—"}
@@ -2024,7 +2036,7 @@ export default function SimplePlanDetailPage() {
       </div>
 
       {/* Breakeven banner */}
-      {annualBreakeven !== null && filledCalcs.length > 0 && (
+      {costsEnabled && annualBreakeven !== null && filledCalcs.length > 0 && (
         <div style={{
           background: (isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#D1FAE5" : "#FEE2E2",
           border: `1px solid ${(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#6EE7B7" : "#FCA5A5"}`,
@@ -2343,7 +2355,7 @@ export default function SimplePlanDetailPage() {
 
         {/* Simulation result cards */}
         {isSimActive && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${costsEnabled ? 3 : 2}, 1fr)`, gap: 14 }}>
             {/* Revenue delta */}
             <div style={{
               background: "white", borderRadius: 14, padding: "14px 18px",
@@ -2361,6 +2373,7 @@ export default function SimplePlanDetailPage() {
             </div>
 
             {/* Profit delta */}
+            {costsEnabled && (
             <div style={{
               background: "white", borderRadius: 14, padding: "14px 18px",
               border: `1px solid ${deltaProfit >= 0 ? "#A7F3D0" : "#FCA5A5"}`,
@@ -2375,11 +2388,12 @@ export default function SimplePlanDetailPage() {
                 {fmtM(annualProfit)} → {fmtM(simAnnualProfit)} Ft
               </p>
             </div>
+            )}
 
             {/* Occupancy → breakeven distance */}
             <div style={{
               background: "white", borderRadius: 14, padding: "14px 18px",
-              border: `1px solid ${simAnnualProfit >= 0 ? "#A7F3D0" : "#FCA5A5"}`,
+              border: `1px solid ${!costsEnabled || simAnnualProfit >= 0 ? "#A7F3D0" : "#FCA5A5"}`,
             }}>
               <p style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px" }}>
                 Kihasználtság (avg)
@@ -2387,7 +2401,12 @@ export default function SimplePlanDetailPage() {
               <p style={{ fontSize: 20, fontWeight: 800, color: "#35BD78", margin: 0 }}>
                 {Math.round(simAvgOcc)}%
               </p>
-              {simBreakeven !== null && (
+              {!costsEnabled && (
+                <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 0" }}>
+                  terv: {Math.round(avgOcc)}%
+                </p>
+              )}
+              {costsEnabled && simBreakeven !== null && (
                 <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 0" }}>
                   fedezeti pont: {Math.round(simBreakeven)}%
                   {simAvgOcc >= simBreakeven
@@ -2409,7 +2428,7 @@ export default function SimplePlanDetailPage() {
         {/* Chart 1: Revenue & Profit */}
         <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 20, padding: "20px 20px 12px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Bevétel & Profit</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>{costsEnabled ? "Bevétel & Profit" : "Bevétel"}</h3>
             {isSimActive && (
               <span style={{ fontSize: 10, fontWeight: 700, color: "#35BD78", background: "#FBFBFC", padding: "3px 8px", borderRadius: 6 }}>
                 SZIMULÁCIÓ AKTÍV
@@ -2443,11 +2462,13 @@ export default function SimplePlanDetailPage() {
                       <Cell key={i} fill={entry.hasData ? "#35BD78" : "#E2E8F0"} />
                     ))}
                   </Bar>
+                  {costsEnabled && (
                   <Bar dataKey="simProfit" name="simProfit" fill="#10B981" radius={[4, 4, 0, 0]} opacity={0.85}>
                     {chartData.map((entry, i) => (
                       <Cell key={i} fill={entry.hasData ? (entry.simProfit >= 0 ? "#10B981" : "#EF4444") : "#E2E8F0"} />
                     ))}
                   </Bar>
+                  )}
                 </>
               ) : (
                 <>
@@ -2456,11 +2477,13 @@ export default function SimplePlanDetailPage() {
                       <Cell key={i} fill={entry.hasData ? "#3B82F6" : "#E2E8F0"} />
                     ))}
                   </Bar>
+                  {costsEnabled && (
                   <Bar dataKey="profit" name="profit" fill="#10B981" radius={[4, 4, 0, 0]} opacity={0.85}>
                     {chartData.map((entry, i) => (
                       <Cell key={i} fill={entry.hasData ? (entry.profit >= 0 ? "#10B981" : "#EF4444") : "#E2E8F0"} />
                     ))}
                   </Bar>
+                  )}
                 </>
               )}
             </BarChart>
@@ -2471,21 +2494,25 @@ export default function SimplePlanDetailPage() {
               <div style={{ width: 10, height: 10, borderRadius: 3, background: isSimActive ? "#35BD78" : "#3B82F6" }} />
               <span style={{ fontSize: 11, color: "#64748B" }}>Bevétel</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 3, background: "#10B981" }} />
-              <span style={{ fontSize: 11, color: "#64748B" }}>Profit</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 3, background: "#EF4444" }} />
-              <span style={{ fontSize: 11, color: "#64748B" }}>Veszteség</span>
-            </div>
+            {costsEnabled && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "#10B981" }} />
+                  <span style={{ fontSize: 11, color: "#64748B" }}>Profit</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "#EF4444" }} />
+                  <span style={{ fontSize: 11, color: "#64748B" }}>Veszteség</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Chart 2: Occupancy + Breakeven */}
         <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 20, padding: "20px 20px 12px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>Kihasználtság & Fedezeti pont</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>{costsEnabled ? "Kihasználtság & Fedezeti pont" : "Kihasználtság"}</h3>
             {isSimActive && (
               <span style={{ fontSize: 10, fontWeight: 700, color: "#35BD78", background: "#FBFBFC", padding: "3px 8px", borderRadius: 6 }}>
                 SZIMULÁCIÓ AKTÍV
@@ -2542,7 +2569,7 @@ export default function SimplePlanDetailPage() {
               </Bar>
 
               {/* Annual breakeven horizontal line */}
-              {annualBreakeven !== null && (
+              {costsEnabled && annualBreakeven !== null && (
                 <ReferenceLine
                   y={annualBreakeven}
                   stroke="#EF4444"
@@ -2572,10 +2599,12 @@ export default function SimplePlanDetailPage() {
                 <span style={{ fontSize: 11, color: "#64748B" }}>Kihasználtság %</span>
               </div>
             )}
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 16, height: 2, background: "#EF4444", borderRadius: 1 }} />
-              <span style={{ fontSize: 11, color: "#64748B" }}>Fedezeti pont</span>
-            </div>
+            {costsEnabled && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 16, height: 2, background: "#EF4444", borderRadius: 1 }} />
+                <span style={{ fontSize: 11, color: "#64748B" }}>Fedezeti pont</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -2604,12 +2633,14 @@ export default function SimplePlanDetailPage() {
                   { label: "Szobaéj", align: "right" },
                   { label: "Szobaárbevétel/szoba/éj", align: "right" },
                   { label: "Bevétel", align: "right" },
-                  { label: "Kiadás/szoba/éj", align: "right" },
-                  { label: "Összes kiadás", align: "right" },
-                  ...(tfhEnabled ? [{ label: `TFH (${tfhRate}%)`, align: "right" }] : []),
-                  { label: "Profit", align: "right" },
-                  { label: "Margin %", align: "right" },
-                  { label: "Fedezeti pont %", align: "right" },
+                  ...(costsEnabled ? [
+                    { label: "Kiadás/szoba/éj", align: "right" },
+                    { label: "Összes kiadás", align: "right" },
+                    ...(showTfh ? [{ label: `TFH (${tfhRate}%)`, align: "right" }] : []),
+                    { label: "Profit", align: "right" },
+                    { label: "Margin %", align: "right" },
+                    { label: "Fedezeti pont %", align: "right" },
+                  ] : []),
                 ].map(h => (
                   <th key={h.label}
                     style={{
@@ -2670,26 +2701,30 @@ export default function SimplePlanDetailPage() {
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: isSimActive && c.revenue !== savedC.revenue ? "#35BD78" : "#334155", fontWeight: isSimActive && c.revenue !== savedC.revenue ? 600 : 400 }}>
                       {c.hasData ? fmtM(c.revenue) : "—"}
                     </td>
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
-                      {c.hasData && effectiveCostPerRoom > 0 ? `${fmt(effectiveCostPerRoom)} Ft` : "—"}
-                    </td>
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
-                      {c.hasData ? fmtM(c.cost) : "—"}
-                    </td>
-                    {tfhEnabled && (
-                      <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.hasData && c.tfh > 0 ? "#EF4444" : "#CBD5E1" }}>
-                        {c.hasData && c.tfh > 0 ? `−${fmtM(c.tfh)}` : "—"}
-                      </td>
+                    {costsEnabled && (
+                      <>
+                        <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
+                          {c.hasData && effectiveCostPerRoom > 0 ? `${fmt(effectiveCostPerRoom)} Ft` : "—"}
+                        </td>
+                        <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#94A3B8" }}>
+                          {c.hasData ? fmtM(c.cost) : "—"}
+                        </td>
+                        {showTfh && (
+                          <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.hasData && c.tfh > 0 ? "#EF4444" : "#CBD5E1" }}>
+                            {c.hasData && c.tfh > 0 ? `−${fmtM(c.tfh)}` : "—"}
+                          </td>
+                        )}
+                        <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: c.hasData ? profitColor(c.profit) : "#CBD5E1" }}>
+                          {c.hasData ? `${c.profit >= 0 ? "+" : ""}${fmtM(c.profit)}` : "—"}
+                        </td>
+                        <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.margin !== null ? (c.margin >= 0 ? "#10B981" : "#EF4444") : "#CBD5E1" }}>
+                          {c.margin !== null ? `${Math.round(c.margin)}%` : "—"}
+                        </td>
+                        <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.breakeven !== null ? "#64748B" : "#CBD5E1" }}>
+                          {c.breakeven !== null ? `${Math.round(c.breakeven)}%` : "—"}
+                        </td>
+                      </>
                     )}
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: c.hasData ? profitColor(c.profit) : "#CBD5E1" }}>
-                      {c.hasData ? `${c.profit >= 0 ? "+" : ""}${fmtM(c.profit)}` : "—"}
-                    </td>
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.margin !== null ? (c.margin >= 0 ? "#10B981" : "#EF4444") : "#CBD5E1" }}>
-                      {c.margin !== null ? `${Math.round(c.margin)}%` : "—"}
-                    </td>
-                    <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: c.breakeven !== null ? "#64748B" : "#CBD5E1" }}>
-                      {c.breakeven !== null ? `${Math.round(c.breakeven)}%` : "—"}
-                    </td>
                   </tr>
                 );
               })}
@@ -2709,26 +2744,30 @@ export default function SimplePlanDetailPage() {
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "#0F172A" }}>
                   {fmtM(isSimActive ? simAnnualRevenue : annualRevenue)}
                 </td>
-                <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8", fontSize: 11 }}>—</td>
-                <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
-                  {fmtM(isSimActive ? simAnnualCost : annualCost)}
-                </td>
-                {tfhEnabled && (
-                  <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#EF4444" }}>
-                    −{fmtM(isSimActive ? simAnnualTfh : annualTfh)}
-                  </td>
+                {costsEnabled && (
+                  <>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8", fontSize: 11 }}>—</td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
+                      {fmtM(isSimActive ? simAnnualCost : annualCost)}
+                    </td>
+                    {showTfh && (
+                      <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#EF4444" }}>
+                        −{fmtM(isSimActive ? simAnnualTfh : annualTfh)}
+                      </td>
+                    )}
+                    <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
+                      {(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}{fmtM(isSimActive ? simAnnualProfit : annualProfit)}
+                    </td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
+                      {(isSimActive ? simAnnualRevenue : annualRevenue) > 0
+                        ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}%`
+                        : "—"}
+                    </td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8" }}>
+                      {annualBreakeven !== null ? `${Math.round(annualBreakeven)}%` : "—"}
+                    </td>
+                  </>
                 )}
-                <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
-                  {(isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "+" : ""}{fmtM(isSimActive ? simAnnualProfit : annualProfit)}
-                </td>
-                <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: profitColor(isSimActive ? simAnnualProfit : annualProfit) }}>
-                  {(isSimActive ? simAnnualRevenue : annualRevenue) > 0
-                    ? `${Math.round((isSimActive ? simAnnualProfit : annualProfit) / (isSimActive ? simAnnualRevenue : annualRevenue) * 100)}%`
-                    : "—"}
-                </td>
-                <td style={{ padding: "10px 16px", textAlign: "right", color: "#94A3B8" }}>
-                  {annualBreakeven !== null ? `${Math.round(annualBreakeven)}%` : "—"}
-                </td>
               </tr>
             </tfoot>
           </table>

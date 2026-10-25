@@ -39,6 +39,23 @@ A beállítások **szálloda-szintűek**: egyszer kell megadni, és minden tervr
 
 ---
 
+### 1.0 Tervezési mód: költségekkel vagy csak bevétel
+
+Szállodánként választható, hogy a Simple Planner költségekkel együtt vagy csak a bevételi oldalon tervez.
+
+| Mód | Mit tartalmaz |
+|---|---|
+| **Költségekkel** (alapértelmezett) | Bevétel + kiadások, TFH, profit, margin, fedezeti pont — minden, ami a kézikönyv további részében szerepel |
+| **Csak bevétel** | ADR, kihasználtság, szobaárbevétel/bevétel, F&B és egyéb bevételek, RevPAR, valamint a szimulátor csúszkái. Kiadás, TFH, profit, margin és fedezeti pont **nem** jelenik meg |
+
+Hol állítható:
+- **Új szálloda felvételekor** (`Admin → Szállodák → Új szálloda` → *Tervezési mód*)
+- **Utólag** a `Simple Planner → Beállítások` lap tetején (*Tervezési mód* blokk)
+
+Csak bevétel módban a beállításokból is eltűnnek a költségblokkok (fix költségek, mosatás, jutalék, TFH). A korábban megadott költségadatok nem törlődnek — visszakapcsoláskor újra érvényesek. A megosztott ügyfél-riport és az AI összefoglaló is a választott módot követi, és csak bevétel módban a publikus link költségadatot nem tartalmaz.
+
+---
+
 ### 1.1 TFH (Turizmusfejlesztési hozzájárulás)
 
 | Mező | Leírás | Alapértelmezett |

@@ -561,6 +561,7 @@ model SimplePlanMonth {
 model SimplePlannerSettings {
   id                  String   @id @default(cuid())
   hotelId             String   @unique
+  costsEnabled        Boolean  @default(true)  // költségalapú tervezés? false = csak bevétel (ADR/occ/bevétel)
   tfhEnabled          Boolean  @default(true)  // Turizmusfejlesztési Hozzájárulás bekapcsolva?
   tfhRate             Float    @default(4)     // TFH mértéke % (alapértelmezett 4%)
   fbEnabled           Boolean  @default(false) // étkezési bevételek kalkuláció bekapcsolva?

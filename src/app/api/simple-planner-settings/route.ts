@@ -32,6 +32,7 @@ export async function PUT(req: Request) {
   const body = await req.json();
   const {
     fixedCosts,
+    costsEnabled,
     tfhEnabled, tfhRate,
     fbEnabled, breakfastPrice, halfboardPrice,
     breakfastCost, halfboardCost,
@@ -42,6 +43,7 @@ export async function PUT(req: Request) {
     commissionEnabled, commissionPct, commissionBookingsPct,
   } = body as {
     fixedCosts?: { label: string; annualAmount: number; sortOrder?: number }[];
+    costsEnabled?: boolean;
     tfhEnabled?: boolean;
     tfhRate?: number;
     fbEnabled?: boolean;
@@ -69,6 +71,7 @@ export async function PUT(req: Request) {
     where: { hotelId: hotel.id },
     create: {
       hotelId: hotel.id,
+      costsEnabled: costsEnabled ?? true,
       tfhEnabled: tfhEnabled ?? true,
       tfhRate: tfhRate ?? 4,
       fbEnabled: fbEnabled ?? false,
@@ -92,6 +95,7 @@ export async function PUT(req: Request) {
       commissionBookingsPct: commissionBookingsPct ?? 100,
     },
     update: {
+      ...(costsEnabled !== undefined && { costsEnabled }),
       ...(tfhEnabled !== undefined && { tfhEnabled }),
       ...(tfhRate !== undefined && { tfhRate }),
       ...(fbEnabled !== undefined && { fbEnabled }),

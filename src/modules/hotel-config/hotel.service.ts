@@ -13,6 +13,7 @@ export type HotelInput = {
   billingAddress?: string | null;
   billingTaxNumber?: string | null;
   isOnboarded?: boolean;
+  costsEnabled?: boolean; // Simple Planner: költségalapú tervezés (false = csak bevétel)
 };
 
 export async function getHotelByUser(userId: string) {
@@ -24,10 +25,16 @@ export async function getHotelByUser(userId: string) {
 }
 
 export async function createHotel(userId: string, data: HotelInput) {
+  const { costsEnabled, ...hotelData } = data;
   const hotel = await prisma.hotel.create({
-    data: { ...data, hotelUsers: { create: { userId, role: "MANAGER" } } },
+    data: { ...hotelData, hotelUsers: { create: { userId, role: "MANAGER" } } },
     include: { roomTypes: true },
   });
+  if (costsEnabled !== undefined) {
+    await prisma.simplePlannerSettings.create({
+      data: { hotelId: hotel.id, costsEnabled, tfhEnabled: costsEnabled },
+    });
+  }
   return hotel;
 }
 
