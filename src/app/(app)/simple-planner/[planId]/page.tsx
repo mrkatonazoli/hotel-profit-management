@@ -208,17 +208,17 @@ function NoteButton({ note, onClick }: { note?: string | null; onClick: () => vo
     <button
       type="button"
       onClick={onClick}
-      title={has ? note! : "Megjegyzés hozzáadása"}
+      title={has ? "Megjegyzés megnyitása" : "Megjegyzés hozzáadása"}
       style={{
-        width: "100%", marginTop: 4, padding: "3px 4px", borderRadius: 6, cursor: "pointer",
-        fontSize: 10, fontWeight: 600, textAlign: "left",
+        width: "100%", minWidth: 0, marginTop: 4, padding: "3px 4px", borderRadius: 6, cursor: "pointer",
+        fontSize: 10, fontWeight: 700, textAlign: "center",
         border: `1px ${has ? "solid" : "dashed"} ${has ? "#FCD34D" : "#CBD5E1"}`,
-        background: has ? "#FFFBEB" : "transparent",
+        background: has ? "#FEF3C7" : "transparent",
         color: has ? "#92400E" : "#94A3B8",
         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
       }}
     >
-      {has ? `📝 ${note}` : "+ megjegyzés"}
+      {has ? "📝 megjegyzés" : "+ megjegyzés"}
     </button>
   );
 }
