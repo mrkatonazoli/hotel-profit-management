@@ -1681,7 +1681,7 @@ export default function SimplePlanDetailPage() {
 
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(12, 1fr)",
+          gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
           gap: 8,
           overflowX: "auto",
           minWidth: 700,
@@ -2254,7 +2254,7 @@ export default function SimplePlanDetailPage() {
             <h3 style={{ fontSize: 13, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 12px" }}>
               Valós havi adatok
             </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 8, overflowX: "auto", minWidth: 700, marginBottom: 28 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: 8, overflowX: "auto", minWidth: 700, marginBottom: 28 }}>
               {actuals.map(a => {
                 const hasData = a.occupancyPct > 0 || a.adr > 0 || a.totalRevenue > 0;
                 return (
