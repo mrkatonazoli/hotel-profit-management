@@ -60,6 +60,7 @@ type ActualData = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(n: number) { return Math.round(n).toLocaleString("hu-HU"); }
+function fmtPct(n: number) { return n.toLocaleString("hu-HU", { maximumFractionDigits: 1 }); }
 function fmtM(n: number) {
   if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toLocaleString("hu-HU", { maximumFractionDigits: 1 })} M`;
   if (Math.abs(n) >= 1_000) return `${(n / 1_000).toLocaleString("hu-HU", { maximumFractionDigits: 0 })} E`;
@@ -133,13 +134,14 @@ function MonthInput({
   fromBand?: boolean;
   note?: string;
 }) {
-  const [local, setLocal] = useState(String(value === 0 ? "" : value));
+  const toLocal = (v: number) => (v === 0 ? "" : String(v).replace(".", ","));
+  const [local, setLocal] = useState(toLocal(value));
   const ref = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setLocal(value === 0 ? "" : String(value)); }, [value]);
+  useEffect(() => { setLocal(toLocal(value)); }, [value]);
 
   function commit() {
-    const parsed = parseFloat(local.replace(",", "."));
+    const parsed = parseFloat(local.replace(/\s/g, "").replace(",", "."));
     const v = isNaN(parsed) ? 0 : parsed;
     onBlur(v);
   }
@@ -156,12 +158,21 @@ function MonthInput({
       )}
       <input
         ref={ref}
-        type="number"
+        type="text"
+        inputMode="decimal"
         value={local}
-        onChange={e => setLocal(e.target.value)}
+        onChange={e => setLocal(e.target.value.replace(/[^\d.,\s-]/g, ""))}
         onBlur={commit}
         onFocus={e => e.target.select()}
-        step={step ?? 1}
+        onKeyDown={e => {
+          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
+            const cur = parseFloat(local.replace(/\s/g, "").replace(",", ".")) || 0;
+            const next = cur + (e.key === "ArrowUp" ? 1 : -1) * (step ?? 1);
+            setLocal(toLocal(Math.max(0, Math.round(next * 100) / 100)));
+          }
+        }}
         placeholder="0"
         style={{
           width: "100%", boxSizing: "border-box",
@@ -1992,7 +2003,7 @@ export default function SimplePlanDetailPage() {
         )}
         <KpiCard
           label="Átl. kihasználtság"
-          value={`${Math.round(isSimActive ? simAvgOcc : avgOcc)}%`}
+          value={`${fmtPct(isSimActive ? simAvgOcc : avgOcc)}%`}
           color="#35BD78"
           icon={<Bed size={16} />}
           delta={isSimActive ? [
@@ -2059,15 +2070,15 @@ export default function SimplePlanDetailPage() {
                 : `Éves szinten veszteséges — fedezeti pont: ${Math.round(isSimActive ? (simBreakeven ?? 0) : (annualBreakeven ?? 0))}% kihasználtság`}
             </p>
             <p style={{ fontSize: 12, color: (isSimActive ? simAnnualProfit : annualProfit) >= 0 ? "#047857" : "#B91C1C", margin: "2px 0 0" }}>
-              {isSimActive ? "Szimulált" : "Jelenlegi"} átlagos kihasználtság: {Math.round(isSimActive ? simAvgOcc : avgOcc)}%
+              {isSimActive ? "Szimulált" : "Jelenlegi"} átlagos kihasználtság: {fmtPct(isSimActive ? simAvgOcc : avgOcc)}%
               {(() => {
                 const activeOcc = isSimActive ? simAvgOcc : avgOcc;
                 const activeBe = isSimActive ? (simBreakeven ?? annualBreakeven) : annualBreakeven;
                 if (activeOcc <= 0 || activeBe === null) return null;
                 const diff = activeOcc - activeBe;
                 return diff >= 0
-                  ? ` — ${Math.round(diff)} százalékponttal a fedezeti pont felett`
-                  : ` — ${Math.round(-diff)} százalékpont hiányzik a nullszaldóhoz`;
+                  ? ` — ${fmtPct(diff)} százalékponttal a fedezeti pont felett`
+                  : ` — ${fmtPct(-diff)} százalékpont hiányzik a nullszaldóhoz`;
               })()}
             </p>
           </div>
@@ -2159,7 +2170,7 @@ export default function SimplePlanDetailPage() {
                     background: pos ? "#D1FAE5" : "#FEE2E2",
                     padding: "2px 7px", borderRadius: 6,
                   }}>
-                    {pos ? "+" : ""}{unit === "%" ? `${Math.round(value)} pp` : `${fmtM(Math.round(value))} Ft`}
+                    {pos ? "+" : ""}{unit === "%" ? `${fmtPct(value)} pp` :`${fmtM(Math.round(value))} Ft`}
                   </span>
                 );
               }
@@ -2183,13 +2194,13 @@ export default function SimplePlanDetailPage() {
                           <div>
                             <p style={{ fontSize: 10, color: "#94A3B8", margin: "0 0 2px" }}>Terv</p>
                             <p style={{ fontSize: 16, fontWeight: 700, color: "#64748B", margin: 0 }}>
-                              {unit === "%" ? `${Math.round(plan)}%` : `${fmtM(Math.round(plan))} Ft`}
+                              {unit === "%" ? `${fmtPct(plan)}%` :`${fmtM(Math.round(plan))} Ft`}
                             </p>
                           </div>
                           <div style={{ textAlign: "right" }}>
                             <p style={{ fontSize: 10, color: "#059669", margin: "0 0 2px" }}>Tény</p>
                             <p style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", margin: 0 }}>
-                              {unit === "%" ? `${Math.round(actual)}%` : `${fmtM(Math.round(actual))} Ft`}
+                              {unit === "%" ? `${fmtPct(actual)}%` :`${fmtM(Math.round(actual))} Ft`}
                             </p>
                           </div>
                         </div>
@@ -2222,8 +2233,8 @@ export default function SimplePlanDetailPage() {
                           return (
                             <tr key={a.month} style={{ borderBottom: "1px solid #F1F5F9" }}>
                               <td style={{ padding: "7px 10px", fontWeight: 600, color: "#0F172A" }}>{HU_MONTHS_SHORT[a.month - 1]}</td>
-                              <td style={{ textAlign: "right", padding: "7px 10px", color: "#94A3B8" }}>{Math.round(pm?.occupancyPct ?? 0)}%</td>
-                              <td style={{ textAlign: "right", padding: "7px 10px", fontWeight: 600, color: "#059669" }}>{Math.round(a.occupancyPct)}%</td>
+                              <td style={{ textAlign: "right", padding: "7px 10px", color: "#94A3B8" }}>{fmtPct(pm?.occupancyPct ?? 0)}%</td>
+                              <td style={{ textAlign: "right", padding: "7px 10px", fontWeight: 600, color: "#059669" }}>{fmtPct(a.occupancyPct)}%</td>
                               <td style={{ textAlign: "right", padding: "7px 10px", color: "#94A3B8" }}>{fmt(Math.round(pm?.adr ?? 0))} Ft</td>
                               <td style={{ textAlign: "right", padding: "7px 10px", fontWeight: 600, color: "#059669" }}>{fmt(Math.round(a.adr))} Ft</td>
                               <td style={{ textAlign: "right", padding: "7px 10px", color: "#94A3B8" }}>{fmtM(Math.round(planRev))} Ft</td>
@@ -2399,19 +2410,19 @@ export default function SimplePlanDetailPage() {
                 Kihasználtság (avg)
               </p>
               <p style={{ fontSize: 20, fontWeight: 800, color: "#35BD78", margin: 0 }}>
-                {Math.round(simAvgOcc)}%
+                {fmtPct(simAvgOcc)}%
               </p>
               {!costsEnabled && (
                 <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 0" }}>
-                  terv: {Math.round(avgOcc)}%
+                  terv: {fmtPct(avgOcc)}%
                 </p>
               )}
               {costsEnabled && simBreakeven !== null && (
                 <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 0" }}>
                   fedezeti pont: {Math.round(simBreakeven)}%
                   {simAvgOcc >= simBreakeven
-                    ? ` ✓ +${Math.round(simAvgOcc - simBreakeven)} pp`
-                    : ` ✗ ${Math.round(simBreakeven - simAvgOcc)} pp hiányzik`}
+                    ? ` ✓ +${fmtPct(simAvgOcc - simBreakeven)} pp`
+                    : ` ✗ ${fmtPct(simBreakeven - simAvgOcc)} pp hiányzik`}
                 </p>
               )}
             </div>
@@ -2667,7 +2678,7 @@ export default function SimplePlanDetailPage() {
                     </td>
                     <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                       <span style={{ color: occChanged ? "#35BD78" : "#334155", fontWeight: occChanged ? 700 : 400 }}>
-                        {c.hasData ? `${m.occupancyPct}%` : "—"}
+                        {c.hasData ? `${fmtPct(m.occupancyPct)}%` : "—"}
                       </span>
                       {occChanged && (
                         <span style={{ fontSize: 10, color: simOffset > 0 ? "#10B981" : "#EF4444", marginLeft: 4 }}>
@@ -2735,7 +2746,7 @@ export default function SimplePlanDetailPage() {
                   Éves összesen
                 </td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#35BD78" }}>
-                  {Math.round(isSimActive ? simAvgOcc : avgOcc)}% avg
+                  {fmtPct(isSimActive ? simAvgOcc : avgOcc)}% avg
                 </td>
                 <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "#0F172A" }}>
                   {fmt((isSimActive ? simCalcs : calcs).reduce((s, c) => s + c.roomNights, 0))}

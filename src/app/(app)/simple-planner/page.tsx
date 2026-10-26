@@ -51,7 +51,7 @@ function computeStats(plan: SimplePlan) {
 
   // Return quick stats without totalRooms (we'll show avg occ and just a note)
   return {
-    avgOcc: Math.round(totalOcc / filled.length),
+    avgOcc: Math.round((totalOcc / filled.length) * 10) / 10,
     filledMonths: filled.length,
   };
 }
@@ -399,7 +399,7 @@ export default function SimplePlannerListPage() {
                   <div style={{ display: "flex", gap: 12 }}>
                     <div style={{ flex: 1, background: "#F8FAFC", borderRadius: 10, padding: "8px 12px" }}>
                       <p style={{ fontSize: 11, color: "#94A3B8", margin: "0 0 2px", fontWeight: 500 }}>Átl. kihasználtság</p>
-                      <p style={{ fontSize: 18, fontWeight: 700, color: "#35BD78", margin: 0 }}>{stats.avgOcc}%</p>
+                      <p style={{ fontSize: 18, fontWeight: 700, color: "#35BD78", margin: 0 }}>{stats.avgOcc.toLocaleString("hu-HU")}%</p>
                     </div>
                     <div style={{ flex: 1, background: "#F8FAFC", borderRadius: 10, padding: "8px 12px" }}>
                       <p style={{ fontSize: 11, color: "#94A3B8", margin: "0 0 2px", fontWeight: 500 }}>Kitöltött hónap</p>

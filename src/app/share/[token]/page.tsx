@@ -49,6 +49,7 @@ type ShareData = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(n: number) { return Math.round(n).toLocaleString("hu-HU"); }
+function fmtPct(n: number) { return n.toLocaleString("hu-HU", { maximumFractionDigits: 1 }); }
 function fmtM(n: number) {
   if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toLocaleString("hu-HU", { maximumFractionDigits: 1 })} M`;
   if (Math.abs(n) >= 1_000) return `${(n / 1_000).toLocaleString("hu-HU", { maximumFractionDigits: 0 })} E`;
@@ -942,7 +943,7 @@ export default function SharePage() {
                     <span>🏨</span> Átl. kihasználtság
                   </p>
                   <p style={{ fontSize: 26, fontWeight: 800, color: "#35BD78", margin: "0 0 6px", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
-                    {Math.round(current)}%
+                    {fmtPct(current)}%
                   </p>
                   {isSimActive && delta !== 0 ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -953,13 +954,13 @@ export default function SharePage() {
                         color: delta > 0 ? "#35BD78" : "#DC2626",
                         width: "fit-content",
                       }}>
-                        {delta > 0 ? "+" : ""}{Math.round(delta)} pp
+                        {delta > 0 ? "+" : ""}{fmtPct(delta)} pp
                       </span>
                       {annualBreakeven !== null && (
                         <span style={{ fontSize: 10, fontWeight: 600, color: aboveBreakeven ? "#059669" : "#EF4444" }}>
                           {aboveBreakeven
                             ? `✓ fedezeti pont: ${Math.round(annualBreakeven)}%`
-                            : `⚠ BE: ${Math.round(annualBreakeven)}% — ${Math.round(annualBreakeven - current)} pp hiányzik`}
+                            : `⚠ BE: ${Math.round(annualBreakeven)}% — ${fmtPct(annualBreakeven - current)} pp hiányzik`}
                         </span>
                       )}
                     </div>
@@ -1407,7 +1408,7 @@ export default function SharePage() {
                         {HU_MONTHS[c.month - 1]}
                       </td>
                       <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155", fontWeight: 500 }}>
-                        {c.hasData ? `${m.occupancyPct}%` : "—"}
+                        {c.hasData ? `${fmtPct(m.occupancyPct)}%` : "—"}
                       </td>
                       <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#64748B" }}>
                         {c.hasData ? fmt(c.roomNights) : "—"}
@@ -1456,7 +1457,7 @@ export default function SharePage() {
                     Éves összesen
                   </td>
                   <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#35BD78" }}>
-                    {Math.round(isSimActive ? simAvgOcc : avgOcc)}% avg
+                    {fmtPct(isSimActive ? simAvgOcc : avgOcc)}% avg
                   </td>
                   <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600, color: "#0F172A", fontVariantNumeric: "tabular-nums" }}>
                     {fmt(displayCalcs.reduce((s, c) => s + c.roomNights, 0))}
@@ -1572,7 +1573,7 @@ export default function SharePage() {
                           {HU_MONTHS[m.month - 1]}
                         </td>
                         <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155", fontWeight: 500 }}>
-                          {hasData ? `${m.occupancyPct}%` : "—"}
+                          {hasData ? `${fmtPct(m.occupancyPct)}%` : "—"}
                         </td>
                         <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: m.adr > 0 ? "#0F172A" : "#CBD5E1" }}>
                           {m.adr > 0 ? `${fmt(m.adr)} Ft` : "—"}
