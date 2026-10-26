@@ -2202,9 +2202,12 @@ export default function SimplePlanDetailPage() {
 
               return (
                 <div>
-                  <h3 style={{ fontSize: 13, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 14px" }}>
+                  <h3 style={{ fontSize: 13, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px" }}>
                     Összehasonlítás — {filledActuals.length} hónap
                   </h3>
+                  <p style={{ fontSize: 12, color: "#94A3B8", margin: "0 0 14px" }}>
+                    Δ = terv − tény: a <strong style={{ color: "#059669" }}>+</strong> azt jelenti, ennyivel többet tervezel a tényhez képest, a <strong style={{ color: "#DC2626" }}>−</strong> azt, hogy kevesebbet.
+                  </p>
 
                   {/* 3 összesítő kártya */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
@@ -2229,7 +2232,7 @@ export default function SimplePlanDetailPage() {
                             </p>
                           </div>
                         </div>
-                        <DeltaBadge value={actual - plan} unit={unit} />
+                        <DeltaBadge value={plan - actual} unit={unit} />
                       </div>
                     ))}
                   </div>
@@ -2246,7 +2249,7 @@ export default function SimplePlanDetailPage() {
                           <th style={{ textAlign: "right", padding: "6px 10px", color: "#059669", fontWeight: 600 }}>Tény ADR</th>
                           <th style={{ textAlign: "right", padding: "6px 10px", color: "#64748B", fontWeight: 600 }}>Terv bev.</th>
                           <th style={{ textAlign: "right", padding: "6px 10px", color: "#059669", fontWeight: 600 }}>Tény bev.</th>
-                          <th style={{ textAlign: "right", padding: "6px 10px", color: "#0F172A", fontWeight: 600 }}>Δ bevétel</th>
+                          <th style={{ textAlign: "right", padding: "6px 10px", color: "#0F172A", fontWeight: 600 }}>Δ terv − tény</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2254,7 +2257,7 @@ export default function SimplePlanDetailPage() {
                           const pc = calcs.find(c => c.month === a.month);
                           const pm = months.find(m => m.month === a.month);
                           const planRev = pc?.revenue ?? 0;
-                          const delta = a.totalRevenue - planRev;
+                          const delta = planRev - a.totalRevenue;
                           return (
                             <tr key={a.month} style={{ borderBottom: "1px solid #F1F5F9" }}>
                               <td style={{ padding: "7px 10px", fontWeight: 600, color: "#0F172A" }}>{HU_MONTHS_SHORT[a.month - 1]}</td>
