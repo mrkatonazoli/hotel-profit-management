@@ -29,6 +29,7 @@ export async function POST(_req: Request, { params }: Params) {
     include: {
       hotel: { select: { name: true, totalRooms: true } },
       months: { orderBy: { month: "asc" } },
+      actuals: { orderBy: { month: "asc" } },
     },
   });
 
@@ -93,6 +94,7 @@ export async function POST(_req: Request, { params }: Params) {
   let bestProfit = -Infinity;
   let worstMonth = "";
   let worstProfit = Infinity;
+  const planRevByMonth = new Map<number, { revenue: number; hasData: boolean }>();
 
   for (const rawMonth of plan.months) {
     const m = costsEnabled ? rawMonth : { ...rawMonth, roomRevenue: 0 };
@@ -110,6 +112,7 @@ export async function POST(_req: Request, { params }: Params) {
       if (score < worstProfit) { worstProfit = score; worstMonth = HU_MONTHS[m.month - 1]; }
     }
 
+    planRevByMonth.set(m.month, { revenue: c.revenue, hasData: c.hasData });
     annualRevenue += c.revenue;
     annualCost += c.cost;
     annualTfh += c.tfh;
@@ -130,6 +133,30 @@ export async function POST(_req: Request, { params }: Params) {
 ${tfhEnabled ? `- TFH (${tfhRate}%): ${fmt(annualTfh)} Ft\n` : ""}- Profit: ${fmt(annualProfit)} Ft`
     : `- Összes bevétel: ${fmt(annualRevenue)} Ft`;
 
+  const prevYear = year - 1;
+  const prevActuals = plan.actuals.filter(a => a.totalRevenue > 0 || a.occupancyPct > 0 || a.adr > 0);
+  let prevBlock = "";
+  if (prevActuals.length > 0) {
+    let prevTotal = 0;
+    let planTotal = 0;
+    const lines = prevActuals.map(a => {
+      const p = planRevByMonth.get(a.month);
+      const prevRev = a.totalRevenue > 0
+        ? a.totalRevenue
+        : a.adr * totalRooms * new Date(prevYear, a.month, 0).getDate() * (a.occupancyPct / 100);
+      prevTotal += prevRev;
+      planTotal += p?.revenue ?? 0;
+      return `  ${HU_MONTHS[a.month - 1]}: ${prevYear} tény — kihasználtság ${a.occupancyPct}%, ADR ${fmt(a.adr)} Ft, bevétel ${fmt(prevRev)} Ft; ${year} terv bevétel ${p?.hasData ? `${fmt(p.revenue)} Ft` : "nincs megadva"}`;
+    });
+    const diff = planTotal - prevTotal;
+    const diffPct = prevTotal > 0 ? (diff / prevTotal) * 100 : 0;
+    prevBlock = `
+Előző év (${prevYear}) tényadatai az összevethető hónapokra:
+${lines.join("\n")}
+- Összevetett hónapok: ${prevActuals.length}; ${prevYear} tény összesen ${fmt(prevTotal)} Ft, ${year} terv ugyanerre ${fmt(planTotal)} Ft; eltérés (terv − tény): ${diff >= 0 ? "+" : ""}${fmt(diff)} Ft (${diff >= 0 ? "+" : ""}${diffPct.toFixed(1)}%)
+`;
+  }
+
   const prompt = `Te egy szállodai ${costsEnabled ? "profit" : "bevétel"}-tervező rendszer összefoglaló generátora vagy.
 
 Az alábbi Simple Planner terv adatai alapján írj egy rövid, professzionális, ügyfél-barát összefoglalót.
@@ -146,8 +173,10 @@ ${annualLines}
 - Átlag kihasználtság: ${Math.round(avgOcc)}%
 ${bestMonth ? `- Legjobb hónap: ${bestMonth} (${fmt(bestProfit)} Ft ${metric})` : ""}
 ${worstMonth && worstMonth !== bestMonth ? `- Leggyengébb hónap: ${worstMonth} (${fmt(worstProfit)} Ft ${metric})` : ""}
-
-Írj 2-3 bekezdéses, tömör, pozitív hangvételű összefoglalót magyarul. Emeld ki a főbb eredményeket (${costsEnabled ? "éves bevétel, profit, kihasználtság" : "éves bevétel, ADR, kihasználtság — ez a terv csak a bevételi oldalt tartalmazza, költségekről és profitról ne írj"}). Megemlítheted a legjobb és leggyengébb hónapokat. Legyen professzionális, de olvasható egy nem szakember ügyfélnek is. Ne adj tanácsot, csak ismertesd a terv főbb számait és trendjeit.`;
+${prevBlock}${prevBlock ? `
+Az előző évi tényadatokkal való összevetést is írd bele egy külön bekezdésben: mennyivel tervez többet vagy kevesebbet a(z) ${year}. évi terv a(z) ${prevYear}. évi tényhez képest az összevethető hónapokban, és ez inkább a kihasználtság vagy az átlagár (ADR) változásából adódik. Ha valamelyik hónapra nincs terv, azt ne értékeld.
+` : ""}
+Írj 2-4 bekezdéses, tömör, pozitív hangvételű összefoglalót magyarul. Emeld ki a főbb eredményeket (${costsEnabled ? "éves bevétel, profit, kihasználtság" : "éves bevétel, ADR, kihasználtság — ez a terv csak a bevételi oldalt tartalmazza, költségekről és profitról ne írj"}). Megemlítheted a legjobb és leggyengébb hónapokat. Legyen professzionális, de olvasható egy nem szakember ügyfélnek is. Ne adj tanácsot, csak ismertesd a terv főbb számait és trendjeit.`;
 
   const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 

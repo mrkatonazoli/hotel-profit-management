@@ -27,10 +27,12 @@ type MonthData = {
   occupancyPct: number; roomRevenue: number; monthlyCost: number;
   breakfastPct: number; halfboardPct: number;
 };
+type ActualData = { month: number; occupancyPct: number; adr: number; totalRevenue: number };
 type ShareData = {
   plan: { id: string; name: string; year: number; shareSummary: string | null; shareExpiresAt: string | null };
   hotel: { name: string; totalRooms: number | null };
   months: MonthData[];
+  actuals?: ActualData[];
   settings: {
     costsEnabled?: boolean;
     tfhEnabled: boolean; tfhRate: number;
@@ -50,6 +52,7 @@ type ShareData = {
 
 function fmt(n: number) { return Math.round(n).toLocaleString("hu-HU"); }
 function fmtPct(n: number) { return n.toLocaleString("hu-HU", { maximumFractionDigits: 1 }); }
+function signed(n: number, s: string) { return `${n > 0 ? "+" : n < 0 ? "−" : ""}${s}`; }
 function fmtM(n: number) {
   if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toLocaleString("hu-HU", { maximumFractionDigits: 1 })} M`;
   if (Math.abs(n) >= 1_000) return `${(n / 1_000).toLocaleString("hu-HU", { maximumFractionDigits: 0 })} E`;
@@ -121,7 +124,7 @@ function TooltipRevenue({ active, payload, label }: { active?: boolean; payload?
       {payload.map(p => (
         <p key={p.dataKey} style={{ margin: "3px 0", fontSize: 12, color: p.color, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: p.color, display: "inline-block", flexShrink: 0 }} />
-          {p.dataKey === "revenue" ? "Bevétel" : "Profit"}: {fmtM(p.value)} Ft
+          {p.dataKey === "revenue" ? "Terv bevétel" : p.dataKey === "prevRevenue" ? "Előző év (tény)" : "Profit"}: {fmtM(p.value)} Ft
         </p>
       ))}
     </div>
@@ -503,17 +506,110 @@ export default function SharePage() {
   const deltaRevenue = simAnnualRevenue - annualRevenue;
   const deltaProfit = simAnnualProfit - annualProfit;
 
+  const displayCalcs = isSimActive ? simCalcs : calcs;
+  const displayMonths = isSimActive ? simMonths : months;
+
+  // ─── Előző év (tényadat) vs. terv ─────────────────────────────────────────
+  const prevYear = plan.year - 1;
+  const prevRows = (data.actuals ?? []).map(a => {
+    const pc = displayCalcs.find(c => c.month === a.month);
+    const pm = displayMonths.find(m => m.month === a.month);
+    const prevRoomNights = totalRooms * new Date(prevYear, a.month, 0).getDate() * (a.occupancyPct / 100);
+    const prevRevenue = a.totalRevenue > 0 ? a.totalRevenue : a.adr * prevRoomNights;
+    return {
+      month: a.month,
+      prevOcc: a.occupancyPct,
+      prevAdr: a.adr,
+      prevRoomNights,
+      prevRevenue,
+      planOcc: pm?.occupancyPct ?? 0,
+      planAdr: pm?.adr ?? 0,
+      planRoomNights: pc?.roomNights ?? 0,
+      planRevenue: pc?.revenue ?? 0,
+      hasPlan: pc?.hasData ?? false,
+    };
+  });
+  const hasPrev = prevRows.length > 0;
+  const prevMap = new Map(prevRows.map(r => [r.month, r]));
+  const prev = (() => {
+    if (!hasPrev) return null;
+    const sum = (f: (r: typeof prevRows[number]) => number) => prevRows.reduce((s, r) => s + f(r), 0);
+    const prevRevenue = sum(r => r.prevRevenue);
+    const planRevenue = sum(r => r.planRevenue);
+    const prevRN = sum(r => r.prevRoomNights);
+    const planRN = sum(r => r.planRoomNights);
+    const prevAdrRN = sum(r => (r.prevAdr > 0 ? r.prevRoomNights : 0));
+    const planAdrRN = sum(r => (r.planAdr > 0 ? r.planRoomNights : 0));
+    const prevAdr = prevAdrRN > 0 ? sum(r => (r.prevAdr > 0 ? r.prevAdr * r.prevRoomNights : 0)) / prevAdrRN : 0;
+    const planAdr = planAdrRN > 0 ? sum(r => (r.planAdr > 0 ? r.planAdr * r.planRoomNights : 0)) / planAdrRN : 0;
+    const prevOcc = sum(r => r.prevOcc) / prevRows.length;
+    const planOcc = sum(r => r.planOcc) / prevRows.length;
+    const delta = planRevenue - prevRevenue;
+    const deltaPct = prevRevenue > 0 ? (delta / prevRevenue) * 100 : null;
+    return { prevRevenue, planRevenue, prevRN, planRN, prevAdr, planAdr, prevOcc, planOcc, delta, deltaPct };
+  })();
+
+  const prevExplanation: string[] = (() => {
+    if (!prev) return [];
+    const monthNames = prevRows.map(r => HU_MONTHS_SHORT[r.month - 1]).join(", ");
+    const out: string[] = [];
+    out.push(prevRows.length === 12
+      ? `Mind a 12 hónapra van rögzített tényadat az előző évből (${prevYear}), így a teljes év összevethető a tervvel.`
+      : `Az összevetés azt a ${prevRows.length} hónapot tartalmazza, amelyre az előző évből (${prevYear}) van rögzített tényadat: ${monthNames}. ` +
+        `A többi hónapnál nincs mihez viszonyítani, ezért azok ebből a részből kimaradnak.`
+    );
+    const pctTxt = prev.deltaPct !== null ? ` (${signed(prev.deltaPct, `${fmtPct(Math.abs(prev.deltaPct))}%`)})` : "";
+    out.push(
+      `Ezekben a hónapokban a ${plan.year}. évi terv összesen ${fmtM(prev.planRevenue)} Ft bevétellel számol, ` +
+      `az előző év ugyanezen időszakának ${fmtM(prev.prevRevenue)} Ft-os tényével szemben. ` +
+      (prev.delta >= 0
+        ? `Vagyis a terv ${fmtM(prev.delta)} Ft-tal${pctTxt} többet vár, mint amennyi tavaly valóban befolyt.`
+        : `Vagyis a terv ${fmtM(-prev.delta)} Ft-tal${pctTxt} kevesebbel számol, mint amennyi tavaly valóban befolyt.`)
+    );
+    if (prev.prevAdr > 0 && prev.planAdr > 0) {
+      const occPp = prev.planOcc - prev.prevOcc;
+      const adrPct = ((prev.planAdr - prev.prevAdr) / prev.prevAdr) * 100;
+      const volumeEffect = (prev.planRN - prev.prevRN) * prev.prevAdr;
+      const priceEffect = (prev.planAdr - prev.prevAdr) * prev.planRN;
+      const rest = prev.delta - volumeEffect - priceEffect;
+      const showRest = Math.abs(rest) >= Math.max(1_000_000, Math.abs(prev.delta) * 0.05);
+      out.push(
+        `Mi áll a változás mögött? Az átlagos kihasználtság ${fmtPct(prev.prevOcc)}%-ról ${fmtPct(prev.planOcc)}%-ra ` +
+        `(${signed(occPp, `${fmtPct(Math.abs(occPp))} százalékpont`)}), az átlagár (ADR) ${fmt(prev.prevAdr)} Ft-ról ${fmt(prev.planAdr)} Ft-ra ` +
+        `(${signed(adrPct, `${fmtPct(Math.abs(adrPct))}%`)}) változik. ` +
+        `A különbségből nagyjából ${signed(volumeEffect, `${fmtM(Math.abs(volumeEffect))} Ft`)} a ${volumeEffect >= 0 ? "több" : "kevesebb"} eladott szobaéjszakából (kihasználtság), ` +
+        `${signed(priceEffect, `${fmtM(Math.abs(priceEffect))} Ft`)} pedig az átlagár ${priceEffect >= 0 ? "emelkedéséből" : "csökkenéséből"} adódik.` +
+        (showRest
+          ? ` A fennmaradó ${signed(rest, `${fmtM(Math.abs(rest))} Ft`)} abból jön, hogy a tavaly ténylegesen rögzített bevétel ${rest > 0 ? "alacsonyabb" : "magasabb"}, mint amennyit a tavalyi ADR × eladott szobaéjszaka adna (pl. ${rest > 0 ? "eltérő szobakapacitás, kedvezmények, lemondások" : "egyéb, nem szállásbevételek, eltérő szobakapacitás"}).`
+          : "")
+      );
+    }
+    const withPlan = prevRows.filter(r => r.hasPlan);
+    const noPlan = prevRows.filter(r => !r.hasPlan);
+    if (withPlan.length > 0) {
+      const best = withPlan.reduce((a, b) => (b.planRevenue - b.prevRevenue > a.planRevenue - a.prevRevenue ? b : a));
+      const lower = withPlan.filter(r => r.planRevenue < r.prevRevenue);
+      let s = `A legnagyobb tervezett növekedés: ${HU_MONTHS[best.month - 1].toLowerCase()} (${signed(best.planRevenue - best.prevRevenue, `${fmtM(Math.abs(best.planRevenue - best.prevRevenue))} Ft`)}). `;
+      s += lower.length === 0
+        ? "Minden összevetett hónapban legalább a tavalyi bevétellel számol a terv."
+        : `A tavalyinál alacsonyabb bevétellel számol a terv: ${lower.map(r => HU_MONTHS[r.month - 1].toLowerCase()).join(", ")}.`;
+      out.push(s);
+    }
+    if (noPlan.length > 0) {
+      out.push(`Figyelem: ${noPlan.map(r => HU_MONTHS[r.month - 1].toLowerCase()).join(", ")} hónapra van tavalyi tény, de a ${plan.year}. évi terv még üres — ezek a hónapok 0 Ft tervvel szerepelnek, ami torzítja az összesítést.`);
+    }
+    return out;
+  })();
+
   const chartData = calcs.map((c, i) => ({
     name: HU_MONTHS_SHORT[c.month - 1],
     revenue: Math.round(isSimActive ? simCalcs[i].revenue : c.revenue),
     profit: Math.round(isSimActive ? simCalcs[i].profit : c.profit),
+    prevRevenue: prevMap.has(c.month) ? Math.round(prevMap.get(c.month)!.prevRevenue) : null,
     occ: isSimActive ? simMonths[i].occupancyPct : (months.find(m => m.month === c.month)?.occupancyPct ?? 0),
     breakeven: c.breakeven !== null ? Math.round(c.breakeven) : null,
     hasData: c.hasData,
   }));
-
-  const displayCalcs = isSimActive ? simCalcs : calcs;
-  const displayMonths = isSimActive ? simMonths : months;
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -813,7 +909,7 @@ export default function SharePage() {
           {/* ── KPI sor ── */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: `repeat(${4 + (costsEnabled ? 1 : 0) + (settings.tfhEnabled ? 1 : 0)}, 1fr)`,
+            gridTemplateColumns: `repeat(${3 + (costsEnabled || settings.fbEnabled ? 1 : 0) + (costsEnabled ? 1 : 0) + (settings.tfhEnabled ? 1 : 0)}, 1fr)`,
           }}>
             {/* Bevétel */}
             {(() => {
@@ -993,8 +1089,8 @@ export default function SharePage() {
               );
             })()}
 
-            {/* Átlag szobaárbevétel/szoba/éj */}
-            {(() => {
+            {/* Átlag szobaárbevétel/szoba/éj — F&B nélküli csak bevétel módban azonos az ADR-rel */}
+            {(costsEnabled || settings.fbEnabled) && (() => {
               return (
                 <div style={{
                   padding: "24px 28px",
@@ -1230,6 +1326,168 @@ export default function SharePage() {
         })()}
 
 
+        {/* ── Előző év vs. terv ── */}
+        {prev && (
+          <div style={{
+            background: "white", borderRadius: 18,
+            border: "1px solid #E2E8F0",
+            boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
+            overflow: "hidden", marginBottom: 24,
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+              padding: "16px 24px", borderBottom: "1px solid #F1F5F9", background: "#FAFAFA", flexWrap: "wrap",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 16 }}>📅</span>
+                <div>
+                  <h2 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", margin: 0 }}>
+                    Összevetés az előző évvel
+                  </h2>
+                  <p style={{ fontSize: 11, color: "#94A3B8", margin: "2px 0 0", fontWeight: 500 }}>
+                    {prevYear}. évi tény → {plan.year}. évi terv · {prevRows.length} hónap
+                  </p>
+                </div>
+              </div>
+              {isSimActive && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, color: "#35BD78",
+                  background: "rgba(53,189,120,0.12)", padding: "4px 10px", borderRadius: 6,
+                  letterSpacing: "0.04em",
+                }}>SZIMULÁLT TERVVEL</span>
+              )}
+            </div>
+
+            {/* Összesítő kártyák */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, padding: "20px 24px 4px" }}>
+              {[
+                { label: "Bevétel", prevV: prev.prevRevenue, planV: prev.planRevenue, kind: "ft" as const },
+                { label: "Átl. kihasználtság", prevV: prev.prevOcc, planV: prev.planOcc, kind: "pct" as const },
+                { label: "Átlag ADR", prevV: prev.prevAdr, planV: prev.planAdr, kind: "ft" as const },
+              ].map(({ label, prevV, planV, kind }) => {
+                const d = planV - prevV;
+                const show = (v: number) => kind === "pct" ? `${fmtPct(v)}%` : `${v >= 1_000_000 ? fmtM(v) : fmt(v)} Ft`;
+                const dTxt = kind === "pct"
+                  ? signed(d, `${fmtPct(Math.abs(d))} pp`)
+                  : signed(d, `${Math.abs(d) >= 1_000_000 ? fmtM(Math.abs(d)) : fmt(Math.abs(d))} Ft`);
+                const dPct = kind === "ft" && prevV > 0 ? ` (${signed(d, `${fmtPct(Math.abs(d / prevV * 100))}%`)})` : "";
+                return (
+                  <div key={label} style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 14, padding: "14px 16px" }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px" }}>{label}</p>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 8, marginBottom: 8 }}>
+                      <div>
+                        <p style={{ fontSize: 10, color: "#94A3B8", margin: "0 0 2px" }}>{prevYear} tény</p>
+                        <p style={{ fontSize: 15, fontWeight: 700, color: "#64748B", margin: 0, fontVariantNumeric: "tabular-nums" }}>{prevV > 0 ? show(prevV) : "—"}</p>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontSize: 10, color: "#3B82F6", margin: "0 0 2px" }}>{plan.year} terv</p>
+                        <p style={{ fontSize: 19, fontWeight: 800, color: "#0F172A", margin: 0, fontVariantNumeric: "tabular-nums" }}>{planV > 0 ? show(planV) : "—"}</p>
+                      </div>
+                    </div>
+                    {prevV > 0 && planV > 0 && (
+                      <span style={{
+                        display: "inline-block", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6,
+                        background: d >= 0 ? "#ECFDF5" : "#FEF2F2", color: d >= 0 ? "#059669" : "#DC2626",
+                      }}>
+                        {dTxt}{dPct}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Magyarázat */}
+            <div style={{ margin: "16px 24px 20px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 14, padding: "16px 18px" }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#1D4ED8", textTransform: "uppercase", letterSpacing: "0.07em", margin: "0 0 8px" }}>
+                Mit jelent ez?
+              </p>
+              {prevExplanation.map((t, i) => (
+                <p key={i} style={{ fontSize: 13, color: "#1E3A8A", lineHeight: 1.65, margin: i === 0 ? 0 : "8px 0 0" }}>{t}</p>
+              ))}
+            </div>
+
+            {/* Havi táblázat */}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760, fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderTop: "1px solid #F1F5F9", borderBottom: "1px solid #F1F5F9" }}>
+                    {[
+                      { label: "Hónap", align: "left" },
+                      { label: `Kihas. ${prevYear}`, align: "right" },
+                      { label: `Kihas. ${plan.year}`, align: "right" },
+                      { label: `ADR ${prevYear}`, align: "right" },
+                      { label: `ADR ${plan.year}`, align: "right" },
+                      { label: `Bevétel ${prevYear}`, align: "right" },
+                      { label: `Bevétel ${plan.year}`, align: "right" },
+                      { label: "Δ terv − tény", align: "right" },
+                    ].map((h, i) => (
+                      <th key={h.label} style={{
+                        padding: i === 0 ? "10px 24px" : "10px 14px",
+                        textAlign: h.align as "left" | "right",
+                        fontSize: 10, fontWeight: 700, color: "#94A3B8",
+                        textTransform: "uppercase", letterSpacing: "0.07em", whiteSpace: "nowrap",
+                      }}>{h.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {prevRows.map((r, idx) => {
+                    const d = r.planRevenue - r.prevRevenue;
+                    const dPct = r.prevRevenue > 0 ? (d / r.prevRevenue) * 100 : null;
+                    const td = { padding: "9px 14px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums" as const };
+                    return (
+                      <tr key={r.month} style={{ borderBottom: "1px solid #F8FAFC", background: idx % 2 === 0 ? "white" : "#FAFBFC" }}>
+                        <td style={{ padding: "9px 24px", fontWeight: 700, color: "#0F172A" }}>{HU_MONTHS[r.month - 1]}</td>
+                        <td style={{ ...td, color: "#94A3B8" }}>{r.prevOcc > 0 ? `${fmtPct(r.prevOcc)}%` : "—"}</td>
+                        <td style={{ ...td, color: "#0F172A", fontWeight: 600 }}>{r.hasPlan ? `${fmtPct(r.planOcc)}%` : "—"}</td>
+                        <td style={{ ...td, color: "#94A3B8" }}>{r.prevAdr > 0 ? `${fmt(r.prevAdr)} Ft` : "—"}</td>
+                        <td style={{ ...td, color: "#0F172A", fontWeight: 600 }}>{r.hasPlan && r.planAdr > 0 ? `${fmt(r.planAdr)} Ft` : "—"}</td>
+                        <td style={{ ...td, color: "#94A3B8" }}>{r.prevRevenue > 0 ? `${fmtM(r.prevRevenue)} Ft` : "—"}</td>
+                        <td style={{ ...td, color: "#0F172A", fontWeight: 600 }}>{r.hasPlan ? `${fmtM(r.planRevenue)} Ft` : "—"}</td>
+                        <td style={{ ...td }}>
+                          {r.hasPlan && r.prevRevenue > 0 ? (
+                            <span style={{
+                              display: "inline-block", padding: "2px 9px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+                              background: profitBg(d), color: profitColor(d),
+                            }}>
+                              {signed(d, `${fmtM(Math.abs(d))} Ft`)}{dPct !== null ? ` · ${signed(dPct, `${fmtPct(Math.abs(dPct))}%`)}` : ""}
+                            </span>
+                          ) : <span style={{ color: "#CBD5E1" }}>nincs terv</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: "#F8FAFC", borderTop: "2px solid #E2E8F0" }}>
+                    <td style={{ padding: "11px 24px", fontWeight: 800, fontSize: 12, color: "#0F172A", textTransform: "uppercase", letterSpacing: "0.05em" }}>Összesen</td>
+                    <td style={{ padding: "11px 14px", textAlign: "right", color: "#64748B", fontWeight: 600 }}>{fmtPct(prev.prevOcc)}%</td>
+                    <td style={{ padding: "11px 14px", textAlign: "right", color: "#0F172A", fontWeight: 700 }}>{fmtPct(prev.planOcc)}%</td>
+                    <td style={{ padding: "11px 14px", textAlign: "right", color: "#64748B", fontWeight: 600 }}>{prev.prevAdr > 0 ? `${fmt(prev.prevAdr)} Ft` : "—"}</td>
+                    <td style={{ padding: "11px 14px", textAlign: "right", color: "#0F172A", fontWeight: 700 }}>{prev.planAdr > 0 ? `${fmt(prev.planAdr)} Ft` : "—"}</td>
+                    <td style={{ padding: "11px 14px", textAlign: "right", color: "#64748B", fontWeight: 600 }}>{fmtM(prev.prevRevenue)} Ft</td>
+                    <td style={{ padding: "11px 14px", textAlign: "right", color: "#0F172A", fontWeight: 800 }}>{fmtM(prev.planRevenue)} Ft</td>
+                    <td style={{ padding: "11px 14px", textAlign: "right" }}>
+                      <span style={{
+                        display: "inline-block", padding: "3px 10px", borderRadius: 8, fontSize: 12.5, fontWeight: 800,
+                        background: profitBg(prev.delta), color: profitColor(prev.delta),
+                      }}>
+                        {signed(prev.delta, `${fmtM(Math.abs(prev.delta))} Ft`)}{prev.deltaPct !== null ? ` · ${signed(prev.deltaPct, `${fmtPct(Math.abs(prev.deltaPct))}%`)}` : ""}
+                      </span>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, padding: "10px 24px 14px", borderTop: "1px solid #F1F5F9", lineHeight: 1.6 }}>
+              Δ = terv − előző évi tény. Az előző évi bevétel a szálloda által rögzített tényleges bevétel; a terv bevétele
+              ADR × kihasználtság × szobaszám × a hónap napjai alapján számolt{settings.fbEnabled ? " (plusz étkezési és egyéb bevételek)" : ""}.
+              Az átlag ADR az eladott szobaéjszakákkal súlyozott. Ha a fenti szimulátor aktív, az összevetés a szimulált tervvel számol.
+            </p>
+          </div>
+        )}
+
         {/* ── Charts ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
           {/* Revenue & Profit */}
@@ -1256,6 +1514,9 @@ export default function SharePage() {
                 <YAxis tick={{ fontSize: 9, fill: "#CBD5E1" }} axisLine={false} tickLine={false} tickFormatter={v => fmtM(v)} width={52} />
                 <ReTooltip content={<TooltipRevenue />} cursor={{ fill: "rgba(99,102,241,0.05)" }} />
                 <ReferenceLine y={0} stroke="#E2E8F0" strokeWidth={1.5} />
+                {hasPrev && (
+                  <Bar dataKey="prevRevenue" radius={[5, 5, 0, 0]} fill="#CBD5E1" opacity={0.9} />
+                )}
                 <Bar dataKey="revenue" radius={[5, 5, 0, 0]} opacity={0.9}>
                   {chartData.map((entry, i) => (
                     <Cell key={i} fill={entry.hasData ? (isSimActive ? "#6366F1" : "#3B82F6") : "#F1F5F9"} />
@@ -1273,8 +1534,14 @@ export default function SharePage() {
             <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 10, height: 10, borderRadius: 3, background: isSimActive ? "#6366F1" : "#3B82F6" }} />
-                <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Bevétel</span>
+                <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>{hasPrev ? `Terv (${plan.year})` : "Bevétel"}</span>
               </div>
+              {hasPrev && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: "#CBD5E1" }} />
+                  <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Előző év ({prevYear}, tény)</span>
+                </div>
+              )}
               {costsEnabled && (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <div style={{ width: 10, height: 10, borderRadius: 3, background: "#059669" }} />

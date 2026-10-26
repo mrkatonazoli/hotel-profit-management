@@ -16,6 +16,10 @@ export async function GET(req: Request, { params }: Params) {
     include: {
       hotel: { select: { id: true, name: true, totalRooms: true } },
       months: { orderBy: { month: "asc" } },
+      actuals: {
+        orderBy: { month: "asc" },
+        select: { month: true, occupancyPct: true, adr: true, totalRevenue: true },
+      },
     },
   });
 
@@ -52,6 +56,7 @@ export async function GET(req: Request, { params }: Params) {
       totalRooms: plan.hotel.totalRooms,
     },
     months: costsEnabled ? plan.months : plan.months.map(m => ({ ...m, roomRevenue: 0 })),
+    actuals: plan.actuals.filter(a => a.totalRevenue > 0 || a.occupancyPct > 0 || a.adr > 0),
     settings: {
       costsEnabled,
       tfhEnabled: costsEnabled && (settings?.tfhEnabled ?? false),
