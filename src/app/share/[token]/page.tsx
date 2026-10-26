@@ -26,8 +26,9 @@ type MonthData = {
   id: string; month: number; adr: number;
   occupancyPct: number; roomRevenue: number; monthlyCost: number;
   breakfastPct: number; halfboardPct: number;
+  note?: string | null;
 };
-type ActualData = { month: number; occupancyPct: number; adr: number; totalRevenue: number };
+type ActualData = { month: number; occupancyPct: number; adr: number; totalRevenue: number; note?: string | null };
 type ShareData = {
   plan: { id: string; name: string; year: number; shareSummary: string | null; shareExpiresAt: string | null };
   hotel: { name: string; totalRooms: number | null };
@@ -106,6 +107,26 @@ function KpiCard({
       {sub && (
         <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, fontWeight: 500 }}>{sub}</p>
       )}
+    </div>
+  );
+}
+
+// ─── Havi megjegyzés ──────────────────────────────────────────────────────────
+
+function MonthNote({ label, text, tone }: { label: string; text: string; tone: "plan" | "prev" }) {
+  const c = tone === "plan"
+    ? { bg: "#EFF6FF", border: "#BFDBFE", label: "#1D4ED8", text: "#1E3A8A" }
+    : { bg: "#F8FAFC", border: "#E2E8F0", label: "#64748B", text: "#334155" };
+  return (
+    <div style={{
+      marginTop: 6, padding: "5px 8px", borderRadius: 8, maxWidth: 280,
+      background: c.bg, border: `1px solid ${c.border}`,
+      whiteSpace: "normal", fontWeight: 400, lineHeight: 1.45,
+    }}>
+      <span style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: c.label, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        📝 {label}
+      </span>
+      <span style={{ fontSize: 12, color: c.text }}>{text}</span>
     </div>
   );
 }
@@ -527,6 +548,8 @@ export default function SharePage() {
       planRoomNights: pc?.roomNights ?? 0,
       planRevenue: pc?.revenue ?? 0,
       hasPlan: pc?.hasData ?? false,
+      planNote: pm?.note ?? null,
+      prevNote: a.note ?? null,
     };
   });
   const hasPrev = prevRows.length > 0;
@@ -1438,7 +1461,11 @@ export default function SharePage() {
                     const td = { padding: "9px 14px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums" as const };
                     return (
                       <tr key={r.month} style={{ borderBottom: "1px solid #F8FAFC", background: idx % 2 === 0 ? "white" : "#FAFBFC" }}>
-                        <td style={{ padding: "9px 24px", fontWeight: 700, color: "#0F172A" }}>{HU_MONTHS[r.month - 1]}</td>
+                        <td style={{ padding: "9px 24px", fontWeight: 700, color: "#0F172A", verticalAlign: "top" }}>
+                          {HU_MONTHS[r.month - 1]}
+                          {r.prevNote && <MonthNote label={`${prevYear} tény`} text={r.prevNote} tone="prev" />}
+                          {r.planNote && <MonthNote label={`${plan.year} terv`} text={r.planNote} tone="plan" />}
+                        </td>
                         <td style={{ ...td, color: "#94A3B8" }}>{r.prevOcc > 0 ? `${fmtPct(r.prevOcc)}%` : "—"}</td>
                         <td style={{ ...td, color: "#0F172A", fontWeight: 600 }}>{r.hasPlan ? `${fmtPct(r.planOcc)}%` : "—"}</td>
                         <td style={{ ...td, color: "#94A3B8" }}>{r.prevAdr > 0 ? `${fmt(r.prevAdr)} Ft` : "—"}</td>
@@ -1671,8 +1698,9 @@ export default function SharePage() {
                       opacity: c.hasData ? 1 : 0.3,
                       transition: "background 0.1s",
                     }}>
-                      <td style={{ padding: "10px 24px", fontWeight: 700, color: "#0F172A", whiteSpace: "nowrap" }}>
+                      <td style={{ padding: "10px 24px", fontWeight: 700, color: "#0F172A", whiteSpace: "nowrap", verticalAlign: "top" }}>
                         {HU_MONTHS[c.month - 1]}
+                        {m.note && !prevMap.has(c.month) && <MonthNote label="Megjegyzés" text={m.note} tone="plan" />}
                       </td>
                       <td style={{ padding: "10px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#334155", fontWeight: 500 }}>
                         {c.hasData ? `${fmtPct(m.occupancyPct)}%` : "—"}

@@ -35,6 +35,7 @@ type MonthData = {
   monthlyCost: number;
   breakfastPct: number;   // havi reggelis vendégek aránya %
   halfboardPct: number;   // havi félpanziós vendégek aránya %
+  note?: string | null;
 };
 
 type Hotel = { id: string; name: string; totalRooms: number | null };
@@ -55,6 +56,7 @@ type ActualData = {
   occupancyPct: number;
   adr: number;
   totalRevenue: number;
+  note?: string | null;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -194,6 +196,78 @@ function MonthInput({
           color: fromBand ? "#0EA5E9" : "#35BD78",
         }}>{note}</p>
       )}
+    </div>
+  );
+}
+
+// ─── Havi megjegyzés ──────────────────────────────────────────────────────────
+
+function NoteButton({ note, onClick }: { note?: string | null; onClick: () => void }) {
+  const has = !!note;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={has ? note! : "Megjegyzés hozzáadása"}
+      style={{
+        width: "100%", marginTop: 4, padding: "3px 4px", borderRadius: 6, cursor: "pointer",
+        fontSize: 10, fontWeight: 600, textAlign: "left",
+        border: `1px ${has ? "solid" : "dashed"} ${has ? "#FCD34D" : "#CBD5E1"}`,
+        background: has ? "#FFFBEB" : "transparent",
+        color: has ? "#92400E" : "#94A3B8",
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+      }}
+    >
+      {has ? `📝 ${note}` : "+ megjegyzés"}
+    </button>
+  );
+}
+
+function NoteModal({ title, subtitle, initial, onSave, onClose }: {
+  title: string; subtitle: string; initial: string;
+  onSave: (v: string) => void; onClose: () => void;
+}) {
+  const [val, setVal] = useState(initial);
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+    >
+      <div style={{ background: "white", borderRadius: 18, width: "100%", maxWidth: 460, padding: 22, boxShadow: "0 20px 60px rgba(15,23,42,0.25)" }}>
+        <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>{title}</h3>
+        <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 14px" }}>{subtitle}</p>
+        <textarea
+          autoFocus
+          value={val}
+          maxLength={500}
+          rows={5}
+          onChange={e => setVal(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Escape") onClose();
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { onSave(val); onClose(); }
+          }}
+          placeholder="pl. Wine Festival a régióban, várhatóan erősebb hétvégék…"
+          style={{ width: "100%", boxSizing: "border-box", fontSize: 14, lineHeight: 1.5, padding: "10px 12px", borderRadius: 10, border: "1px solid #CBD5E1", outline: "none", resize: "vertical", fontFamily: "inherit" }}
+        />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+          <span style={{ fontSize: 11, color: "#94A3B8" }}>{val.length}/500 · a megosztott riporton is megjelenik</span>
+          <span style={{ flex: 1 }} />
+          {initial && (
+            <button type="button" onClick={() => { onSave(""); onClose(); }}
+              style={{ fontSize: 13, fontWeight: 600, color: "#DC2626", background: "none", border: "none", cursor: "pointer", padding: "8px 6px" }}>
+              Törlés
+            </button>
+          )}
+          <button type="button" onClick={onClose}
+            style={{ fontSize: 13, fontWeight: 600, color: "#64748B", background: "#F1F5F9", border: "none", borderRadius: 10, cursor: "pointer", padding: "8px 14px" }}>
+            Mégse
+          </button>
+          <button type="button" onClick={() => { onSave(val); onClose(); }}
+            style={{ fontSize: 13, fontWeight: 700, color: "white", background: "#35BD78", border: "none", borderRadius: 10, cursor: "pointer", padding: "8px 16px" }}>
+            Mentés
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -613,6 +687,9 @@ export default function SimplePlanDetailPage() {
   // ─── Import modal state ───────────────────────────────────────────────────
   const [showImport, setShowImport] = useState(false);
 
+  // ─── Havi megjegyzés szerkesztő ───────────────────────────────────────────
+  const [noteEdit, setNoteEdit] = useState<{ kind: "plan" | "actual"; month: number } | null>(null);
+
   // ─── Module access ────────────────────────────────────────────────────────
   const [allowedModules, setAllowedModules] = useState<string[] | null>(null);
   useEffect(() => {
@@ -803,7 +880,19 @@ export default function SimplePlanDetailPage() {
     }
   }
 
-  function updateActualField(month: number, field: keyof Omit<ActualData, "month">, value: number) {
+  function updateMonthNote(monthNum: number, note: string) {
+    const updated = months.map(m => (m.month === monthNum ? { ...m, note: note.trim() || null } : m));
+    setMonths(updated);
+    saveMonths(updated);
+  }
+
+  function updateActualNote(month: number, note: string) {
+    const updated = actuals.map(a => (a.month === month ? { ...a, note: note.trim() || null } : a));
+    setActuals(updated);
+    saveActuals(updated);
+  }
+
+  function updateActualField(month: number, field: "occupancyPct" | "adr" | "totalRevenue", value: number) {
     const updated = actuals.map(a => a.month === month ? { ...a, [field]: value } : a);
     setActuals(updated);
     saveActuals(updated);
@@ -842,6 +931,7 @@ export default function SimplePlanDetailPage() {
           monthlyCost: m.monthlyCost,
           breakfastPct: m.breakfastPct,
           halfboardPct: m.halfboardPct,
+          note: m.note ?? null,
         })) }),
         signal: controller.signal,
       });
@@ -1088,6 +1178,21 @@ export default function SimplePlanDetailPage() {
     <div style={{ maxWidth: 1200 }}>
 
       {/* ── Import modal ── */}
+      {noteEdit && (
+        <NoteModal
+          key={`${noteEdit.kind}-${noteEdit.month}`}
+          title={`${HU_MONTHS[noteEdit.month - 1]} — ${noteEdit.kind === "plan" ? "terv" : "tény"} megjegyzés`}
+          subtitle={noteEdit.kind === "plan"
+            ? "Mi indokolja a havi tervszámokat? Rendezvények, árazási döntések, felújítás stb."
+            : "Mi történt ebben a hónapban? Rendkívüli események, eltérések okai stb."}
+          initial={(noteEdit.kind === "plan"
+            ? months.find(m => m.month === noteEdit.month)?.note
+            : actuals.find(a => a.month === noteEdit.month)?.note) ?? ""}
+          onSave={v => noteEdit.kind === "plan" ? updateMonthNote(noteEdit.month, v) : updateActualNote(noteEdit.month, v)}
+          onClose={() => setNoteEdit(null)}
+        />
+      )}
+
       {showImport && (
         <ImportModal
           onClose={() => setShowImport(false)}
@@ -1690,6 +1795,7 @@ export default function SimplePlanDetailPage() {
                     />
                   </>
                 )}
+                <NoteButton note={m.note} onClick={() => setNoteEdit({ kind: "plan", month: m.month })} />
               </div>
             );
           })}
@@ -2166,6 +2272,7 @@ export default function SimplePlanDetailPage() {
                       onBlur={v => updateActualField(a.month, "adr", v)} />
                     <MonthInput label="Össz. bev." unit="Ft" value={a.totalRevenue} step={10000}
                       onBlur={v => updateActualField(a.month, "totalRevenue", v)} />
+                    <NoteButton note={a.note} onClick={() => setNoteEdit({ kind: "actual", month: a.month })} />
                   </div>
                 );
               })}

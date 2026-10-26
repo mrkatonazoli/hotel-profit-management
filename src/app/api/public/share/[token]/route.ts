@@ -18,7 +18,7 @@ export async function GET(req: Request, { params }: Params) {
       months: { orderBy: { month: "asc" } },
       actuals: {
         orderBy: { month: "asc" },
-        select: { month: true, occupancyPct: true, adr: true, totalRevenue: true },
+        select: { month: true, occupancyPct: true, adr: true, totalRevenue: true, note: true },
       },
     },
   });

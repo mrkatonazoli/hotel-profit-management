@@ -5,6 +5,13 @@ import { prisma } from "@/lib/prisma";
 
 type Params = { params: Promise<{ planId: string }> };
 
+function cleanNote(n: unknown): string | null | undefined {
+  if (n === undefined) return undefined;
+  if (typeof n !== "string") return null;
+  const t = n.trim().slice(0, 500);
+  return t === "" ? null : t;
+}
+
 // GET — tényadatok lekérése
 export async function GET(_req: Request, { params }: Params) {
   const session = await auth();
@@ -40,14 +47,17 @@ export async function PUT(req: Request, { params }: Params) {
   if (plan.hotelId !== hotel.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { actuals } = await req.json() as {
-    actuals: { month: number; occupancyPct: number; adr: number; totalRevenue: number }[];
+    actuals: { month: number; occupancyPct: number; adr: number; totalRevenue: number; note?: string | null }[];
   };
 
   await Promise.all(actuals.map(a =>
     prisma.simplePlanActual.upsert({
       where: { planId_month: { planId, month: a.month } },
-      create: { planId, month: a.month, occupancyPct: a.occupancyPct, adr: a.adr, totalRevenue: a.totalRevenue },
-      update: { occupancyPct: a.occupancyPct, adr: a.adr, totalRevenue: a.totalRevenue },
+      create: { planId, month: a.month, occupancyPct: a.occupancyPct, adr: a.adr, totalRevenue: a.totalRevenue, note: cleanNote(a.note) ?? null },
+      update: {
+        occupancyPct: a.occupancyPct, adr: a.adr, totalRevenue: a.totalRevenue,
+        ...(cleanNote(a.note) !== undefined && { note: cleanNote(a.note) }),
+      },
     })
   ));
 

@@ -120,7 +120,7 @@ export async function POST(_req: Request, { params }: Params) {
     const unitRate = m.roomRevenue > 0 ? m.roomRevenue : m.adr;
     monthLines += `  ${HU_MONTHS[m.month - 1]}: kihasználtság ${m.occupancyPct}%, ${
       m.roomRevenue > 0 ? `szobaárbevétel ${fmt(m.roomRevenue)} Ft/szoba/éj` : `ADR ${fmt(m.adr)} Ft`
-    }${costsEnabled ? `, kiadás ${fmt(effectiveCostPerRoom)} Ft/szoba/éj` : ""}, bevétel ${fmt(c.revenue)} Ft${costsEnabled ? `, profit ${fmt(c.profit)} Ft` : ""}${unitRate === 0 ? " (nincs adat)" : ""}\n`;
+    }${costsEnabled ? `, kiadás ${fmt(effectiveCostPerRoom)} Ft/szoba/éj` : ""}, bevétel ${fmt(c.revenue)} Ft${costsEnabled ? `, profit ${fmt(c.profit)} Ft` : ""}${unitRate === 0 ? " (nincs adat)" : ""}${m.note ? ` — megjegyzés: ${m.note}` : ""}\n`;
   }
 
   const annualProfit = annualRevenue - annualCost - annualTfh;
@@ -146,7 +146,7 @@ ${tfhEnabled ? `- TFH (${tfhRate}%): ${fmt(annualTfh)} Ft\n` : ""}- Profit: ${fm
         : a.adr * totalRooms * new Date(prevYear, a.month, 0).getDate() * (a.occupancyPct / 100);
       prevTotal += prevRev;
       planTotal += p?.revenue ?? 0;
-      return `  ${HU_MONTHS[a.month - 1]}: ${prevYear} tény — kihasználtság ${a.occupancyPct}%, ADR ${fmt(a.adr)} Ft, bevétel ${fmt(prevRev)} Ft; ${year} terv bevétel ${p?.hasData ? `${fmt(p.revenue)} Ft` : "nincs megadva"}`;
+      return `  ${HU_MONTHS[a.month - 1]}: ${prevYear} tény — kihasználtság ${a.occupancyPct}%, ADR ${fmt(a.adr)} Ft, bevétel ${fmt(prevRev)} Ft; ${year} terv bevétel ${p?.hasData ? `${fmt(p.revenue)} Ft` : "nincs megadva"}${a.note ? ` — tény megjegyzés: ${a.note}` : ""}`;
     });
     const diff = planTotal - prevTotal;
     const diffPct = prevTotal > 0 ? (diff / prevTotal) * 100 : 0;
@@ -174,7 +174,7 @@ ${annualLines}
 ${bestMonth ? `- Legjobb hónap: ${bestMonth} (${fmt(bestProfit)} Ft ${metric})` : ""}
 ${worstMonth && worstMonth !== bestMonth ? `- Leggyengébb hónap: ${worstMonth} (${fmt(worstProfit)} Ft ${metric})` : ""}
 ${prevBlock}${prevBlock ? `
-Az előző évi tényadatokkal való összevetést is írd bele egy külön bekezdésben: mennyivel tervez többet vagy kevesebbet a(z) ${year}. évi terv a(z) ${prevYear}. évi tényhez képest az összevethető hónapokban, és ez inkább a kihasználtság vagy az átlagár (ADR) változásából adódik. Ha valamelyik hónapra nincs terv, azt ne értékeld.
+Az előző évi tényadatokkal való összevetést is írd bele egy külön bekezdésben: mennyivel tervez többet vagy kevesebbet a(z) ${year}. évi terv a(z) ${prevYear}. évi tényhez képest az összevethető hónapokban, és ez inkább a kihasználtság vagy az átlagár (ADR) változásából adódik. Ha valamelyik hónapra nincs terv, azt ne értékeld. Ha a hónapoknál megjegyzés szerepel, azt felhasználhatod az eltérések magyarázatára, de ne idézd szó szerint.
 ` : ""}
 Írj 2-4 bekezdéses, tömör, pozitív hangvételű összefoglalót magyarul. Emeld ki a főbb eredményeket (${costsEnabled ? "éves bevétel, profit, kihasználtság" : "éves bevétel, ADR, kihasználtság — ez a terv csak a bevételi oldalt tartalmazza, költségekről és profitról ne írj"}). Megemlítheted a legjobb és leggyengébb hónapokat. Legyen professzionális, de olvasható egy nem szakember ügyfélnek is. Ne adj tanácsot, csak ismertesd a terv főbb számait és trendjeit.`;
 

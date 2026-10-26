@@ -536,6 +536,7 @@ model SimplePlanActual {
   occupancyPct Float      @default(0)   // tényleges kihasználtság %
   adr          Float      @default(0)   // tényleges átlagár Ft
   totalRevenue Float      @default(0)   // tényleges teljes bevétel Ft (szoba+F&B+spa+egyéb)
+  note         String?    // szabad szöveges megjegyzés a hónaphoz (share riporton is látszik)
   plan         SimplePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@unique([planId, month])
@@ -551,6 +552,7 @@ model SimplePlanMonth {
   monthlyCost  Float      @default(0)
   breakfastPct Float      @default(0)   // havi reggelis vendégek aránya %
   halfboardPct Float      @default(0)   // havi félpanziós vendégek aránya %
+  note         String?    // szabad szöveges megjegyzés a hónaphoz (share riporton is látszik)
   plan         SimplePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@unique([planId, month])

@@ -13,7 +13,15 @@ type MonthInput = {
   monthlyCost: number;
   breakfastPct: number;
   halfboardPct: number;
+  note?: string | null;
 };
+
+function cleanNote(n: unknown): string | null | undefined {
+  if (n === undefined) return undefined;
+  if (typeof n !== "string") return null;
+  const t = n.trim().slice(0, 500);
+  return t === "" ? null : t;
+}
 
 export async function PUT(req: Request, { params }: Params) {
   const session = await auth();
@@ -43,6 +51,7 @@ export async function PUT(req: Request, { params }: Params) {
           monthlyCost: m.monthlyCost,
           breakfastPct: m.breakfastPct ?? 0,
           halfboardPct: m.halfboardPct ?? 0,
+          note: cleanNote(m.note) ?? null,
         },
         update: {
           adr: m.adr,
@@ -51,6 +60,7 @@ export async function PUT(req: Request, { params }: Params) {
           monthlyCost: m.monthlyCost,
           breakfastPct: m.breakfastPct ?? 0,
           halfboardPct: m.halfboardPct ?? 0,
+          ...(cleanNote(m.note) !== undefined && { note: cleanNote(m.note) }),
         },
       })
     )
