@@ -2061,6 +2061,7 @@ export default function SimplePlanDetailPage() {
           icon={<TrendingUp size={16} />}
           sub={fbEnabled ? "ADR + F&B + egyéb" : "ADR alapján"}
         />}
+        {costsEnabled && (
         <KpiCard
           label="RevPAR"
           value={revPAR > 0 ? `${fmt(Math.round(isSimActive ? simRevPAR : revPAR))} Ft` : "—"}
@@ -2069,6 +2070,7 @@ export default function SimplePlanDetailPage() {
           delta={isSimActive && simRevPAR !== revPAR ? `${simRevPAR > revPAR ? "+" : ""}${fmt(Math.round(simRevPAR - revPAR))} Ft a tervhez képest` : undefined}
           sub="bevétel / összes elérhető szoba/éj"
         />
+        )}
       </div>
 
       {/* Breakeven banner */}
