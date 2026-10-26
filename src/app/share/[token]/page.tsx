@@ -1542,8 +1542,12 @@ export default function SharePage() {
                       { label: "Hónap", align: "left" },
                       { label: "Kihasználtság", align: "right" },
                       { label: "ADR", align: "right" },
-                      { label: "Szobaár/szoba/éj", align: "right" },
-                      { label: "Számítás alapja", align: "center" },
+                      ...(costsEnabled
+                        ? [
+                            { label: "Szobaár/szoba/éj", align: "right" },
+                            { label: "Számítás alapja", align: "center" },
+                          ]
+                        : [{ label: "Össz. szállásbevétel", align: "right" }]),
                     ].map((h, i) => (
                       <th key={h.label} style={{
                         padding: i === 0 ? "10px 24px" : "10px 16px",
@@ -1578,21 +1582,29 @@ export default function SharePage() {
                         <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: m.adr > 0 ? "#0F172A" : "#CBD5E1" }}>
                           {m.adr > 0 ? `${fmt(m.adr)} Ft` : "—"}
                         </td>
-                        <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: m.roomRevenue > 0 ? "#0F172A" : "#CBD5E1" }}>
-                          {m.roomRevenue > 0 ? `${fmt(m.roomRevenue)} Ft` : "—"}
-                        </td>
-                        <td style={{ padding: "9px 16px", textAlign: "center" }}>
-                          {hasData ? (
-                            <span style={{
-                              fontSize: 11, fontWeight: 700,
-                              padding: "2px 10px", borderRadius: 8,
-                              background: usesRoomRevenue ? "rgba(53,189,120,0.12)" : usesAdr ? "#DBEAFE" : "#F1F5F9",
-                              color: usesRoomRevenue ? "#35BD78" : usesAdr ? "#3B82F6" : "#94A3B8",
-                            }}>
-                              {usesRoomRevenue ? "Szobaár" : usesAdr ? "ADR" : "—"}
-                            </span>
-                          ) : "—"}
-                        </td>
+                        {costsEnabled ? (
+                          <>
+                            <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: m.roomRevenue > 0 ? "#0F172A" : "#CBD5E1" }}>
+                              {m.roomRevenue > 0 ? `${fmt(m.roomRevenue)} Ft` : "—"}
+                            </td>
+                            <td style={{ padding: "9px 16px", textAlign: "center" }}>
+                              {hasData ? (
+                                <span style={{
+                                  fontSize: 11, fontWeight: 700,
+                                  padding: "2px 10px", borderRadius: 8,
+                                  background: usesRoomRevenue ? "rgba(53,189,120,0.12)" : usesAdr ? "#DBEAFE" : "#F1F5F9",
+                                  color: usesRoomRevenue ? "#35BD78" : usesAdr ? "#3B82F6" : "#94A3B8",
+                                }}>
+                                  {usesRoomRevenue ? "Szobaár" : usesAdr ? "ADR" : "—"}
+                                </span>
+                              ) : "—"}
+                            </td>
+                          </>
+                        ) : (
+                          <td style={{ padding: "9px 16px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: hasData && m.adr > 0 ? "#0F172A" : "#CBD5E1" }}>
+                            {hasData && calc && m.adr > 0 ? `${fmt(m.adr * calc.roomNights)} Ft` : "—"}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -1600,7 +1612,7 @@ export default function SharePage() {
               </table>
             </div>
             {/* Legend */}
-            <div style={{
+            {costsEnabled && <div style={{
               padding: "10px 24px",
               borderTop: "1px solid #F1F5F9",
               background: "#FAFAFA",
@@ -1614,7 +1626,7 @@ export default function SharePage() {
                 <span style={{ fontSize: 11, padding: "1px 8px", borderRadius: 6, background: "#DBEAFE", color: "#3B82F6", fontWeight: 700 }}>ADR</span>
                 <span style={{ fontSize: 11, color: "#94A3B8" }}>— átlagos szobai díj</span>
               </div>
-            </div>
+            </div>}
           </div>
 
         </div>

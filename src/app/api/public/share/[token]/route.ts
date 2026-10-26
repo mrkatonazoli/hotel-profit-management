@@ -51,7 +51,7 @@ export async function GET(req: Request, { params }: Params) {
       name: plan.hotel.name,
       totalRooms: plan.hotel.totalRooms,
     },
-    months: plan.months,
+    months: costsEnabled ? plan.months : plan.months.map(m => ({ ...m, roomRevenue: 0 })),
     settings: {
       costsEnabled,
       tfhEnabled: costsEnabled && (settings?.tfhEnabled ?? false),

@@ -94,7 +94,8 @@ export async function POST(_req: Request, { params }: Params) {
   let worstMonth = "";
   let worstProfit = Infinity;
 
-  for (const m of plan.months) {
+  for (const rawMonth of plan.months) {
+    const m = costsEnabled ? rawMonth : { ...rawMonth, roomRevenue: 0 };
     const c = computeMonthCalc(
       { ...m, breakfastPct: m.breakfastPct ?? 0, halfboardPct: m.halfboardPct ?? 0 },
       totalRooms, year, tfhEnabled ? tfhRate : 0, fb, costsEnabled ? costs : undefined

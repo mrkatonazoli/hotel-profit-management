@@ -969,12 +969,14 @@ export default function SimplePlanDetailPage() {
 
   const monthsWithBands: MonthData[] = useMemo(() =>
     months.map(m => {
-      if (fbEnabled && m.breakfastPct === 0 && m.halfboardPct === 0 && (breakfastPct > 0 || halfboardPct > 0)) {
-        return { ...m, breakfastPct, halfboardPct };
+      // Csak bevétel módban nincs szobaárbevétel-felülírás: a bevétel mindig ADR × kihasználtság
+      const base = costsEnabled ? m : { ...m, roomRevenue: 0 };
+      if (fbEnabled && base.breakfastPct === 0 && base.halfboardPct === 0 && (breakfastPct > 0 || halfboardPct > 0)) {
+        return { ...base, breakfastPct, halfboardPct };
       }
-      return m;
+      return base;
     }),
-  [months, fbEnabled, breakfastPct, halfboardPct]);
+  [months, costsEnabled, fbEnabled, breakfastPct, halfboardPct]);
 
   const effectiveCosts = costsEnabled ? costs : undefined;
 
@@ -1611,15 +1613,38 @@ export default function SimplePlanDetailPage() {
                   step={1}
                   onBlur={v => updateMonthField(m.month, "occupancyPct", Math.min(100, Math.max(0, v)))}
                 />
-                <MonthInput
-                  label="Szobaárb."
-                  unit="Ft/szoba/éj"
-                  value={m.roomRevenue}
-                  step={10000}
-                  highlight={m.roomRevenue > 0}
-                  note={m.roomRevenue > 0 ? "↑ egyedi érték" : undefined}
-                  onBlur={v => updateMonthField(m.month, "roomRevenue", v)}
-                />
+                {costsEnabled ? (
+                  <MonthInput
+                    label="Szobaárb."
+                    unit="Ft/szoba/éj"
+                    value={m.roomRevenue}
+                    step={10000}
+                    highlight={m.roomRevenue > 0}
+                    note={m.roomRevenue > 0 ? "↑ egyedi érték" : undefined}
+                    onBlur={v => updateMonthField(m.month, "roomRevenue", v)}
+                  />
+                ) : (
+                  <div style={{ marginBottom: 4 }}>
+                    <p style={{
+                      fontSize: 9, margin: "0 0 2px", textTransform: "uppercase",
+                      fontWeight: 600, letterSpacing: "0.04em", color: "#35BD78",
+                    }}>
+                      Össz. szállásbev. (Ft)
+                    </p>
+                    <div style={{
+                      width: "100%", boxSizing: "border-box",
+                      fontSize: 12, fontWeight: 700,
+                      color: c && c.roomNights > 0 && m.adr > 0 ? "#0F172A" : "#CBD5E1",
+                      border: "1px solid #BBF7D0", borderRadius: 6, padding: "4px 6px",
+                      background: "#F0FDF4", fontVariantNumeric: "tabular-nums",
+                      userSelect: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    }}
+                      title={c && c.roomNights > 0 && m.adr > 0 ? `${fmt(m.adr * c.roomNights)} Ft` : undefined}
+                    >
+                      {c && c.roomNights > 0 && m.adr > 0 ? fmtM(m.adr * c.roomNights) : "—"}
+                    </div>
+                  </div>
+                )}
 
                 {/* Kalkulált kiadás/szoba/éj — read-only, settings-ből számolt */}
                 {costsEnabled && (
@@ -2029,13 +2054,13 @@ export default function SimplePlanDetailPage() {
           icon={<DollarSign size={16} />}
           sub="szobaeladott éjszakára vetítve"
         />
-        <KpiCard
+        {(costsEnabled || fbEnabled) && <KpiCard
           label="Szobaárbev./szoba/éj"
           value={avgRevPerRoomNight > 0 ? `${fmt(Math.round(avgRevPerRoomNight))} Ft` : "—"}
           color="#35BD78"
           icon={<TrendingUp size={16} />}
           sub={fbEnabled ? "ADR + F&B + egyéb" : "ADR alapján"}
-        />
+        />}
         <KpiCard
           label="RevPAR"
           value={revPAR > 0 ? `${fmt(Math.round(isSimActive ? simRevPAR : revPAR))} Ft` : "—"}
@@ -2642,7 +2667,7 @@ export default function SimplePlanDetailPage() {
                   { label: "Hónap", align: "left" },
                   { label: "Kihasználtság", align: "right" },
                   { label: "Szobaéj", align: "right" },
-                  { label: "Szobaárbevétel/szoba/éj", align: "right" },
+                  { label: costsEnabled || fbEnabled ? "Szobaárbevétel/szoba/éj" : "ADR", align: "right" },
                   { label: "Bevétel", align: "right" },
                   ...(costsEnabled ? [
                     { label: "Kiadás/szoba/éj", align: "right" },
@@ -2693,8 +2718,8 @@ export default function SimplePlanDetailPage() {
                       {c.hasData && c.roomNights > 0 ? (
                         <span>
                           <span style={{
-                            color: adrChanged ? "#6366F1" : m.roomRevenue > 0 ? "#35BD78" : "#334155",
-                            fontWeight: adrChanged || m.roomRevenue > 0 ? 700 : 400,
+                            color: adrChanged ? "#6366F1" : costsEnabled && m.roomRevenue > 0 ? "#35BD78" : "#334155",
+                            fontWeight: adrChanged || (costsEnabled && m.roomRevenue > 0) ? 700 : 400,
                           }}>
                             {fmt(Math.round(c.revenue / c.roomNights))} Ft
                           </span>

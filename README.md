@@ -46,7 +46,7 @@ Szállodánként választható, hogy a Simple Planner költségekkel együtt vag
 | Mód | Mit tartalmaz |
 |---|---|
 | **Költségekkel** (alapértelmezett) | Bevétel + kiadások, TFH, profit, margin, fedezeti pont — minden, ami a kézikönyv további részében szerepel |
-| **Csak bevétel** | ADR, kihasználtság, szobaárbevétel/bevétel, F&B és egyéb bevételek, RevPAR, valamint a szimulátor csúszkái. Kiadás, TFH, profit, margin és fedezeti pont **nem** jelenik meg |
+| **Csak bevétel** | Havonta csak ADR és kihasználtság a bemenet; mellette a rendszer kiszámolja az össz. szállásbevételt (ADR × eladott szobaéjszakák). Megmarad az F&B és egyéb bevétel, a RevPAR és a szimulátor. Nincs szobaárbevétel-felülírás, és kiadás, TFH, profit, margin, fedezeti pont **nem** jelenik meg |
 
 Hol állítható:
 - **Új szálloda felvételekor** (`Admin → Szállodák → Új szálloda` → *Tervezési mód*)
