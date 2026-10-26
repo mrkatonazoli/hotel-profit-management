@@ -682,7 +682,6 @@ export default function SimplePlanDetailPage() {
   const [actuals, setActuals] = useState<ActualData[]>(
     Array.from({ length: 12 }, (_, i) => ({ month: i + 1, occupancyPct: 0, adr: 0, totalRevenue: 0 }))
   );
-  const [showActuals, setShowActuals] = useState(false);
 
   // ─── Import modal state ───────────────────────────────────────────────────
   const [showImport, setShowImport] = useState(false);
@@ -2223,12 +2222,11 @@ export default function SimplePlanDetailPage() {
       {/* ═══════════════════════════════════════════════════════════════════════ */}
 
       <div style={{ background: "white", border: "1px solid #E2E8F0", borderRadius: 20, marginBottom: 24, overflow: "hidden" }}>
-        {/* Header — kattintható, nyitja/zárja */}
-        <button
-          onClick={() => setShowActuals(v => !v)}
+        {/* Header */}
+        <div
           style={{
             width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "16px 24px", background: "none", border: "none", cursor: "pointer", textAlign: "left",
+            padding: "16px 24px", boxSizing: "border-box",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2244,10 +2242,9 @@ export default function SimplePlanDetailPage() {
               </p>
             </div>
           </div>
-          <div style={{ fontSize: 18, color: "#94A3B8", transform: showActuals ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</div>
-        </button>
+        </div>
 
-        {showActuals && (
+        {(
           <div style={{ borderTop: "1px solid #F1F5F9", padding: "20px 24px" }}>
 
             {/* Input grid */}
