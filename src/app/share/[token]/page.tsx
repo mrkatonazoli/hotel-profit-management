@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { useParams } from "next/navigation";
 import { computeMonthCalc } from "@/lib/simple-planner-calc";
 import type { FbParams, CostParams, MonthCalc } from "@/lib/simple-planner-calc";
@@ -19,6 +20,8 @@ const HU_MONTHS = [
   "Július","Augusztus","Szeptember","Október","November","December",
 ];
 const HU_MONTHS_SHORT = ["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","Sze","Okt","Nov","Dec"];
+// A4 álló, 10 mm margó, 0.72 nyomtatási zoom mellett egy fél szélességű grafikon-kártya belső szélessége
+const PRINT_CHART_WIDTH = 440;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -222,6 +225,19 @@ export default function SharePage() {
   const [passwordError, setPasswordError] = useState(false);
   const [passwordChecking, setPasswordChecking] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
+  const [printing, setPrinting] = useState(false);
+
+  useEffect(() => {
+    // Nyomtatáskor (PDF) animáció nélkül, azonnal teljes grafikonok kellenek
+    const before = () => flushSync(() => setPrinting(true));
+    const after = () => setPrinting(false);
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint", after);
+    return () => {
+      window.removeEventListener("beforeprint", before);
+      window.removeEventListener("afterprint", after);
+    };
+  }, []);
 
   async function fetchData(pwd?: string) {
     const headers: Record<string, string> = {};
@@ -636,8 +652,40 @@ export default function SharePage() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
+  function exportPdf() {
+    setPrinting(true);
+    setSimOffset(0);
+    setSimAdrPct(0);
+    const prevTitle = document.title;
+    document.title = `${hotel.name} – ${plan.name} (${plan.year})`;
+    const restore = () => { document.title = prevTitle; window.removeEventListener("afterprint", restore); };
+    window.addEventListener("afterprint", restore);
+    // a szimulátor visszaállítása és a grafikonok újrarajzolása után nyomtatunk
+    setTimeout(() => window.print(), 400);
+  }
+
   return (
-    <div style={{ minHeight: "100vh", background: "#F1F5F9", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+    <div className="share-root" style={{ minHeight: "100vh", background: "#F1F5F9", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <style>{`
+        @media print {
+          @page { size: A4; margin: 10mm; }
+          html, body { background: white !important; }
+          body { zoom: 0.72; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .no-print { display: none !important; }
+          .share-root { background: white !important; min-height: 0 !important; }
+          .share-root header { position: static !important; box-shadow: none !important; backdrop-filter: none !important; }
+          .share-root main { padding: 16px 0 0 !important; max-width: none !important; }
+          .share-root div[style*="overflow-x"] { overflow: visible !important; }
+          .share-root table { min-width: 0 !important; }
+          .share-root tr, .print-avoid { break-inside: avoid; page-break-inside: avoid; }
+          .share-root h2, .share-root h3 { break-after: avoid; }
+          .share-root td { white-space: nowrap; }
+          .share-root tfoot { display: table-row-group; }
+          .share-root thead { display: table-header-group; }
+          .recharts-tooltip-wrapper { display: none !important; }
+        }
+      `}</style>
 
       {/* ── Sticky Header ── */}
       <header style={{
@@ -672,6 +720,21 @@ export default function SharePage() {
 
           {/* Right: branding + badge */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              type="button"
+              className="no-print"
+              onClick={exportPdf}
+              title="A böngésző nyomtatási ablakában válaszd a „Mentés PDF-ként” lehetőséget"
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                fontSize: 12, fontWeight: 700, color: "white",
+                background: "linear-gradient(135deg,#35BD78,#03915A)",
+                border: "none", borderRadius: 9, padding: "7px 14px", cursor: "pointer",
+                boxShadow: "0 2px 8px rgba(53,189,120,0.3)",
+              }}
+            >
+              ⬇ PDF letöltés
+            </button>
             <div style={{
               fontSize: 11, fontWeight: 700,
               color: "#64748B",
@@ -700,7 +763,7 @@ export default function SharePage() {
       <main style={{ maxWidth: 1180, margin: "0 auto", padding: "36px 32px 80px" }}>
 
         {/* ── Hero strip ── */}
-        <div style={{
+        <div className="print-avoid" style={{
           background: "linear-gradient(135deg, #35BD78 0%, #4F46E5 100%)",
           borderRadius: 20,
           padding: "32px 40px",
@@ -780,7 +843,7 @@ export default function SharePage() {
         )}
 
         {/* ── Interaktív szimulátor + KPI egy blokkban ── */}
-        <div style={{
+        <div className="print-avoid" style={{
           background: "white",
           borderRadius: 24,
           border: isSimActive ? "2px solid #35BD78" : "1px solid #E2E8F0",
@@ -793,7 +856,7 @@ export default function SharePage() {
         }}>
 
           {/* ── Header ── */}
-          <div style={{
+          <div className="no-print" style={{
             background: isSimActive
               ? "linear-gradient(135deg, #FBFBFC 0%, rgba(53,189,120,0.12) 100%)"
               : "linear-gradient(135deg, #FAFAFA 0%, #F1F5F9 100%)",
@@ -845,7 +908,7 @@ export default function SharePage() {
           </div>
 
           {/* ── Csúszkák ── */}
-          <div style={{
+          <div className="no-print" style={{
             padding: "24px 32px",
             borderBottom: "1px solid #F1F5F9",
             background: isSimActive ? "#FDFCFF" : "white",
@@ -1516,9 +1579,9 @@ export default function SharePage() {
         )}
 
         {/* ── Charts ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+        <div className="print-avoid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
           {/* Revenue & Profit */}
-          <div style={{
+          <div className="print-avoid" style={{
             background: "white", borderRadius: 18,
             border: "1px solid #E2E8F0",
             boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
@@ -1534,7 +1597,7 @@ export default function SharePage() {
                 }}>SZIMULÁCIÓ</span>
               )}
             </div>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width={printing ? PRINT_CHART_WIDTH : "100%"} height={220}>
               <BarChart data={chartData} barGap={3} barCategoryGap="28%">
                 <CartesianGrid strokeDasharray="2 4" stroke="#F1F5F9" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94A3B8", fontWeight: 600 }} axisLine={false} tickLine={false} />
@@ -1542,15 +1605,15 @@ export default function SharePage() {
                 <ReTooltip content={<TooltipRevenue />} cursor={{ fill: "rgba(99,102,241,0.05)" }} />
                 <ReferenceLine y={0} stroke="#E2E8F0" strokeWidth={1.5} />
                 {hasPrev && (
-                  <Bar dataKey="prevRevenue" radius={[5, 5, 0, 0]} fill="#CBD5E1" opacity={0.9} />
+                  <Bar isAnimationActive={!printing} dataKey="prevRevenue" radius={[5, 5, 0, 0]} fill="#CBD5E1" opacity={0.9} />
                 )}
-                <Bar dataKey="revenue" radius={[5, 5, 0, 0]} opacity={0.9}>
+                <Bar isAnimationActive={!printing} dataKey="revenue" radius={[5, 5, 0, 0]} opacity={0.9}>
                   {chartData.map((entry, i) => (
                     <Cell key={i} fill={entry.hasData ? (isSimActive ? "#6366F1" : "#3B82F6") : "#F1F5F9"} />
                   ))}
                 </Bar>
                 {costsEnabled && (
-                <Bar dataKey="profit" radius={[5, 5, 0, 0]} opacity={0.85}>
+                <Bar isAnimationActive={!printing} dataKey="profit" radius={[5, 5, 0, 0]} opacity={0.85}>
                   {chartData.map((entry, i) => (
                     <Cell key={i} fill={entry.hasData ? (entry.profit >= 0 ? "#059669" : "#DC2626") : "#F1F5F9"} />
                   ))}
@@ -1579,7 +1642,7 @@ export default function SharePage() {
           </div>
 
           {/* Occupancy & Breakeven */}
-          <div style={{
+          <div className="print-avoid" style={{
             background: "white", borderRadius: 18,
             border: "1px solid #E2E8F0",
             boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
@@ -1595,13 +1658,13 @@ export default function SharePage() {
                 }}>SZIMULÁCIÓ</span>
               )}
             </div>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width={printing ? PRINT_CHART_WIDTH : "100%"} height={220}>
               <BarChart data={chartData} barGap={3} barCategoryGap="28%">
                 <CartesianGrid strokeDasharray="2 4" stroke="#F1F5F9" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94A3B8", fontWeight: 600 }} axisLine={false} tickLine={false} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "#CBD5E1" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={38} />
                 <ReTooltip content={<TooltipOcc />} cursor={{ fill: "rgba(53,189,120,0.04)" }} />
-                <Bar dataKey="occ" radius={[5, 5, 0, 0]} opacity={0.85}>
+                <Bar isAnimationActive={!printing} dataKey="occ" radius={[5, 5, 0, 0]} opacity={0.85}>
                   {chartData.map((entry, i) => (
                     <Cell key={i} fill={entry.hasData ? "#35BD78" : "#F1F5F9"} />
                   ))}

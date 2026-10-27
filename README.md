@@ -342,6 +342,8 @@ A megosztott riport teljes értékű interaktív oldal — ugyanolyan szimuláto
 - **Összevetés az előző évvel** — ha a tervhez a *Terv vs. Tény* blokkban előző évi tényadat van rögzítve: bevétel / kihasználtság / súlyozott ADR kártyák, automatikusan generált szöveges magyarázat (mennyi az eltérés, ebből mennyi a kihasználtság és mennyi az átlagár hatása, melyik hónap nő a legjobban, hol tervez kevesebbet), havi táblázat Δ terv − tény értékkel, és az előző év oszlopai a bevételi grafikonon. Aktív szimulátornál a szimulált tervvel számol.
 - **Havi megjegyzések** — a tervlapon minden hónapkártya alján (terv és tény) a *+ megjegyzés* gombbal max. 500 karakteres megjegyzés írható. Ezek a riporton a hónap neve alatt jelennek meg, és az AI összefoglaló is figyelembe veszi őket.
 
+- **PDF letöltés** — a riport fejlécében lévő *PDF letöltés* gomb megnyitja a böngésző nyomtatási ablakát, ahol a *Mentés PDF-ként* opcióval A4-es PDF készül. A PDF a szimulátor csúszkái nélkül, mindig az alaptervvel (a szimulátor nyomtatás előtt visszaáll), szöveges és kereshető formában tartalmazza a riportot; a grafikonok papírszélességre igazodnak.
+
 Az ügyfél **csak olvasni és szimulálni tud** — szerkeszteni nem.
 
 > Az ügyfél maga fedezi fel, mit jelent +5% kihasználtság a profitjára nézve. Ez az a pont, ahol a HeyMax! átlép a belső tervezőeszköz kategóriájából az értékesítést támogató eszköz kategóriájába.
